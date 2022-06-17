@@ -1,0 +1,573 @@
+# Conflict Grids & Peacekeeping #
+# By: Adam Kunkel
+
+### load libraries ###
+library(tidygeocoder)
+library(tidyverse); library(viridis); library(lubridate)
+library(gdata); library(designmatch) 
+
+library(ggpubr); library(ggiraphExtra); library(coefplot); library(stargazer) # need to add these to dockerfile
+library(spdep); library(gurobi); library(MASS); library(lme4); library(vtable)
+library(sensitivitymw)
+
+
+# turn off scientific notation
+options(scipen = 999)
+
+# reading in cleaned data
+setwd("../data/")
+a = readRDS("merged_data.rds")
+
+# my number of grid-months w/ violence is 6685 (see test dataframe in data_clean script)
+
+# From Fjelde et al. 2019 analysis: Of the 2,387 spatial units in our data set, 
+# 214 see peacekeeping forces deployed and 159 experience one-sided violence 
+# with at least five people killed in one month at some point during the period 
+# from January 2000 to December 2011. 
+
+# two analyses to run:
+# one: regression analyzing whether peacekeepers reduced violence in all grids over course of PKO deployment
+# can also add mlm to this with country level
+
+# matching analysis with most data possible (i.e. all ACLED data on downloaded countries) to match
+# grids together
+
+
+# choosing the right regression:
+# https://www.ncbi.nlm.nih.gov/pmc/articles/PMC2943670/
+# http://sekhon.berkeley.edu/papers/opiates.pdf
+
+
+
+##########################################
+        ### Regression Analysis ###
+##########################################
+
+# Create a "treatment" indicator telling us if PKs existed in a certain grid at a certain time 
+a$t_ind = 0
+a$t_ind[a$units_deployed >= 1] = 1
+a$event.b = 0
+a$event.b[a$event>0] = 1
+a$death = 0
+a$death[a$fatalities>0] = 1
+a$pop.dens = a$pop_gpw_sum / a$landarea 
+a$fate.5 = 0
+a$fate.5[a$fatalities > 4] = 1
+a$event.5 = 0
+a$event.5[a$event > 4] = 1
+# replace NAs w/ 0
+a$units_deployed[is.na(a$units_deployed)] <- 0
+a$countries_deployed[is.na(a$countries_deployed)] <- 0
+a$pko_deployed[is.na(a$pko_deployed)] <- 0
+a$untrp[is.na(a$untrp)] <- 0
+a$unpol[is.na(a$unpol)] <- 0
+a$unmob[is.na(a$unmob)] <- 0
+a$f_untrp[is.na(a$f_untrp)] <- 0
+a$f_unpol[is.na(a$f_unpol)] <- 0
+a$f_unmob[is.na(a$f_unmob)] <- 0
+a$fatalities[is.na(a$fatalities)] <- 0
+a$event[is.na(a$event)] <- 0
+a$mountains_mean[is.na(a$mountains_mean)] <- 0
+
+### add OSV by distinct actors variables ###
+# violent events + binaries #
+a$inter1[is.na(a$inter1)] <- 0
+a$gov_event = 0
+a$gov_event[a$inter1 == 1 | a$inter1 == 3 | a$inter1 == 4] = a$event[a$inter1 == 1 | a$inter1 == 3 | a$inter1 == 4]
+a$gov_event.b = 0
+a$gov_event.b[a$inter1 == 1 | a$inter1 == 3 | a$inter1 == 4] = a$event.b[a$inter1 == 1 | a$inter1 == 3 | a$inter1 == 4]
+a$reb_event = 0
+a$reb_event[a$inter1 == 2] = a$event[a$inter1 == 2]
+a$reb_event.b = 0
+a$reb_event.b[a$inter1 == 2] = a$event.b[a$inter1 == 2]
+
+a$gov_event.5 = 0
+a$gov_event.5[a$gov_event.b == 1 & a$event.5 == 1] = 1
+a$reb_event.5 = 0
+a$reb_event.5[a$reb_event.b == 1 & a$event.5 == 1] = 1
+
+# fatalities + binaries #
+a$gov_death = 0
+a$gov_death[a$inter1 == 1 | a$inter1 == 3 | a$inter1 == 4] = a$fatalities[a$inter1 == 1 | a$inter1 == 3 | a$inter1 == 4]
+a$gov_death.b = 0
+a$gov_death.b[a$inter1 == 1 | a$inter1 == 3 | a$inter1 == 4] = a$death[a$inter1 == 1 | a$inter1 == 3 | a$inter1 == 4]
+a$reb_death = 0
+a$reb_death[a$inter1 == 2] = a$fatalities[a$inter1 == 2]
+a$reb_death.b = 0
+a$reb_death.b[a$inter1 == 2] = a$death[a$inter1 == 2]
+
+a$gov_death.5 = 0
+a$gov_death.5[a$gov_death.b == 1 & a$fate.5 == 1] = 1
+a$reb_death.5 = 0
+a$reb_death.5[a$reb_death.b == 1 & a$fate.5 == 1] = 1
+
+
+### Logit Model Aggregated###
+logit1 = glm.nb(formula = a$event.b ~ a$units_deployed + a$untrp + a$unpol + a$unmob + a$f_untrp +
+                  a$f_unpol + a$f_unmob)
+summary(logit1)
+
+logit2 = glm.nb(formula = a$death ~ a$units_deployed + a$untrp + a$unpol + a$unmob + a$f_untrp +
+                  a$f_unpol + a$f_unmob)
+summary(logit2)
+
+logit3 = glm.nb(formula = a$event.b ~ a$units_deployed + a$untrp + a$unpol + a$unmob + a$f_untrp +
+                  a$f_unpol + a$f_unmob + a$mountains_mean + a$ttime_mean + 
+                  a$urban_gc + a$nlights_calib_mean + a$pop_gpw_sum + a$pop.dens)
+summary(logit3)
+
+logit4 = glm.nb(formula = a$death ~ a$units_deployed + a$untrp + a$unpol + a$unmob + a$f_untrp +
+                  a$f_unpol + a$f_unmob + a$mountains_mean + a$ttime_mean + a$pop_gpw_sum + a$pop.dens)
+summary(logit4)
+
+########### testing w/ t_ind ###############
+
+logit5 = glm.nb(a$event ~ a$t_ind + a$units_deployed + a$untrp + a$unpol + a$unmob + a$f_untrp +
+            a$f_unpol + a$f_unmob)
+summary(logit5)
+
+logit6 = glm.nb(a$fatalities ~ a$t_ind + a$units_deployed + a$untrp + a$unpol + a$unmob + a$f_untrp +
+            a$f_unpol + a$f_unmob)
+summary(logit6)
+
+logit7 = glm.nb(a$event ~ a$t_ind + a$units_deployed + a$untrp + a$unpol + a$unmob + a$f_untrp +
+                  a$f_unpol + a$f_unmob + a$mountains_mean + a$ttime_mean + 
+                  a$urban_gc + a$nlights_calib_mean + a$pop_gpw_sum + a$pop.dens)
+summary(logit7)
+
+logit8 = glm.nb(a$fate.5 ~ a$t_ind + a$units_deployed + a$untrp + a$unpol + a$unmob + a$f_untrp +
+                  a$f_unpol + a$f_unmob + a$mountains_mean + a$ttime_mean + a$pop_gpw_sum + a$pop.dens)
+# switching to 5 death threshold for this model since regular continuous variable won't work
+
+# not using nlights here because economic activity might affect whether a violent event occurs but not whether a death happens
+# not using urban_gc here because population density might affect whether a violent event occurs but not whether a death happens
+
+summary(logit8)
+
+
+
+###########################################
+### Logit Model Dis-aggregated by actor ###
+###########################################
+
+# Gov OSV #
+logit9 = glm.nb(a$gov_event ~ a$units_deployed + a$untrp + a$unpol + a$unmob + a$f_untrp +
+                  a$f_unpol + a$f_unmob + a$mountains_mean + a$ttime_mean + 
+                  a$urban_gc + a$nlights_calib_mean + a$pop_gpw_sum + a$pop.dens)
+summary(logit9)
+
+logit10 = glm.nb(a$gov_death ~ a$units_deployed + a$untrp + a$unpol + a$unmob + a$f_untrp +
+                  a$f_unpol + a$f_unmob + a$mountains_mean + a$ttime_mean + a$pop_gpw_sum + a$pop.dens)
+summary(logit10)
+
+########### testing w/ t_ind ###############
+logit11 = glm.nb(a$gov_event.b ~ a$t_ind + a$units_deployed + a$untrp + a$unpol + a$unmob + a$f_untrp +
+                  a$f_unpol + a$f_unmob + a$mountains_mean + a$ttime_mean + 
+                  a$urban_gc + a$nlights_calib_mean + a$pop_gpw_sum + a$pop.dens)
+summary(logit11)
+
+logit12 = glm.nb(a$gov_death.b ~ a$t_ind + a$units_deployed + a$untrp + a$unpol + a$unmob + a$f_untrp +
+                  a$f_unpol + a$f_unmob + a$mountains_mean + a$ttime_mean + a$pop_gpw_sum + a$pop.dens)
+# switching to 5 death threshold for this model since regular continuous variable won't work
+
+# not using nlights here because economic activity might affect whether a violent event occurs but not whether a death happens
+# not using urban_gc here because population density might affect whether a violent event occurs but not whether a death happens
+
+summary(logit12)
+
+# results from both of these indicate a possible selection effect; i.e., peacekeepers go where there is violence, so identifying it 
+# by just the treatment biases the estimate of violence higher
+# try running again after card match
+
+
+# Rebel OSV #
+logit13 = glm.nb(a$reb_event.b ~ a$units_deployed + a$untrp + a$unpol + a$unmob + a$f_untrp +
+                  a$f_unpol + a$f_unmob + a$mountains_mean + a$ttime_mean + 
+                  a$urban_gc + a$nlights_calib_mean + a$pop_gpw_sum + a$pop.dens)
+summary(logit13)
+
+logit14 = glm.nb(a$reb_death.b ~ a$units_deployed + a$untrp + a$unpol + a$unmob + a$f_untrp +
+                   a$f_unpol + a$f_unmob + a$mountains_mean + a$ttime_mean + a$pop_gpw_sum + a$pop.dens)
+summary(logit14)
+
+########### testing w/ t_ind ###############
+logit15 = glm.nb(a$reb_event.b ~ a$t_ind + a$units_deployed + a$untrp + a$unpol + a$unmob + a$f_untrp +
+                   a$f_unpol + a$f_unmob + a$mountains_mean + a$ttime_mean + 
+                   a$urban_gc + a$nlights_calib_mean + a$pop_gpw_sum + a$pop.dens)
+summary(logit15)
+
+# should there be an interaction effect between t_ind and other peacekeeping variables?
+logit16 = glm.nb(a$reb_death.b ~ a$t_ind + a$units_deployed + a$untrp + a$unpol + a$unmob + a$f_untrp +
+                   a$f_unpol + a$f_unmob + a$mountains_mean + a$ttime_mean + a$pop_gpw_sum + a$pop.dens)
+# not using nlights here because economic activity might affect whether a violent event occurs but not whether a death happens
+# not using urban_gc here because population density might affect whether a violent event occurs but not whether a death happens
+
+summary(logit16)
+
+
+
+# Gov OSV #
+logit9.1 = glm.nb(a$gov_event.5 ~ a$units_deployed + a$untrp + a$unpol + a$unmob + a$f_untrp +
+                   a$f_unpol + a$f_unmob + a$mountains_mean + a$ttime_mean + 
+                   a$urban_gc + a$nlights_calib_mean + a$pop_gpw_sum + a$pop.dens)
+summary(logit9.1)
+
+logit10.1 = glm.nb(a$gov_death.5 ~ a$units_deployed + a$untrp + a$unpol + a$unmob + a$f_untrp +
+                   a$f_unpol + a$f_unmob + a$mountains_mean + a$ttime_mean + a$pop_gpw_sum + a$pop.dens)
+summary(logit10.1)
+
+# not using nlights here because economic activity might affect whether a violent event occurs but not whether a death happens
+# not using urban_gc here because population density might affect whether a violent event occurs but not whether a death happens
+
+
+# Rebel OSV #
+logit13.1 = glm.nb(a$reb_event.5 ~ a$units_deployed + a$untrp + a$unpol + a$unmob + a$f_untrp +
+                   a$f_unpol + a$f_unmob + a$mountains_mean + a$ttime_mean + 
+                   a$urban_gc + a$nlights_calib_mean + a$pop_gpw_sum + a$pop.dens)
+summary(logit13.1) # logit13.1 doesn't run, likely not enough data
+
+logit14.1 = glm.nb(a$reb_death.5 ~ a$units_deployed + a$untrp + a$unpol + a$unmob + a$f_untrp +
+                   a$f_unpol + a$f_unmob + a$mountains_mean + a$ttime_mean + a$pop_gpw_sum + a$pop.dens)
+summary(logit14.1)
+
+stargazer(logit9.1, logit10.1, logit14.1, title = "Pre-matched Results (>4)", align = TRUE, digits=3, font.size = "scriptsize",
+          out = "../results/pre_matched_logit_5.txt")
+
+
+###
+# keeping below section in case other evidence convinces me to use spatial durbin model #
+###
+
+# ### Spatial Durbin Model ##
+# 
+# prio = st_read(dsn = "./priogrid_cellshp", 
+#                layer = "priogrid_cell", 
+#                stringsAsFactors = F) %>% 
+#   mutate(gid = as.character(gid))
+# 
+# names(prio)[1] = "prio.grid" # rename for merging
+# prio$prio.grid = as.numeric(prio$prio.grid) # transform the column into numeric so we can join the data
+# 
+# prio.sp = as(prio, Class = "Spatial")
+# nb = poly2nb(prio.sp, 
+#              queen = TRUE, 
+#              row.names = prio.sp$prio.grid)
+# 
+# # store as list (most modeling packages require this)
+# lw = nb2listw(nb, style = "W", zero.policy = TRUE)
+# print(lw, zero.policy = TRUE) ## to look at lw contents
+# 
+# 
+# ### summarize by prio grid first ###
+# #https://r-spatial.github.io/spatialreg/reference/SLX.html
+# sp.durb1 = lmSLX(logit1, data = a, listw = lw)
+# # Spatial durbin model says the DV is a function of three things:
+#   # neighbor DV values
+#   # our own IV values
+#   # neighbor IV values
+# 
+# moran.test(prio.sp$pop_gpw_sum, listw = lw, zero.policy = TRUE) # Moran's I (eye) test
+# # the closer the result is to 1, the more spatial dependence there is
+# # for more info on this, see here: https://www.youtube.com/watch?v=6qZgchGCMds&ab_channel=BurkeyAcademy
+#   # and here: https://sites.google.com/site/econometricsacademy/econometrics-models/spatial-econometrics
+
+
+##########################################
+        ### Regression Figures ###
+##########################################
+
+stargazer(logit9, logit10, logit13, logit14, title = "Pre-matched Results", align = TRUE, digits=3, font.size = "scriptsize",
+          out = "../results/pre_matched_logit.txt")
+
+# descriptive statistics table #
+
+labs = c("Total PKs deployed", "Troops Total", "Female Troops")
+sum = c("mean(x)", "sd(x)", "min(x)", "max(x)")
+st(a, group = "mission", vars =c("pko_deployed", "untrp", "f_untrp"), group.long = TRUE,
+   col.breaks = 3, labels = labs, summ = sum, out = "latex")
+
+
+##########################################
+        ### Matching Analysis ###
+##########################################
+
+
+# can't run with NAs
+# so, make all NAs equal to average of the column
+sum(is.na(a$mountains_mean))
+sum(is.na(a$ttime_mean))
+sum(is.na(a$urban_gc))
+sum(is.na(a$nlights_calib_mean))
+sum(is.na(a$pop_gpw_sum))
+sum(is.na(a$pop.dens))
+sum(is.na(a$prec_gpcp))
+
+a = a[order(a$t_ind, decreasing=TRUE), ]
+
+control.variables = cbind(a$mountains_mean, a$ttime_mean, a$urban_gc, a$nlights_calib_mean, 
+                          a$pop_gpw_sum, a$pop.dens, a$prec_gpcp)
+
+for(i in 1:ncol(control.variables)){
+  control.variables[is.na(control.variables[,i]), i] <- mean(control.variables[,i], na.rm = TRUE)
+}
+
+
+# keep shape/map stuff at the end of data.frame #
+a = a %>% relocate(c("xcoord", "ycoord", "col", "row", "geometry"), .after = last_col())
+
+t_ind = a$t_ind
+mom_covs = cbind(a$mountains_mean, a$ttime_mean, a$urban_gc, a$nlights_calib_mean, 
+                 a$pop_gpw_sum, a$pop.dens, a$prec_gpcp)
+
+for(i in 1:ncol(mom_covs)){
+  mom_covs[is.na(mom_covs[,i]), i] <- mean(mom_covs[,i], na.rm = TRUE)
+}
+
+ # define observed covariates for the matching
+
+mom_tols = absstddif(mom_covs, t_ind, .1) # defining the tolerance of balance (0.1)
+mom = list(covs = mom_covs, tols = mom_tols, targets = NULL) # merging the covariates and the tolerance
+
+# Solver options
+t_max = 60*5
+solver = "gurobi"
+approximate = 0
+solver = list(name = solver, t_max = t_max, approximate = approximate,
+              round_cplex = 0, trace = 1)
+
+# Match
+out_1 = cardmatch(t_ind, mom = mom, solver = solver) 
+
+# Indices of the treated units and matched controls
+t_id_1 = out_1$t_id
+c_id_1 = out_1$c_id
+
+# Standardized before matching
+
+tab1
+
+# Standardized after matching
+covs = cbind(a$mountains_mean, a$ttime_mean, a$urban_gc, a$nlights_calib_mean, 
+                        a$pop_gpw_sum, a$pop.dens, a$prec_gpcp)
+tab2 = meantab(covs, t_ind, t_id_1, c_id_1)
+
+# Save matched sample 
+b = a[c(t_id_1, c_id_1), ]
+
+# this might be for matching: "Moreover, we match for grid characteristics identified 
+# in the disaggregate literature of civil war: INFANT MORTALITY RATE, POPULATION, 
+# AVERAGE MOUNTAINS, and AVERAGE RAIN PRECIPITATION"
+
+
+# number of observations before and after matching 
+
+table((a$t_ind))
+table(table(t_id_1))
+table(table(c_id_1))
+
+
+# ATE effect using difference in means #
+
+# first, gov forces
+mean(b$gov_death.b[b$t_ind==1])
+mean(b$gov_death.b[b$t_ind==0])
+mean(b$gov_death.b[b$t_ind==1]) - mean(b$gov_death.b[b$t_ind==0])
+
+mean(b$gov_event.b[b$t_ind==1])
+mean(b$gov_event.b[b$t_ind==0])
+mean(b$gov_event.b[b$t_ind==1]) - mean(b$gov_event.b[b$t_ind==0])
+
+mean(b$gov_death[b$t_ind==1])
+mean(b$gov_death[b$t_ind==0])
+mean(b$gov_death[b$t_ind==1]) - mean(b$gov_death[b$t_ind==0])
+
+mean(b$gov_event[b$t_ind==1])
+mean(b$gov_event[b$t_ind==0])
+mean(b$gov_event[b$t_ind==1]) - mean(b$gov_event[b$t_ind==0])
+
+# now, reb forces
+mean(b$reb_death.b[b$t_ind==1])
+mean(b$reb_death.b[b$t_ind==0])
+mean(b$reb_death.b[b$t_ind==1]) - mean(b$reb_death.b[b$t_ind==0])
+
+mean(b$reb_event.b[b$t_ind==1])
+mean(b$reb_event.b[b$t_ind==0])
+mean(b$reb_event.b[b$t_ind==1]) - mean(b$reb_event.b[b$t_ind==0])
+
+mean(b$reb_death[b$t_ind==1])
+mean(b$reb_death[b$t_ind==0])
+mean(b$reb_death[b$t_ind==1]) - mean(b$reb_death[b$t_ind==0])
+
+mean(b$reb_event[b$t_ind==1])
+mean(b$reb_event[b$t_ind==0])
+mean(b$reb_event[b$t_ind==1]) - mean(b$reb_event[b$t_ind==0])
+
+
+# Question 2.D
+
+test_d_match1 = data.frame(b$gov_death.b[b$t_ind==1],b$gov_death.b[b$t_ind==0])
+colnames(test_d_match1) = c("treated","control")
+
+senmw(test_d_match1,gamma=1,method="t")$pval
+
+# Question 2.E
+
+senmw(test_d_match1,gamma=1.1,method="t")$pval
+
+
+# let's try regressions again
+
+# Gov OSV #
+logit17 = glm.nb(gov_event.b ~ units_deployed + untrp + unpol + unmob + f_untrp +
+                  f_unpol + f_unmob + mountains_mean + ttime_mean + 
+                  urban_gc + nlights_calib_mean + pop_gpw_sum + pop.dens, data = b)
+summary(logit17)
+
+logit18 = glm.nb(gov_death.b ~ units_deployed + untrp + unpol + unmob + f_untrp +
+                   f_unpol + f_unmob + mountains_mean + ttime_mean + pop_gpw_sum + pop.dens,
+                 data = b)
+summary(logit18)
+
+# not using nlights here because economic activity might affect whether a violent event occurs but not whether a death happens
+# not using urban_gc here because population density might affect whether a violent event occurs but not whether a death happens
+
+
+# Rebel OSV #
+logit19 = glm.nb(reb_event.b ~ units_deployed + untrp + unpol + unmob + f_untrp +
+                   f_unpol + f_unmob + mountains_mean + ttime_mean + 
+                   urban_gc + nlights_calib_mean + pop_gpw_sum + pop.dens, data = b)
+summary(logit19)
+
+logit20 = glm.nb(reb_death.b ~ units_deployed + untrp + unpol + unmob + f_untrp +
+                   f_unpol + f_unmob + mountains_mean + ttime_mean + pop_gpw_sum + pop.dens,
+                 data = b)
+summary(logit20)
+# not using nlights here because economic activity might affect whether a violent event occurs but not whether a death happens
+# not using urban_gc here because population density might affect whether a violent event occurs but not whether a death happens
+
+# regression table #
+stargazer(logit17, logit18, logit19, logit20, title = "Matched Results", align = TRUE, digits=3, font.size = "scriptsize",
+          out = "../results/matched_logit.txt")
+
+
+
+# same regressions but using 5 death threshold after Fjelde et al. (2019) #
+
+# Gov OSV #
+logit21 = glm.nb(gov_event.5 ~ units_deployed + untrp + unpol + unmob + f_untrp +
+                   f_unpol + f_unmob + mountains_mean + ttime_mean + 
+                   urban_gc + nlights_calib_mean + pop_gpw_sum + pop.dens, data = b)
+summary(logit21) # also didn't run, calculated deviance probably became infinite
+
+logit22 = glm.nb(gov_death.5 ~ units_deployed + untrp + unpol + unmob + f_untrp +
+                   f_unpol + f_unmob + mountains_mean + ttime_mean + pop_gpw_sum + pop.dens,
+                 data = b)
+summary(logit22)
+
+# not using nlights here because economic activity might affect whether a violent event occurs but not whether a death happens
+# not using urban_gc here because population density might affect whether a violent event occurs but not whether a death happens
+
+
+# Rebel OSV #
+logit23 = glm.nb(reb_event.5 ~ units_deployed + untrp + unpol + unmob + f_untrp +
+                   f_unpol + f_unmob + mountains_mean + ttime_mean + 
+                   urban_gc + nlights_calib_mean + pop_gpw_sum + pop.dens, data = b)
+summary(logit23) # same as pre-matched, still won't run
+
+logit24 = glm.nb(reb_death.5 ~ units_deployed + untrp + unpol + unmob + f_untrp +
+                   f_unpol + f_unmob + mountains_mean + ttime_mean + pop_gpw_sum + pop.dens,
+                 data = b)
+summary(logit24)
+
+
+stargazer(logit22, logit24, title = "Matched Results (>4)", align = TRUE, digits=3, font.size = "scriptsize",
+          out = "../results/Matched_logit_5.txt")
+
+
+
+# Multilevel model #
+
+# turn country into numbers for mlm #
+
+table(b$country)
+b$ccode = 0
+b$ccode[b$country == "Abyei"] = 1
+b$ccode[b$country == "Burundi"] = 2
+b$ccode[b$country == "Central African Republic"] = 3
+b$ccode[b$country == "Chad"] = 4
+b$ccode[b$country == "Cote d'Ivoire"] = 5
+b$ccode[b$country == "Democratic Republic of Congo"] = 6
+b$ccode[b$country == "Liberia"] = 7
+b$ccode[b$country == "Mali"] = 8
+b$ccode[b$country == "Sierra Leone"] = 9
+b$ccode[b$country == "South Sudan"] = 10
+b$ccode[b$country == "sudan"] = 11
+
+
+###########################
+# random intercept binary #
+###########################
+
+# Gov OSV #
+ran.int1 = lmer(gov_event.b ~ units_deployed + untrp + unpol + unmob + f_untrp +
+                  f_unpol + f_unmob + mountains_mean + ttime_mean + 
+                  urban_gc + nlights_calib_mean + pop_gpw_sum + pop.dens +
+                  (1 | ccode), data = b)
+summary(ran.int1)
+
+ran.int2 = lmer(gov_death.b ~ units_deployed + untrp + unpol + unmob + f_untrp +
+                   f_unpol + f_unmob + mountains_mean + ttime_mean + pop_gpw_sum + pop.dens +
+                   (1 | ccode), data = b)
+summary(ran.int2)
+
+
+# Rebel OSV #
+ran.int3 = lmer(reb_event.b ~ units_deployed + untrp + unpol + unmob + f_untrp +
+                   f_unpol + f_unmob + mountains_mean + ttime_mean + 
+                   urban_gc + nlights_calib_mean + pop_gpw_sum + pop.dens + 
+                   (1 | ccode), data = b)
+summary(ran.int3)
+
+ran.int4 = lmer(reb_death.b ~ units_deployed + untrp + unpol + unmob + f_untrp +
+                   f_unpol + f_unmob + mountains_mean + ttime_mean + pop_gpw_sum + pop.dens + 
+                   (1 | ccode), data = b)
+summary(ran.int4)
+
+
+stargazer(ran.int1, ran.int2, ran.int3, ran.int4, title = "Matched MLM Results", align = TRUE, digits=3, font.size = "scriptsize",
+          out = "../results/Matched_mlm_b.txt")
+
+
+
+###########################
+# random intercept continuous #
+###########################
+
+# Gov OSV #
+ran.int5 = lmer(gov_event ~ units_deployed + untrp + unpol + unmob + f_untrp +
+                  f_unpol + f_unmob + mountains_mean + ttime_mean + 
+                  urban_gc + nlights_calib_mean + pop_gpw_sum + pop.dens +
+                  (1 | ccode), data = b)
+summary(ran.int5)
+
+ran.int6 = lmer(gov_death ~ units_deployed + untrp + unpol + unmob + f_untrp +
+                  f_unpol + f_unmob + mountains_mean + ttime_mean + pop_gpw_sum + pop.dens +
+                  (1 | ccode), data = b)
+summary(ran.int6)
+
+
+# Rebel OSV #
+ran.int7 = lmer(reb_event ~ units_deployed + untrp + unpol + unmob + f_untrp +
+                  f_unpol + f_unmob + mountains_mean + ttime_mean + 
+                  urban_gc + nlights_calib_mean + pop_gpw_sum + pop.dens + 
+                  (1 | ccode), data = b)
+summary(ran.int7)
+
+ran.int8 = lmer(reb_death ~ units_deployed + untrp + unpol + unmob + f_untrp +
+                  f_unpol + f_unmob + mountains_mean + ttime_mean + pop_gpw_sum + pop.dens + 
+                  (1 | ccode), data = b)
+summary(ran.int8)
+
+
+stargazer(ran.int5, ran.int6, ran.int7, ran.int8, title = "Matched MLM Results", align = TRUE, digits=3, font.size = "scriptsize",
+          out = "../results/Matched_mlm_c.txt")
