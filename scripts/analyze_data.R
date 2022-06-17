@@ -43,65 +43,6 @@ a = readRDS("merged_data.rds")
         ### Regression Analysis ###
 ##########################################
 
-# Create a "treatment" indicator telling us if PKs existed in a certain grid at a certain time 
-a$t_ind = 0
-a$t_ind[a$units_deployed >= 1] = 1
-a$event.b = 0
-a$event.b[a$event>0] = 1
-a$death = 0
-a$death[a$fatalities>0] = 1
-a$pop.dens = a$pop_gpw_sum / a$landarea 
-a$fate.5 = 0
-a$fate.5[a$fatalities > 4] = 1
-a$event.5 = 0
-a$event.5[a$event > 4] = 1
-# replace NAs w/ 0
-a$units_deployed[is.na(a$units_deployed)] <- 0
-a$countries_deployed[is.na(a$countries_deployed)] <- 0
-a$pko_deployed[is.na(a$pko_deployed)] <- 0
-a$untrp[is.na(a$untrp)] <- 0
-a$unpol[is.na(a$unpol)] <- 0
-a$unmob[is.na(a$unmob)] <- 0
-a$f_untrp[is.na(a$f_untrp)] <- 0
-a$f_unpol[is.na(a$f_unpol)] <- 0
-a$f_unmob[is.na(a$f_unmob)] <- 0
-a$fatalities[is.na(a$fatalities)] <- 0
-a$event[is.na(a$event)] <- 0
-a$mountains_mean[is.na(a$mountains_mean)] <- 0
-
-### add OSV by distinct actors variables ###
-# violent events + binaries #
-a$inter1[is.na(a$inter1)] <- 0
-a$gov_event = 0
-a$gov_event[a$inter1 == 1 | a$inter1 == 3 | a$inter1 == 4] = a$event[a$inter1 == 1 | a$inter1 == 3 | a$inter1 == 4]
-a$gov_event.b = 0
-a$gov_event.b[a$inter1 == 1 | a$inter1 == 3 | a$inter1 == 4] = a$event.b[a$inter1 == 1 | a$inter1 == 3 | a$inter1 == 4]
-a$reb_event = 0
-a$reb_event[a$inter1 == 2] = a$event[a$inter1 == 2]
-a$reb_event.b = 0
-a$reb_event.b[a$inter1 == 2] = a$event.b[a$inter1 == 2]
-
-a$gov_event.5 = 0
-a$gov_event.5[a$gov_event.b == 1 & a$event.5 == 1] = 1
-a$reb_event.5 = 0
-a$reb_event.5[a$reb_event.b == 1 & a$event.5 == 1] = 1
-
-# fatalities + binaries #
-a$gov_death = 0
-a$gov_death[a$inter1 == 1 | a$inter1 == 3 | a$inter1 == 4] = a$fatalities[a$inter1 == 1 | a$inter1 == 3 | a$inter1 == 4]
-a$gov_death.b = 0
-a$gov_death.b[a$inter1 == 1 | a$inter1 == 3 | a$inter1 == 4] = a$death[a$inter1 == 1 | a$inter1 == 3 | a$inter1 == 4]
-a$reb_death = 0
-a$reb_death[a$inter1 == 2] = a$fatalities[a$inter1 == 2]
-a$reb_death.b = 0
-a$reb_death.b[a$inter1 == 2] = a$death[a$inter1 == 2]
-
-a$gov_death.5 = 0
-a$gov_death.5[a$gov_death.b == 1 & a$fate.5 == 1] = 1
-a$reb_death.5 = 0
-a$reb_death.5[a$reb_death.b == 1 & a$fate.5 == 1] = 1
-
-
 ### Logit Model Aggregated###
 logit1 = glm.nb(formula = a$event.b ~ a$units_deployed + a$untrp + a$unpol + a$unmob + a$f_untrp +
                   a$f_unpol + a$f_unmob)

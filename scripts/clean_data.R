@@ -1,46 +1,27 @@
 # Data Cleaning & Merging #
-# By: Adam Kunkel
+# By: Sky Kunkel
 
 ### load libraries ###
-library(exactextractr); library(raster); library(rasterVis); library(rgdal)
-library(rgeos); library(sf); library(sp); library(tidygeocoder)
-library(tidyverse); library(tmap); library(viridis); library(lubridate)
-
-# need to install Terra 1.5 or higher to install spatialeco, need to adjust image
-library(spatialEco); library(gdata); library(designmatch) 
-
-library(ggpubr); library(ggiraphExtra); library(coefplot); library(stargazer) # need to add these to dockerfile
-library(spdep)
+library(doSNOW); library(foreach); library(janitor); library(lubridate)
+library(sf); library(tidyverse); library(sp); library(spatialEco)
 
 ### Reading in and briefly cleaning the data ###
 
 # set working directory #
-setwd("../data")
+setwd("../")
 
 # load the data #
-acled  = read.csv("acled_data.csv") # because some RADPKO grids cross over borders, 
-# must use violence data from neighboring countries too
-radpko = read.csv("radpko_grid.csv") 
+acled  = read.csv("./data/acled/1999-01-01-2021-12-31.csv") 
+radpko = read.csv("./data/radpko/radpko_grid.csv") 
+prio_static = read_csv("./data/prio/PRIO-GRID Static Variables - 2022-06-17.csv")
+prio_yearly = read_csv("./data/prio/PRIO-GRID Yearly Variables for 1999-2014 - 2022-06-17.csv")
 
-afrogrid = read.csv("afro_subset.csv")
-
-#######################
-# add in Afro.Grid data
-#######################
-
-# first, clean the afro data and get rid of useless variables
-afrogrid[6:37] = NULL
-afrogrid[10:37] = NULL
-afrogrid[23:32] = NULL
-afrogrid[11:12] = NULL
-afrogrid[13:15] = NULL
-names(afrogrid)[5] = "date"
-names(afrogrid)[2] = "prio.grid"
+# merge prio variables
+prio.var = left_join(prio_yearly, prio_static, by = c("gid"))
 
 # change date-time
 acled$event_date = lubridate::dmy(acled$event_date)
 radpko$date = lubridate::mdy(radpko$date)
-afrogrid$date = lubridate::ymd(afrogrid$date)
 
 # subset ACLED data to violence against civilians and dates from before 2019 and after 
 # 1999 to match RADPKO data (and to make analysis faster)
@@ -58,7 +39,7 @@ acled$country[acled$admin1=="Abyei"] = "Abyei"
 
 # read in PRIO shape files from their website
 # prio uses WGS84 CRS
-prio = st_read(dsn = "./priogrid_cellshp", 
+prio = st_read(dsn = "./data/prio", 
                layer = "priogrid_cell", 
                stringsAsFactors = F) %>% 
   mutate(gid = as.character(gid))
@@ -68,7 +49,7 @@ prio$prio.grid = as.numeric(prio$prio.grid) # transform the column into numeric 
 
 ## join data together ##
 prio.rad = left_join(radpko, prio, by = "prio.grid") 
-
+prio.rad = left_join(prio.rad, prio.var)
 # transform both datasets into  spatial objects
 prio.sp = as(prio, Class = "Spatial") # 
 
@@ -200,6 +181,63 @@ gc()
 tapply(a$fatalities, a$country, sum, na.rm = TRUE)
 tapply(a$event, a$country, sum, na.rm = TRUE)
 
+# Create a "treatment" indicator telling us if PKs existed in a certain grid at a certain time 
+a$t_ind = 0
+a$t_ind[a$units_deployed >= 1] = 1
+a$event.b = 0
+a$event.b[a$event>0] = 1
+a$death = 0
+a$death[a$fatalities>0] = 1
+a$pop.dens = a$pop_gpw_sum / a$landarea 
+a$fate.5 = 0
+a$fate.5[a$fatalities > 4] = 1
+a$event.5 = 0
+a$event.5[a$event > 4] = 1
+# replace NAs w/ 0
+a$units_deployed[is.na(a$units_deployed)] <- 0
+a$countries_deployed[is.na(a$countries_deployed)] <- 0
+a$pko_deployed[is.na(a$pko_deployed)] <- 0
+a$untrp[is.na(a$untrp)] <- 0
+a$unpol[is.na(a$unpol)] <- 0
+a$unmob[is.na(a$unmob)] <- 0
+a$f_untrp[is.na(a$f_untrp)] <- 0
+a$f_unpol[is.na(a$f_unpol)] <- 0
+a$f_unmob[is.na(a$f_unmob)] <- 0
+a$fatalities[is.na(a$fatalities)] <- 0
+a$event[is.na(a$event)] <- 0
+a$mountains_mean[is.na(a$mountains_mean)] <- 0
+
+### add OSV by distinct actors variables ###
+# violent events + binaries #
+a$inter1[is.na(a$inter1)] <- 0
+a$gov_event = 0
+a$gov_event[a$inter1 == 1 | a$inter1 == 3 | a$inter1 == 4] = a$event[a$inter1 == 1 | a$inter1 == 3 | a$inter1 == 4]
+a$gov_event.b = 0
+a$gov_event.b[a$inter1 == 1 | a$inter1 == 3 | a$inter1 == 4] = a$event.b[a$inter1 == 1 | a$inter1 == 3 | a$inter1 == 4]
+a$reb_event = 0
+a$reb_event[a$inter1 == 2] = a$event[a$inter1 == 2]
+a$reb_event.b = 0
+a$reb_event.b[a$inter1 == 2] = a$event.b[a$inter1 == 2]
+
+a$gov_event.5 = 0
+a$gov_event.5[a$gov_event.b == 1 & a$event.5 == 1] = 1
+a$reb_event.5 = 0
+a$reb_event.5[a$reb_event.b == 1 & a$event.5 == 1] = 1
+
+# fatalities + binaries #
+a$gov_death = 0
+a$gov_death[a$inter1 == 1 | a$inter1 == 3 | a$inter1 == 4] = a$fatalities[a$inter1 == 1 | a$inter1 == 3 | a$inter1 == 4]
+a$gov_death.b = 0
+a$gov_death.b[a$inter1 == 1 | a$inter1 == 3 | a$inter1 == 4] = a$death[a$inter1 == 1 | a$inter1 == 3 | a$inter1 == 4]
+a$reb_death = 0
+a$reb_death[a$inter1 == 2] = a$fatalities[a$inter1 == 2]
+a$reb_death.b = 0
+a$reb_death.b[a$inter1 == 2] = a$death[a$inter1 == 2]
+
+a$gov_death.5 = 0
+a$gov_death.5[a$gov_death.b == 1 & a$fate.5 == 1] = 1
+a$reb_death.5 = 0
+a$reb_death.5[a$reb_death.b == 1 & a$fate.5 == 1] = 1
 
 
 
@@ -207,10 +245,6 @@ tapply(a$event, a$country, sum, na.rm = TRUE)
 
 saveRDS(a, file = "merged_data.rds")
 
-# # export merged data #
-
-write.table(a, "../data/merged_data.txt", row.names = FALSE, sep = "|")
-# this works, but to reload the data you'll need to load it in and transform the columns
 # data fully merged, cleaned, and exported #
 
 rm(list = ls())
