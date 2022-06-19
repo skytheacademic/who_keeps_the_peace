@@ -11,17 +11,24 @@ library(sf); library(tidyverse); library(sp); library(spatialEco)
 setwd("../")
 
 # load the data #
-acled  = read.csv("./data/acled/1999-01-01-2021-12-31.csv") 
-radpko = read.csv("./data/radpko/radpko_grid.csv") 
-prio_static = read_csv("./data/prio/PRIO-GRID Static Variables - 2022-06-17.csv")
-prio_yearly = read_csv("./data/prio/PRIO-GRID Yearly Variables for 1999-2014 - 2022-06-17.csv")
+acled  = read.csv("./data/acled/1999-01-01-2021-12-31.csv") %>%
+  select(-c(event_id_cnty, event_id_no_cnty, actor1, assoc_actor_1,actor2,assoc_actor_2,region,admin3,location,source,source_scale,notes,timestamp))
+radpko = read.csv("./data/radpko/radpko_grid.csv")  %>%
+  select(-c(west_pko,west_untrp,west_unpol,west_unmob,asian_pko,asian_untrp,asian_unpol,asian_unmob,afr_pko,afr_untrp,afr_unpol,afr_unmob))
+prio.static = read_csv("./data/prio/PRIO-GRID Static Variables - 2022-06-03.csv")
+prio.yearly = read_csv("./data/prio/PRIO-GRID Yearly Variables for 1999-2014 - 2022-06-03.csv")
+names(prio.static)[1] = "prio.grid" # rename for merging
+names(prio.yearly)[1] = "prio.grid" # rename for merging
+prio.static$prio.grid = as.character(prio.static$prio.grid)
+prio.yearly$prio.grid = as.character(prio.yearly$prio.grid)
 
 # merge prio variables
-prio.var = left_join(prio_yearly, prio_static, by = c("gid"))
-
+prio.var = left_join(prio.yearly, prio.static, by = c("prio.grid"))
+prio.var$prio.grid = as.numeric(prio.var$prio.grid)
+rm(prio.static, prio.yearly)
 # change date-time
 acled$event_date = lubridate::dmy(acled$event_date)
-radpko$date = lubridate::mdy(radpko$date)
+radpko$date = lubridate::ymd(radpko$date)
 
 # subset ACLED data to violence against civilians and dates from before 2019 and after 
 # 1999 to match RADPKO data (and to make analysis faster)
@@ -56,7 +63,7 @@ prio.sp = as(prio, Class = "Spatial") #
 # assign crs system for ACLED data #
 wgs84 <- CRS("+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs")
 
-acled.sp <- SpatialPointsDataFrame(acled[24:23],         # reading in the dataframe as a spatial object
+acled.sp <- SpatialPointsDataFrame(acled[15:14],         # reading in the dataframe as a spatial object
                                    acled,                 # the R object to convert
                                    proj4string = wgs84)   # assign a CRS 
 
@@ -83,11 +90,6 @@ prio.rad$date = as.Date(prio.rad$date, "%m/%d/%Y") # format dates
 a$prio.grid = as.character(a$prio.grid)
 prio.rad$prio.grid = as.character(prio.rad$prio.grid)
 
-#############
-# to analyze by government & rebel forces, need to keep inter1 code from ACLED data here
-# could group by inter1 but would then need to re-combine I think?
-#############
-
 # group fatalities and events by PRIO-grid & date
 a.ag = a %>%
   group_by(prio.grid, event_date, inter1) %>%
@@ -106,11 +108,13 @@ names(a.ag.prio)[3] = "date"
 ## verify data analyzed correctly ##
 acled.sf = st_as_sf(prio.rad)
 all.sf = st_as_sf(a.ag.prio)
-pdf("../results/violence.pdf")
+pdf("./results/violence.pdf")
 ggplot(data = all.sf) + geom_sf(data = acled.sf, fill = "grey") + geom_sf(aes(fill = event)) +
   scale_fill_viridis_b(option = "plasma") + labs(fill = "Violent Events Against Civilians")
 dev.off()
 
+rm(list = setdiff(ls(), c("prio.rad", "a.ag.prio")))
+gc()
 ## merge ##
 merged.data = left_join(prio.rad, a.ag.prio, by = c("prio.grid", "date",
                                                     "geometry", "xcoord",
@@ -139,25 +143,14 @@ test3 = subset(test3, v > 0)
 # start by getting rid of useless data
 merged.data[14:25] = NULL # no need for this project to disaggregate PKs by region origination, so remove it
 
-# add in control variables
-prio.static = read.csv("prio-grid_static.csv")
-prio.yearly = read.csv("prio-grid_yearly.csv")
-names(prio.static)[1] = "prio.grid" # rename for merging
-names(prio.yearly)[1] = "prio.grid" # rename for merging
-prio.static$prio.grid = as.character(prio.static$prio.grid)
-prio.yearly$prio.grid = as.character(prio.yearly$prio.grid)
-afrogrid$prio.grid = as.character(afrogrid$prio.grid)
 # extract year to merge prio yearly data
 merged.data$year = year(merged.data$date)
 
 # add various data to merged dataset
-merged.data = left_join(merged.data, prio.static, by = c("prio.grid", "row", "col",
-                                                         "xcoord", "ycoord"))
-merged.data = left_join(merged.data, prio.yearly, by = c("prio.grid", "year"))
+merged.data = left_join(merged.data, prio.var, by = c("prio.grid", "row", "col",
+                                                         "xcoord", "ycoord", "year"))
 
-merged.data = left_join(merged.data, afrogrid, by = c("prio.grid", "date"))
-
-# next rearrange the columns to put the geo-locational data last
+# rearrange the columns to put the geo-locational data last
 merged.data = merged.data %>% 
   relocate(c("xcoord", "ycoord", "col", "row", "geometry"), .after = last_col())
 
@@ -165,21 +158,14 @@ merged.data = merged.data %>%
 sum(is.na(merged.data$mission)) 
 
 
-# finally, get rid of some of the useless variables 
+# remove variables not relevant to analysis
 merged.data[44:46] = NULL
-
-# summary statistics
-stargazer(a.ag, title = "ACLED Summary Statistics", align = TRUE, digits=1, font.size = "scriptsize",
-          out = "../results/acled_stats.txt")
-
 
 # clear everything except the merged data
 rm(list = setdiff(ls(), "merged.data")) 
 a = merged.data
-rm(list = setdiff(ls(), "a")) # clear everything except the merged data
+rm(merged.data)
 gc()
-tapply(a$fatalities, a$country, sum, na.rm = TRUE)
-tapply(a$event, a$country, sum, na.rm = TRUE)
 
 # Create a "treatment" indicator telling us if PKs existed in a certain grid at a certain time 
 a$t_ind = 0
@@ -239,11 +225,9 @@ a$gov_death.5[a$gov_death.b == 1 & a$fate.5 == 1] = 1
 a$reb_death.5 = 0
 a$reb_death.5[a$reb_death.b == 1 & a$fate.5 == 1] = 1
 
-
-
 # save RDS #
 
-saveRDS(a, file = "merged_data.rds")
+saveRDS(a, file = "./data/kunkel_cg.rds")
 
 # data fully merged, cleaned, and exported #
 
