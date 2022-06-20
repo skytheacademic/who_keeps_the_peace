@@ -56,7 +56,7 @@ prio$prio.grid = as.numeric(prio$prio.grid) # transform the column into numeric 
 
 ## join data together ##
 prio.rad = left_join(radpko, prio, by = "prio.grid") 
-prio.rad = left_join(prio.rad, prio.var)
+
 # transform both datasets into  spatial objects
 prio.sp = as(prio, Class = "Spatial") # 
 
@@ -105,46 +105,14 @@ a.ag.prio <- tibble::rowid_to_column(a.ag.prio, "id")
 # rename event_date to date for merging
 names(a.ag.prio)[3] = "date"
 
-## verify data analyzed correctly ##
-acled.sf = st_as_sf(prio.rad)
-all.sf = st_as_sf(a.ag.prio)
-pdf("./results/violence.pdf")
-ggplot(data = all.sf) + geom_sf(data = acled.sf, fill = "grey") + geom_sf(aes(fill = event)) +
-  scale_fill_viridis_b(option = "plasma") + labs(fill = "Violent Events Against Civilians")
-dev.off()
-
-rm(list = setdiff(ls(), c("prio.rad", "a.ag.prio")))
-gc()
 ## merge ##
 merged.data = left_join(prio.rad, a.ag.prio, by = c("prio.grid", "date",
                                                     "geometry", "xcoord",
                                                     "ycoord", "col", "row"))
 
-# test to see what data was merged
-test = subset(merged.data, id > 0)
-
-test2 = merged.data
-test2[is.na(test2)] <- 0
-test2 = test2 %>%
-  group_by(prio.grid) %>%
-  summarize(fatalities = sum(fatalities), event = sum(event))
-
-test2 = subset(test2, event > 0)
-
-test3 = merged.data
-test3[is.na(test3)] <- 0
-test3 = test3 %>%
-  group_by(prio.grid) %>%
-  summarize(v = sum(pko_deployed), event = sum(event))
-
-test3 = subset(test3, v > 0)
-
-# let's clean the merged data frame
-# start by getting rid of useless data
-merged.data[14:25] = NULL # no need for this project to disaggregate PKs by region origination, so remove it
-
 # extract year to merge prio yearly data
 merged.data$year = year(merged.data$date)
+merged.data$prio.grid = as.numeric(merged.data$prio.grid)
 
 # add various data to merged dataset
 merged.data = left_join(merged.data, prio.var, by = c("prio.grid", "row", "col",
@@ -156,10 +124,6 @@ merged.data = merged.data %>%
 
 # verify there are no missing observations
 sum(is.na(merged.data$mission)) 
-
-
-# remove variables not relevant to analysis
-merged.data[44:46] = NULL
 
 # clear everything except the merged data
 rm(list = setdiff(ls(), "merged.data")) 
