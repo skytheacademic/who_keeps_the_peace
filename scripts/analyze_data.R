@@ -15,8 +15,8 @@ library(sensitivitymw)
 options(scipen = 999)
 
 # reading in cleaned data
-setwd("../data/")
-a = readRDS("merged_data.rds")
+setwd("../")
+a = readRDS("./data/kunkel_cg.rds")
 
 # my number of grid-months w/ violence is 6685 (see test dataframe in data_clean script)
 
@@ -31,11 +31,6 @@ a = readRDS("merged_data.rds")
 
 # matching analysis with most data possible (i.e. all ACLED data on downloaded countries) to match
 # grids together
-
-
-# choosing the right regression:
-# https://www.ncbi.nlm.nih.gov/pmc/articles/PMC2943670/
-# http://sekhon.berkeley.edu/papers/opiates.pdf
 
 
 
@@ -172,45 +167,7 @@ logit14.1 = glm.nb(a$reb_death.5 ~ a$units_deployed + a$untrp + a$unpol + a$unmo
 summary(logit14.1)
 
 stargazer(logit9.1, logit10.1, logit14.1, title = "Pre-matched Results (>4)", align = TRUE, digits=3, font.size = "scriptsize",
-          out = "../results/pre_matched_logit_5.txt")
-
-
-###
-# keeping below section in case other evidence convinces me to use spatial durbin model #
-###
-
-# ### Spatial Durbin Model ##
-# 
-# prio = st_read(dsn = "./priogrid_cellshp", 
-#                layer = "priogrid_cell", 
-#                stringsAsFactors = F) %>% 
-#   mutate(gid = as.character(gid))
-# 
-# names(prio)[1] = "prio.grid" # rename for merging
-# prio$prio.grid = as.numeric(prio$prio.grid) # transform the column into numeric so we can join the data
-# 
-# prio.sp = as(prio, Class = "Spatial")
-# nb = poly2nb(prio.sp, 
-#              queen = TRUE, 
-#              row.names = prio.sp$prio.grid)
-# 
-# # store as list (most modeling packages require this)
-# lw = nb2listw(nb, style = "W", zero.policy = TRUE)
-# print(lw, zero.policy = TRUE) ## to look at lw contents
-# 
-# 
-# ### summarize by prio grid first ###
-# #https://r-spatial.github.io/spatialreg/reference/SLX.html
-# sp.durb1 = lmSLX(logit1, data = a, listw = lw)
-# # Spatial durbin model says the DV is a function of three things:
-#   # neighbor DV values
-#   # our own IV values
-#   # neighbor IV values
-# 
-# moran.test(prio.sp$pop_gpw_sum, listw = lw, zero.policy = TRUE) # Moran's I (eye) test
-# # the closer the result is to 1, the more spatial dependence there is
-# # for more info on this, see here: https://www.youtube.com/watch?v=6qZgchGCMds&ab_channel=BurkeyAcademy
-#   # and here: https://sites.google.com/site/econometricsacademy/econometrics-models/spatial-econometrics
+          out = "./results/pre_matched_logit_5.txt")
 
 
 ##########################################
@@ -218,7 +175,7 @@ stargazer(logit9.1, logit10.1, logit14.1, title = "Pre-matched Results (>4)", al
 ##########################################
 
 stargazer(logit9, logit10, logit13, logit14, title = "Pre-matched Results", align = TRUE, digits=3, font.size = "scriptsize",
-          out = "../results/pre_matched_logit.txt")
+          out = "./results/pre_matched_logit.txt")
 
 # descriptive statistics table #
 
@@ -253,7 +210,7 @@ for(i in 1:ncol(control.variables)){
 }
 
 
-# keep shape/map stuff at the end of data.frame #
+# keep map stuff at the end of data.frame #
 a = a %>% relocate(c("xcoord", "ycoord", "col", "row", "geometry"), .after = last_col())
 
 t_ind = a$t_ind
@@ -388,7 +345,7 @@ summary(logit20)
 
 # regression table #
 stargazer(logit17, logit18, logit19, logit20, title = "Matched Results", align = TRUE, digits=3, font.size = "scriptsize",
-          out = "../results/matched_logit.txt")
+          out = "./results/matched_logit.txt")
 
 
 
@@ -422,7 +379,7 @@ summary(logit24)
 
 
 stargazer(logit22, logit24, title = "Matched Results (>4)", align = TRUE, digits=3, font.size = "scriptsize",
-          out = "../results/Matched_logit_5.txt")
+          out = "./results/Matched_logit_5.txt")
 
 
 
@@ -476,7 +433,7 @@ summary(ran.int4)
 
 
 stargazer(ran.int1, ran.int2, ran.int3, ran.int4, title = "Matched MLM Results", align = TRUE, digits=3, font.size = "scriptsize",
-          out = "../results/Matched_mlm_b.txt")
+          out = "./results/Matched_mlm_b.txt")
 
 
 
@@ -511,4 +468,45 @@ summary(ran.int8)
 
 
 stargazer(ran.int5, ran.int6, ran.int7, ran.int8, title = "Matched MLM Results", align = TRUE, digits=3, font.size = "scriptsize",
-          out = "../results/Matched_mlm_c.txt")
+          out = "./results/Matched_mlm_c.txt")
+
+
+
+# Measuring Spatial Autocorrelation #
+###
+
+### Spatial Durbin Model ##
+
+prio = st_read(dsn = "./priogrid_cellshp",
+                layer = "priogrid_cell",
+                stringsAsFactors = F) %>%
+   mutate(gid = as.character(gid))
+
+ names(prio)[1] = "prio.grid" # rename for merging
+prio$prio.grid = as.numeric(prio$prio.grid) # transform the column into numeric so we can join the data
+
+ prio.sp = as(prio, Class = "Spatial")
+ nb = poly2nb(prio.sp,
+              queen = TRUE,
+              row.names = prio.sp$prio.grid)
+
+ # store as list (most modeling packages require this)
+ lw = nb2listw(nb, style = "W", zero.policy = TRUE)
+ print(lw, zero.policy = TRUE) ## to look at lw contents
+
+
+ ### summarize by prio grid first ###
+ #https://r-spatial.github.io/spatialreg/reference/SLX.html
+ sp.durb1 = lmSLX(logit1, data = a, listw = lw)
+ # Spatial durbin model says the DV is a function of three things:
+   # neighbor DV values
+   # our own IV values
+   # neighbor IV values
+
+ moran.test(prio.sp$pop_gpw_sum, listw = lw, zero.policy = TRUE) # Moran's I (eye) test
+ # the closer the result is to 1, the more spatial dependence there is
+ # for more info on this, see here: https://www.youtube.com/watch?v=6qZgchGCMds&ab_channel=BurkeyAcademy
+   # and here: https://sites.google.com/site/econometricsacademy/econometrics-models/spatial-econometrics
+
+
+
