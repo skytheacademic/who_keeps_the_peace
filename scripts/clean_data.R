@@ -23,21 +23,9 @@ prio.static$prio.grid = as.character(prio.static$prio.grid)
 prio.yearly$prio.grid = as.character(prio.yearly$prio.grid)
 
 # merge prio variables
-### expand static data to cover years when "yearly" data isn't available
-year <- seq(1999, 2022, 1)
-prio.static <- expand_grid(prio.static, year)
-
-### merge on grid ID and year, then reorder variables
-prio.var <- full_join(prio.static, prio.yearly, by = c("prio.grid", "year")) %>% 
-  relocate(year, .after = "prio.grid")
+prio.var = left_join(prio.yearly, prio.static, by = c("prio.grid"))
 prio.var$prio.grid = as.numeric(prio.var$prio.grid)
 rm(prio.static, prio.yearly)
-# expand into monthly data
-month <- seq(1, 12, 1)
-prio.var <- expand_grid(prio.var, month) %>% 
-  relocate(month, .after = "year") %>% 
-  arrange(prio.grid, year, month)
-
 # change date-time
 acled$event_date = lubridate::dmy(acled$event_date)
 radpko$date = lubridate::ymd(radpko$date)
@@ -200,29 +188,6 @@ a$gov_death.5 = 0
 a$gov_death.5[a$gov_death.b == 1 & a$fate.5 == 1] = 1
 a$reb_death.5 = 0
 a$reb_death.5[a$reb_death.b == 1 & a$fate.5 == 1] = 1
-
-
-### add first treated variable 
-a <- a %>% 
-  mutate(time = (year-1999)*(12) + month)
-### split by GID and make some variables
-dd <- a %>% as.data.frame() %>% select(prio.grid, time, t_ind)
-dd <- split(dd, f = dd$prio.grid)
-dd <- lapply(dd, FUN = function(x){
-  y <- x[which(x$t_ind == 1),]
-  # create a "first treated" variable. needs to be 0 for untreated
-  x$first_treated <- ifelse(nrow(y) == 0, 0, min(y$time))
-  # create a "post treated" variable. needs to be 0 until treatment then 1
-  x$post_treatment <- ifelse(x$first_treated != 0 & x$time >= x$first_treated, 
-                             1, 0)
-  # create a "treated" variable. needs to be 0 if control and 1 if treated
-  x$treated <- ifelse(sum(x$radpko_pko_deployed_any, na.rm = T) > 0, 1, 0)
-  x
-})
-dd <- do.call(rbind, dd)
-dd <- dd[,c("prio.grid", "time", "first_treated", "treated", "post_treatment")]
-# merge back to main a
-a <- left_join(a, dd, by = c("prio.grid", "time"))
 
 # save RDS #
 
