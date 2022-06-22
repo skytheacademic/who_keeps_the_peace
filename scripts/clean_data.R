@@ -189,6 +189,18 @@ a$gov_death.5[a$gov_death.b == 1 & a$fate.5 == 1] = 1
 a$reb_death.5 = 0
 a$reb_death.5[a$reb_death.b == 1 & a$fate.5 == 1] = 1
 
+# add a post treated variable
+
+# the following code might be necessary
+# need to add a 1 going up by prio grid and date
+a = a[order(a$date, decreasing=FALSE), ] # first sort the grids by date
+a = a[order(a$prio.grid, decreasing=FALSE), ] # not sure if this is needed, but leaving for now
+
+a <- a %>%
+  group_by(prio.grid) %>% # adding a time variable starting with 1
+  mutate(time.var = 1:n())
+
+
 # save RDS #
 
 saveRDS(a, file = "./data/kunkel_cg.rds")
