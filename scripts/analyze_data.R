@@ -301,19 +301,15 @@ mean(b$reb_event[b$t_ind==0])
 mean(b$reb_event[b$t_ind==1]) - mean(b$reb_event[b$t_ind==0])
 
 
-# Question 2.D
-
+# Sensitivity tests
+# gamma = 1
 test_d_match1 = data.frame(b$gov_death.b[b$t_ind==1],b$gov_death.b[b$t_ind==0])
 colnames(test_d_match1) = c("treated","control")
 
 senmw(test_d_match1,gamma=1,method="t")$pval
 
-# Question 2.E
 
-senmw(test_d_match1,gamma=1.1,method="t")$pval
-
-
-# let's try regressions again
+# regressions w/ matched sample
 
 # Gov OSV #
 logit17 = glm.nb(gov_event.b ~ units_deployed + untrp + unpol + unmob + f_untrp +
@@ -383,7 +379,29 @@ stargazer(logit22, logit24, title = "Matched Results (>4)", align = TRUE, digits
 
 
 
-# Multilevel model #
+############################
+# 3-level Multilevel Model #
+############################
+
+# is treatment binary? if so, use the following. if not, use 2nd model discussing "all six covariances"
+  # here: https://rpsychologist.com/r-guide-longitudinal-lme-lmer#three-level-models
+
+# which to use? https://stats.stackexchange.com/questions/5344/how-to-choose-nlme-or-lme4-r-library-for-mixed-effects-models
+# lme4
+lmer(y ~ time * tx + (time | therapist:subjects) +
+       (time | therapist) +
+       (0 + tx + time:tx | therapist), 
+     data=data)
+
+# nlme
+lme(y ~time * tx, 
+    random = list(therapist = pdBlocked(list(~time, ~0 + tx + time:tx)),
+                  subjects = ~time ),
+    data=data)
+
+
+
+# 2-Level Multilevel model #
 
 # turn country into numbers for mlm #
 
@@ -470,6 +488,59 @@ summary(ran.int8)
 stargazer(ran.int5, ran.int6, ran.int7, ran.int8, title = "Matched MLM Results", align = TRUE, digits=3, font.size = "scriptsize",
           out = "./results/Matched_mlm_c.txt")
 
+
+
+
+
+#########################
+# Robustness Checks #
+#########################
+
+### Clustering Standard Errors at the grid level ###
+# create function to cluster SEs
+vcovCluster <- function(
+    model,
+    cluster
+)
+{
+  require(sandwich)
+  require(lmtest)
+  if(nrow(model.matrix(model))!=length(cluster)){
+    stop("check your data: cluster variable has different N than model")
+  }
+  M <- length(unique(cluster))
+  N <- length(cluster)           
+  K <- model$rank   
+  if(M<50){
+    warning("Fewer than 50 clusters, variances may be unreliable (could try block bootstrap instead).")
+  }
+  dfc <- (M/(M - 1)) * ((N - 1)/(N - K))
+  uj  <- apply(estfun(model), 2, function(x) tapply(x, cluster, sum));
+  rcse.cov <- dfc * sandwich(model, meat = crossprod(uj)/N)
+  return(rcse.cov)
+}
+
+# Gov OSV #
+se_reg1 <- lm(gov_event ~ units_deployed + untrp + unpol + unmob + f_untrp +
+               f_unpol + f_unmob + mountains_mean + ttime_mean + urban_gc + 
+               nlights_calib_mean + pop_gpw_sum + pop.dens, data=b)
+se_reg_c1 <- round(coeftest(se_reg1, vcov = vcovCluster(se_reg1, cluster = b$prio.grid)),4)
+
+se_reg2 <- lm(gov_death ~ units_deployed + untrp + unpol + unmob + f_untrp +
+                f_unpol + f_unmob + mountains_mean + ttime_mean + pop_gpw_sum + 
+                pop.dens, data=b)
+se_reg_c2 <- round(coeftest(se_reg2, vcov = vcovCluster(se_reg2, cluster = b$prio.grid)),4)
+
+# Rebel OSV #
+se_reg3 <- lm(greb_event ~ units_deployed + untrp + unpol + unmob + f_untrp +
+                f_unpol + f_unmob + mountains_mean + ttime_mean + 
+                urban_gc + nlights_calib_mean + pop_gpw_sum + pop.dens, data=b)
+se_reg_c3 <- round(coeftest(se_reg3, vcov = vcovCluster(se_reg3, cluster = b$prio.grid)),4)
+
+se_reg4 <- lm(reb_death ~ units_deployed + untrp + unpol + unmob + f_untrp +
+                f_unpol + f_unmob + mountains_mean + ttime_mean + pop_gpw_sum + 
+                pop.dens, data=b)
+se_reg_c4 <- round(coeftest(se_reg4, vcov = vcovCluster(se_reg4, cluster = b$prio.grid)),4)
 
 
 # Measuring Spatial Autocorrelation #
