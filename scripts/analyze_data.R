@@ -40,39 +40,41 @@ a = readRDS("./data/kunkel_cg.rds")
 
 ### Logit Model Aggregated###
 logit1 = glm.nb(formula = a$event.b ~ a$units_deployed + a$untrp + a$unpol + a$unmob + a$f_untrp +
-                  a$f_unpol + a$f_unmob)
+                  a$f_unpol + a$f_unmob + a$pko_lag)
 summary(logit1)
 
 logit2 = glm.nb(formula = a$death ~ a$units_deployed + a$untrp + a$unpol + a$unmob + a$f_untrp +
-                  a$f_unpol + a$f_unmob)
+                  a$f_unpol + a$f_unmob + a$pko_lag)
 summary(logit2)
 
 logit3 = glm.nb(formula = a$event.b ~ a$units_deployed + a$untrp + a$unpol + a$unmob + a$f_untrp +
                   a$f_unpol + a$f_unmob + a$mountains_mean + a$ttime_mean + 
-                  a$urban_gc + a$nlights_calib_mean + a$pop_gpw_sum + a$pop.dens)
+                  a$urban_gc + a$nlights_calib_mean + a$pop_gpw_sum + a$pop.dens + a$pko_lag)
 summary(logit3)
 
 logit4 = glm.nb(formula = a$death ~ a$units_deployed + a$untrp + a$unpol + a$unmob + a$f_untrp +
-                  a$f_unpol + a$f_unmob + a$mountains_mean + a$ttime_mean + a$pop_gpw_sum + a$pop.dens)
+                  a$f_unpol + a$f_unmob + a$mountains_mean + a$ttime_mean + a$pop_gpw_sum + 
+                  a$pop.dens + a$pko_lag)
 summary(logit4)
 
 ########### testing w/ t_ind ###############
 
 logit5 = glm.nb(a$event ~ a$t_ind + a$units_deployed + a$untrp + a$unpol + a$unmob + a$f_untrp +
-            a$f_unpol + a$f_unmob)
+            a$f_unpol + a$f_unmob + a$pko_lag)
 summary(logit5)
 
 logit6 = glm.nb(a$fatalities ~ a$t_ind + a$units_deployed + a$untrp + a$unpol + a$unmob + a$f_untrp +
-            a$f_unpol + a$f_unmob)
+            a$f_unpol + a$f_unmob + a$pko_lag)
 summary(logit6)
 
 logit7 = glm.nb(a$event ~ a$t_ind + a$units_deployed + a$untrp + a$unpol + a$unmob + a$f_untrp +
                   a$f_unpol + a$f_unmob + a$mountains_mean + a$ttime_mean + 
-                  a$urban_gc + a$nlights_calib_mean + a$pop_gpw_sum + a$pop.dens)
+                  a$urban_gc + a$nlights_calib_mean + a$pop_gpw_sum + a$pop.dens + a$pko_lag)
 summary(logit7)
 
 logit8 = glm.nb(a$fate.5 ~ a$t_ind + a$units_deployed + a$untrp + a$unpol + a$unmob + a$f_untrp +
-                  a$f_unpol + a$f_unmob + a$mountains_mean + a$ttime_mean + a$pop_gpw_sum + a$pop.dens)
+                  a$f_unpol + a$f_unmob + a$mountains_mean + a$ttime_mean + a$pop_gpw_sum +
+                  a$pop.dens + a$pko_lag)
 # switching to 5 death threshold for this model since regular continuous variable won't work
 
 # not using nlights here because economic activity might affect whether a violent event occurs but not whether a death happens
@@ -89,21 +91,23 @@ summary(logit8)
 # Gov OSV #
 logit9 = glm.nb(a$gov_event ~ a$units_deployed + a$untrp + a$unpol + a$unmob + a$f_untrp +
                   a$f_unpol + a$f_unmob + a$mountains_mean + a$ttime_mean + 
-                  a$urban_gc + a$nlights_calib_mean + a$pop_gpw_sum + a$pop.dens)
+                  a$urban_gc + a$nlights_calib_mean + a$pop_gpw_sum + a$pop.dens + a$pko_lag)
 summary(logit9)
 
 logit10 = glm.nb(a$gov_death ~ a$units_deployed + a$untrp + a$unpol + a$unmob + a$f_untrp +
-                  a$f_unpol + a$f_unmob + a$mountains_mean + a$ttime_mean + a$pop_gpw_sum + a$pop.dens)
+                  a$f_unpol + a$f_unmob + a$mountains_mean + a$ttime_mean + a$pop_gpw_sum + 
+                   a$pop.dens + a$pko_lag)
 summary(logit10)
 
 ########### testing w/ t_ind ###############
 logit11 = glm.nb(a$gov_event.b ~ a$t_ind + a$units_deployed + a$untrp + a$unpol + a$unmob + a$f_untrp +
                   a$f_unpol + a$f_unmob + a$mountains_mean + a$ttime_mean + 
-                  a$urban_gc + a$nlights_calib_mean + a$pop_gpw_sum + a$pop.dens)
+                  a$urban_gc + a$nlights_calib_mean + a$pop_gpw_sum + a$pop.dens + a$pko_lag)
 summary(logit11)
 
-logit12 = glm.nb(a$gov_death.b ~ a$t_ind + a$units_deployed + a$untrp + a$unpol + a$unmob + a$f_untrp +
-                  a$f_unpol + a$f_unmob + a$mountains_mean + a$ttime_mean + a$pop_gpw_sum + a$pop.dens)
+logit12 = glm.nb(a$gov_death.b ~ a$t_ind + a$units_deployed + a$untrp + a$unpol + a$unmob + 
+                   a$f_untrp + a$f_unpol + a$f_unmob + a$mountains_mean + a$ttime_mean + 
+                   a$pop_gpw_sum + a$pop.dens + a$pko_lag)
 # switching to 5 death threshold for this model since regular continuous variable won't work
 
 # not using nlights here because economic activity might affect whether a violent event occurs but not whether a death happens
@@ -119,22 +123,24 @@ summary(logit12)
 # Rebel OSV #
 logit13 = glm.nb(a$reb_event.b ~ a$units_deployed + a$untrp + a$unpol + a$unmob + a$f_untrp +
                   a$f_unpol + a$f_unmob + a$mountains_mean + a$ttime_mean + 
-                  a$urban_gc + a$nlights_calib_mean + a$pop_gpw_sum + a$pop.dens)
+                  a$urban_gc + a$nlights_calib_mean + a$pop_gpw_sum + a$pop.dens + a$pko_lag)
 summary(logit13)
 
 logit14 = glm.nb(a$reb_death.b ~ a$units_deployed + a$untrp + a$unpol + a$unmob + a$f_untrp +
-                   a$f_unpol + a$f_unmob + a$mountains_mean + a$ttime_mean + a$pop_gpw_sum + a$pop.dens)
+                   a$f_unpol + a$f_unmob + a$mountains_mean + a$ttime_mean + a$pop_gpw_sum + 
+                   a$pop.dens + a$pko_lag)
 summary(logit14)
 
 ########### testing w/ t_ind ###############
 logit15 = glm.nb(a$reb_event.b ~ a$t_ind + a$units_deployed + a$untrp + a$unpol + a$unmob + a$f_untrp +
                    a$f_unpol + a$f_unmob + a$mountains_mean + a$ttime_mean + 
-                   a$urban_gc + a$nlights_calib_mean + a$pop_gpw_sum + a$pop.dens)
+                   a$urban_gc + a$nlights_calib_mean + a$pop_gpw_sum + a$pop.dens + a$pko_lag)
 summary(logit15)
 
 # should there be an interaction effect between t_ind and other peacekeeping variables?
-logit16 = glm.nb(a$reb_death.b ~ a$t_ind + a$units_deployed + a$untrp + a$unpol + a$unmob + a$f_untrp +
-                   a$f_unpol + a$f_unmob + a$mountains_mean + a$ttime_mean + a$pop_gpw_sum + a$pop.dens)
+logit16 = glm.nb(a$reb_death.b ~ a$t_ind + a$units_deployed + a$untrp + a$unpol + a$unmob + 
+                   a$f_untrp + a$f_unpol + a$f_unmob + a$mountains_mean + a$ttime_mean + 
+                   a$pop_gpw_sum + a$pop.dens + a$pko_lag)
 # not using nlights here because economic activity might affect whether a violent event occurs but not whether a death happens
 # not using urban_gc here because population density might affect whether a violent event occurs but not whether a death happens
 
@@ -145,11 +151,12 @@ summary(logit16)
 # Gov OSV #
 logit9.1 = glm.nb(a$gov_event.5 ~ a$units_deployed + a$untrp + a$unpol + a$unmob + a$f_untrp +
                    a$f_unpol + a$f_unmob + a$mountains_mean + a$ttime_mean + 
-                   a$urban_gc + a$nlights_calib_mean + a$pop_gpw_sum + a$pop.dens)
+                   a$urban_gc + a$nlights_calib_mean + a$pop_gpw_sum + a$pop.dens + a$pko_lag)
 summary(logit9.1)
 
 logit10.1 = glm.nb(a$gov_death.5 ~ a$units_deployed + a$untrp + a$unpol + a$unmob + a$f_untrp +
-                   a$f_unpol + a$f_unmob + a$mountains_mean + a$ttime_mean + a$pop_gpw_sum + a$pop.dens)
+                   a$f_unpol + a$f_unmob + a$mountains_mean + a$ttime_mean + a$pop_gpw_sum + 
+                     a$pop.dens + a$pko_lag)
 summary(logit10.1)
 
 # not using nlights here because economic activity might affect whether a violent event occurs but not whether a death happens
@@ -159,11 +166,12 @@ summary(logit10.1)
 # Rebel OSV #
 logit13.1 = glm.nb(a$reb_event.5 ~ a$units_deployed + a$untrp + a$unpol + a$unmob + a$f_untrp +
                    a$f_unpol + a$f_unmob + a$mountains_mean + a$ttime_mean + 
-                   a$urban_gc + a$nlights_calib_mean + a$pop_gpw_sum + a$pop.dens)
+                   a$urban_gc + a$nlights_calib_mean + a$pop_gpw_sum + a$pop.dens + a$pko_lag)
 summary(logit13.1) # logit13.1 doesn't run, likely not enough data
 
 logit14.1 = glm.nb(a$reb_death.5 ~ a$units_deployed + a$untrp + a$unpol + a$unmob + a$f_untrp +
-                   a$f_unpol + a$f_unmob + a$mountains_mean + a$ttime_mean + a$pop_gpw_sum + a$pop.dens)
+                   a$f_unpol + a$f_unmob + a$mountains_mean + a$ttime_mean + a$pop_gpw_sum + 
+                     a$pop.dens + a$pko_lag)
 summary(logit14.1)
 
 stargazer(logit9.1, logit10.1, logit14.1, title = "Pre-matched Results (>4)", align = TRUE, digits=3, font.size = "scriptsize",
@@ -313,7 +321,7 @@ senmw(test_d_match1,gamma=1,method="t")$pval
 
 # Gov OSV #
 logit17 = glm.nb(gov_event.b ~ units_deployed + untrp + unpol + unmob + f_untrp +
-                  f_unpol + f_unmob + mountains_mean + ttime_mean + 
+                  f_unpol + f_unmob + pko_lag + mountains_mean + ttime_mean + 
                   urban_gc + nlights_calib_mean + pop_gpw_sum + pop.dens, data = b)
 summary(logit17)
 
@@ -328,12 +336,12 @@ summary(logit18)
 
 # Rebel OSV #
 logit19 = glm.nb(reb_event.b ~ units_deployed + untrp + unpol + unmob + f_untrp +
-                   f_unpol + f_unmob + mountains_mean + ttime_mean + 
+                   f_unpol + f_unmob + pko_lag + mountains_mean + ttime_mean + 
                    urban_gc + nlights_calib_mean + pop_gpw_sum + pop.dens, data = b)
 summary(logit19)
 
 logit20 = glm.nb(reb_death.b ~ units_deployed + untrp + unpol + unmob + f_untrp +
-                   f_unpol + f_unmob + mountains_mean + ttime_mean + pop_gpw_sum + pop.dens,
+                   f_unpol + f_unmob + pko_lag + mountains_mean + ttime_mean + pop_gpw_sum + pop.dens,
                  data = b)
 summary(logit20)
 # not using nlights here because economic activity might affect whether a violent event occurs but not whether a death happens
@@ -349,12 +357,12 @@ stargazer(logit17, logit18, logit19, logit20, title = "Matched Results", align =
 
 # Gov OSV #
 logit21 = glm.nb(gov_event.5 ~ units_deployed + untrp + unpol + unmob + f_untrp +
-                   f_unpol + f_unmob + mountains_mean + ttime_mean + 
+                   f_unpol + f_unmob + pko_lag + mountains_mean + ttime_mean + 
                    urban_gc + nlights_calib_mean + pop_gpw_sum + pop.dens, data = b)
 summary(logit21) # also didn't run, calculated deviance probably became infinite
 
 logit22 = glm.nb(gov_death.5 ~ units_deployed + untrp + unpol + unmob + f_untrp +
-                   f_unpol + f_unmob + mountains_mean + ttime_mean + pop_gpw_sum + pop.dens,
+                   f_unpol + f_unmob + pko_lag + mountains_mean + ttime_mean + pop_gpw_sum + pop.dens,
                  data = b)
 summary(logit22)
 
@@ -364,12 +372,12 @@ summary(logit22)
 
 # Rebel OSV #
 logit23 = glm.nb(reb_event.5 ~ units_deployed + untrp + unpol + unmob + f_untrp +
-                   f_unpol + f_unmob + mountains_mean + ttime_mean + 
+                   f_unpol + f_unmob + pko_lag + mountains_mean + ttime_mean + 
                    urban_gc + nlights_calib_mean + pop_gpw_sum + pop.dens, data = b)
 summary(logit23) # same as pre-matched, still won't run
 
 logit24 = glm.nb(reb_death.5 ~ units_deployed + untrp + unpol + unmob + f_untrp +
-                   f_unpol + f_unmob + mountains_mean + ttime_mean + pop_gpw_sum + pop.dens,
+                   f_unpol + f_unmob + pko_lag + mountains_mean + ttime_mean + pop_gpw_sum + pop.dens,
                  data = b)
 summary(logit24)
 
@@ -426,26 +434,26 @@ b$ccode[b$country == "sudan"] = 11
 
 # Gov OSV #
 ran.int1 = lmer(gov_event.b ~ units_deployed + untrp + unpol + unmob + f_untrp +
-                  f_unpol + f_unmob + mountains_mean + ttime_mean + 
+                  f_unpol + f_unmob + pko_lag + mountains_mean + ttime_mean + 
                   urban_gc + nlights_calib_mean + pop_gpw_sum + pop.dens +
                   (1 | ccode), data = b)
 summary(ran.int1)
 
 ran.int2 = lmer(gov_death.b ~ units_deployed + untrp + unpol + unmob + f_untrp +
-                   f_unpol + f_unmob + mountains_mean + ttime_mean + pop_gpw_sum + pop.dens +
+                   f_unpol + f_unmob + pko_lag + mountains_mean + ttime_mean + pop_gpw_sum + pop.dens +
                    (1 | ccode), data = b)
 summary(ran.int2)
 
 
 # Rebel OSV #
 ran.int3 = lmer(reb_event.b ~ units_deployed + untrp + unpol + unmob + f_untrp +
-                   f_unpol + f_unmob + mountains_mean + ttime_mean + 
+                   f_unpol + f_unmob + pko_lag + mountains_mean + ttime_mean + 
                    urban_gc + nlights_calib_mean + pop_gpw_sum + pop.dens + 
                    (1 | ccode), data = b)
 summary(ran.int3)
 
 ran.int4 = lmer(reb_death.b ~ units_deployed + untrp + unpol + unmob + f_untrp +
-                   f_unpol + f_unmob + mountains_mean + ttime_mean + pop_gpw_sum + pop.dens + 
+                   f_unpol + f_unmob + pko_lag + mountains_mean + ttime_mean + pop_gpw_sum + pop.dens + 
                    (1 | ccode), data = b)
 summary(ran.int4)
 
@@ -461,26 +469,26 @@ stargazer(ran.int1, ran.int2, ran.int3, ran.int4, title = "Matched MLM Results",
 
 # Gov OSV #
 ran.int5 = lmer(gov_event ~ units_deployed + untrp + unpol + unmob + f_untrp +
-                  f_unpol + f_unmob + mountains_mean + ttime_mean + 
+                  f_unpol + f_unmob + pko_lag + mountains_mean + ttime_mean + 
                   urban_gc + nlights_calib_mean + pop_gpw_sum + pop.dens +
                   (1 | ccode), data = b)
 summary(ran.int5)
 
 ran.int6 = lmer(gov_death ~ units_deployed + untrp + unpol + unmob + f_untrp +
-                  f_unpol + f_unmob + mountains_mean + ttime_mean + pop_gpw_sum + pop.dens +
+                  f_unpol + f_unmob + pko_lag + mountains_mean + ttime_mean + pop_gpw_sum + pop.dens +
                   (1 | ccode), data = b)
 summary(ran.int6)
 
 
 # Rebel OSV #
 ran.int7 = lmer(reb_event ~ units_deployed + untrp + unpol + unmob + f_untrp +
-                  f_unpol + f_unmob + mountains_mean + ttime_mean + 
+                  f_unpol + f_unmob + pko_lag + mountains_mean + ttime_mean + 
                   urban_gc + nlights_calib_mean + pop_gpw_sum + pop.dens + 
                   (1 | ccode), data = b)
 summary(ran.int7)
 
 ran.int8 = lmer(reb_death ~ units_deployed + untrp + unpol + unmob + f_untrp +
-                  f_unpol + f_unmob + mountains_mean + ttime_mean + pop_gpw_sum + pop.dens + 
+                  f_unpol + f_unmob + pko_lag + mountains_mean + ttime_mean + pop_gpw_sum + pop.dens + 
                   (1 | ccode), data = b)
 summary(ran.int8)
 
@@ -522,23 +530,23 @@ vcovCluster <- function(
 
 # Gov OSV #
 se_reg1 <- lm(gov_event ~ units_deployed + untrp + unpol + unmob + f_untrp +
-               f_unpol + f_unmob + mountains_mean + ttime_mean + urban_gc + 
+               f_unpol + f_unmob + pko_lag + mountains_mean + ttime_mean + urban_gc + 
                nlights_calib_mean + pop_gpw_sum + pop.dens, data=b)
 se_reg_c1 <- round(coeftest(se_reg1, vcov = vcovCluster(se_reg1, cluster = b$prio.grid)),4)
 
 se_reg2 <- lm(gov_death ~ units_deployed + untrp + unpol + unmob + f_untrp +
-                f_unpol + f_unmob + mountains_mean + ttime_mean + pop_gpw_sum + 
+                f_unpol + f_unmob + pko_lag + mountains_mean + ttime_mean + pop_gpw_sum + 
                 pop.dens, data=b)
 se_reg_c2 <- round(coeftest(se_reg2, vcov = vcovCluster(se_reg2, cluster = b$prio.grid)),4)
 
 # Rebel OSV #
 se_reg3 <- lm(greb_event ~ units_deployed + untrp + unpol + unmob + f_untrp +
-                f_unpol + f_unmob + mountains_mean + ttime_mean + 
+                f_unpol + f_unmob + pko_lag + mountains_mean + ttime_mean + 
                 urban_gc + nlights_calib_mean + pop_gpw_sum + pop.dens, data=b)
 se_reg_c3 <- round(coeftest(se_reg3, vcov = vcovCluster(se_reg3, cluster = b$prio.grid)),4)
 
 se_reg4 <- lm(reb_death ~ units_deployed + untrp + unpol + unmob + f_untrp +
-                f_unpol + f_unmob + mountains_mean + ttime_mean + pop_gpw_sum + 
+                f_unpol + f_unmob + pko_lag + mountains_mean + ttime_mean + pop_gpw_sum + 
                 pop.dens, data=b)
 se_reg_c4 <- round(coeftest(se_reg4, vcov = vcovCluster(se_reg4, cluster = b$prio.grid)),4)
 

@@ -189,8 +189,10 @@ a$gov_death.5[a$gov_death.b == 1 & a$fate.5 == 1] = 1
 a$reb_death.5 = 0
 a$reb_death.5[a$reb_death.b == 1 & a$fate.5 == 1] = 1
 
-# add a post treated variable
 
+
+# add a post treated variable
+#####
 # the following code might be necessary
 # need to add a 1 going up by prio grid and date
 a = a[order(a$date, decreasing=FALSE), ] # first sort the grids by date
@@ -213,8 +215,18 @@ a = a %>%
   ungroup() %>%
   relocate(first.treat, .after = prio.grid)
 
+# add a lagged variable
+#####
 
+# sort again to make sure it works
+a = a[order(a$date, decreasing=FALSE), ] 
+a = a[order(a$prio.grid, decreasing=FALSE), ]
 
+a <- a %>%                            # Add lagged column
+  group_by(prio.grid) %>%
+  dplyr::mutate(pko_lag = dplyr::lag(pko_deployed, n = 1, default = NA)) %>% 
+  as.data.frame() %>%
+  relocate(pko_lag, .after = pko_deployed)
 
 # save RDS #
 
