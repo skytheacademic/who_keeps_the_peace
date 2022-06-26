@@ -228,6 +228,32 @@ a <- a %>%                            # Add lagged column
   as.data.frame() %>%
   relocate(pko_lag, .after = pko_deployed)
 
+# data imputation of control variables by Prio Grid
+a$mountains_mean<-ave(a$mountains_mean,a$prio.grid,FUN=function(x) 
+  ifelse(is.na(x), mean(x,na.rm=TRUE), x))
+a$ttime_mean<-ave(a$ttime_mean,a$prio.grid,FUN=function(x) 
+  ifelse(is.na(x), mean(x,na.rm=TRUE), x))
+a$urban_gc<-ave(a$urban_gc,a$prio.grid,FUN=function(x) 
+  ifelse(is.na(x), mean(x,na.rm=TRUE), x))
+a$nlights_calib_mean<-ave(a$nlights_calib_mean,a$prio.grid,FUN=function(x) 
+  ifelse(is.na(x), mean(x,na.rm=TRUE), x))
+a$pop_gpw_sum<-ave(a$pop_gpw_sum,a$prio.grid,FUN=function(x) 
+  ifelse(is.na(x), mean(x,na.rm=TRUE), x))
+a$pop.dens<-ave(a$pop.dens,a$prio.grid,FUN=function(x) 
+  ifelse(is.na(x), mean(x,na.rm=TRUE), x))
+a$prec_gpcp<-ave(a$prec_gpcp,a$prio.grid,FUN=function(x) 
+  ifelse(is.na(x), mean(x,na.rm=TRUE), x))
+
+# check how many variables are still missing
+sum(is.na(a$mountains_mean))
+sum(is.na(a$ttime_mean))
+sum(is.na(a$urban_gc))
+sum(is.na(a$nlights_calib_mean))
+sum(is.na(a$pop_gpw_sum))
+sum(is.na(a$pop.dens))
+sum(is.na(a$prec_gpcp))
+
+
 # save RDS #
 
 saveRDS(a, file = "./data/kunkel_cg.rds")

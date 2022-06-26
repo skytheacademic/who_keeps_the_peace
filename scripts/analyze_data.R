@@ -197,26 +197,10 @@ st(a, group = "mission", vars =c("pko_deployed", "untrp", "f_untrp"), group.long
         ### Matching Analysis ###
 ##########################################
 
-
-# can't run with NAs
-# so, make all NAs equal to average of the column
-sum(is.na(a$mountains_mean))
-sum(is.na(a$ttime_mean))
-sum(is.na(a$urban_gc))
-sum(is.na(a$nlights_calib_mean))
-sum(is.na(a$pop_gpw_sum))
-sum(is.na(a$pop.dens))
-sum(is.na(a$prec_gpcp))
-
 a = a[order(a$t_ind, decreasing=TRUE), ]
 
 control.variables = cbind(a$mountains_mean, a$ttime_mean, a$urban_gc, a$nlights_calib_mean, 
                           a$pop_gpw_sum, a$pop.dens, a$prec_gpcp)
-
-for(i in 1:ncol(control.variables)){
-  control.variables[is.na(control.variables[,i]), i] <- mean(control.variables[,i], na.rm = TRUE)
-}
-
 
 # keep map stuff at the end of data.frame #
 a = a %>% relocate(c("xcoord", "ycoord", "col", "row", "geometry"), .after = last_col())
