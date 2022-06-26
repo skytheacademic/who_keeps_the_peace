@@ -23,4 +23,4 @@ UCDP data
 	- Contains violence data from the Uppsala Conflict Data Program
 	- Observed at event level in areas where more than 5 deaths occured in a given calendar year.
 	- Downloaded from https://ucdp.uu.se/downloads/index.html#ged_global on June 26, 2022
-	- "GEDEvent_v21_1.RData" is the original RData file downloaded.
+	- "ged211.csv" is the original RData file downloaded.
