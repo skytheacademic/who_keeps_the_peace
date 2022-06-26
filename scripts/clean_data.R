@@ -253,6 +253,13 @@ sum(is.na(a$pop_gpw_sum))
 sum(is.na(a$pop.dens))
 sum(is.na(a$prec_gpcp))
 
+##### Merge UCDP data #####
+# read in data
+df = read.csv("./data/ucdp_ged/ged211.csv") %>%
+  select(-c(1:32, 34:39, 41,42,44:49))
+  
+  select(priogrid_gid, df, priogrid_gid)
+
 
 # save RDS #
 

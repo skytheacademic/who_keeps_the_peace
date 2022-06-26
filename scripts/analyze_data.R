@@ -535,10 +535,8 @@ se_reg4 <- lm(reb_death ~ units_deployed + untrp + unpol + unmob + f_untrp +
 se_reg_c4 <- round(coeftest(se_reg4, vcov = vcovCluster(se_reg4, cluster = b$prio.grid)),4)
 
 
-# Measuring Spatial Autocorrelation #
-###
-
-### Spatial Durbin Model ##
+#### Measuring Spatial Autocorrelation ####
+# Spatial Durbin Model #
 
 prio = st_read(dsn = "./priogrid_cellshp",
                 layer = "priogrid_cell",
@@ -573,3 +571,9 @@ prio$prio.grid = as.numeric(prio$prio.grid) # transform the column into numeric 
 
 
 
+ 
+ #### UCDP Robustness Check ####
+ 
+
+ 
+ 
