@@ -215,8 +215,7 @@ a = a %>%
   ungroup() %>%
   relocate(first.treat, .after = prio.grid)
 
-# add a lagged variable
-#####
+##### add a lagged variable #####
 
 # sort again to make sure it works
 a = a[order(a$date, decreasing=FALSE), ] 
@@ -227,6 +226,8 @@ a <- a %>%                            # Add lagged column
   dplyr::mutate(pko_lag = dplyr::lag(pko_deployed, n = 1, default = NA)) %>% 
   as.data.frame() %>%
   relocate(pko_lag, .after = pko_deployed)
+
+##### Impute Covariates #####
 
 # data imputation of control variables by Prio Grid
 a$mountains_mean<-ave(a$mountains_mean,a$prio.grid,FUN=function(x) 
@@ -256,10 +257,22 @@ sum(is.na(a$prec_gpcp))
 ##### Merge UCDP data #####
 # read in data
 df = read.csv("./data/ucdp_ged/ged211.csv") %>%
-  select(-c(1:32, 34:39, 41,42,44:49))
-  
-  select(priogrid_gid, df, priogrid_gid)
+  select(-c(1:32, 34:39, 41,42,44:49)) %>% 
+  # make the date variable a date type
+  mutate(date = ymd_hms(date_end)) %>% 
+  # rename variable for ease of merging
+  rename(prio.grid = priogrid_gid, ucdp_deaths = deaths_civilians) %>%
+  select(-"date_end")
 
+df$date = floor_date(df$date, "month")
+df$ucdp_event = 1
+df = df %>%
+  group_by(prio.grid, date) %>%
+  summarize(ucdp_deaths = sum(ucdp_deaths), ucdp_event = sum(ucdp_event))
+
+a = left_join(a, df, by = c("prio.grid", "date"))
+a$ucdp_deaths[is.na(a$ucdp_deaths)] <- 0
+a$ucdp_event[is.na(a$ucdp_event)] <- 0
 
 # save RDS #
 
