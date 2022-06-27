@@ -189,6 +189,20 @@ a$gov_death.5[a$gov_death.b == 1 & a$fate.5 == 1] = 1
 a$reb_death.5 = 0
 a$reb_death.5[a$reb_death.b == 1 & a$fate.5 == 1] = 1
 
+# turn countries into numbers for mlm #
+a$ccode = 0
+a$ccode[a$country == "Abyei"] = 1
+a$ccode[a$country == "Burundi"] = 2
+a$ccode[a$country == "Central African Republic"] = 3
+a$ccode[a$country == "Chad"] = 4
+a$ccode[a$country == "Cote d'Ivoire"] = 5
+a$ccode[a$country == "Democratic Republic of Congo"] = 6
+a$ccode[a$country == "Liberia"] = 7
+a$ccode[a$country == "Mali"] = 8
+a$ccode[a$country == "Sierra Leone"] = 9
+a$ccode[a$country == "South Sudan"] = 10
+a$ccode[a$country == "sudan"] = 11
+
 
 
 # add a post treated variable

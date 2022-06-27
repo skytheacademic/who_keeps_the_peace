@@ -8,7 +8,7 @@ library(gdata); library(designmatch)
 
 library(ggpubr); library(ggiraphExtra); library(coefplot); library(stargazer) # need to add these to dockerfile
 library(spdep); library(gurobi); library(MASS); library(lme4); library(vtable)
-library(sensitivitymw)
+library(sensitivitymw); library(lme4)
 
 
 # turn off scientific notation
@@ -375,42 +375,24 @@ stargazer(logit22, logit24, title = "Matched Results (>4)", align = TRUE, digits
 # 3-level Multilevel Model #
 ############################
 
-# is treatment binary? if so, use the following. if not, use 2nd model discussing "all six covariances"
-  # here: https://rpsychologist.com/r-guide-longitudinal-lme-lmer#three-level-models
+# is treatment binary? if so, use the following.
 
-# which to use? https://stats.stackexchange.com/questions/5344/how-to-choose-nlme-or-lme4-r-library-for-mixed-effects-models
-# lme4
-lmer(y ~ time * tx + (time | therapist:subjects) +
+# GOV OSV #
+mlm_3_reg1 = glmer.nb(gov_event.b ~ t_ind * tx + (time | therapist:subjects) +
        (time | therapist) +
        (0 + tx + time:tx | therapist), 
-     data=data)
+     data=b)
 
-# nlme
-lme(y ~time * tx, 
-    random = list(therapist = pdBlocked(list(~time, ~0 + tx + time:tx)),
-                  subjects = ~time ),
-    data=data)
+# use this to figure out code https://rpsychologist.com/r-guide-longitudinal-lme-lmer#three-level-models
+# if not, send Shawn an email
 
-
+gov_event.b ~ units_deployed + untrp + unpol + unmob + f_untrp +
+  f_unpol + f_unmob + pko_lag + mountains_mean + ttime_mean + 
+  urban_gc + nlights_calib_mean + pop_gpw_sum + pop.dens +
+  (1 | ccode)
+# Rebel OSV #
 
 # 2-Level Multilevel model #
-
-# turn country into numbers for mlm #
-
-table(b$country)
-b$ccode = 0
-b$ccode[b$country == "Abyei"] = 1
-b$ccode[b$country == "Burundi"] = 2
-b$ccode[b$country == "Central African Republic"] = 3
-b$ccode[b$country == "Chad"] = 4
-b$ccode[b$country == "Cote d'Ivoire"] = 5
-b$ccode[b$country == "Democratic Republic of Congo"] = 6
-b$ccode[b$country == "Liberia"] = 7
-b$ccode[b$country == "Mali"] = 8
-b$ccode[b$country == "Sierra Leone"] = 9
-b$ccode[b$country == "South Sudan"] = 10
-b$ccode[b$country == "sudan"] = 11
-
 
 ###########################
 # random intercept binary #
@@ -538,7 +520,7 @@ se_reg_c4 <- round(coeftest(se_reg4, vcov = vcovCluster(se_reg4, cluster = b$pri
 #### Measuring Spatial Autocorrelation ####
 # Spatial Durbin Model #
 
-prio = st_read(dsn = "./priogrid_cellshp",
+prio = st_read(dsn = "./data/prio/priogrid_cellshp",
                 layer = "priogrid_cell",
                 stringsAsFactors = F) %>%
    mutate(gid = as.character(gid))
