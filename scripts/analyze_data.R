@@ -3,7 +3,7 @@
 
 ### load libraries ###
 library(tidygeocoder)
-library(tidyverse); library(viridis); library(lubridate)
+library(tidyverse); library(viridis)
 library(gdata); library(designmatch) 
 
 library(ggpubr); library(ggiraphExtra); library(coefplot); library(stargazer) # need to add these to dockerfile
@@ -378,10 +378,13 @@ stargazer(logit22, logit24, title = "Matched Results (>4)", align = TRUE, digits
 # is treatment binary? if so, use the following.
 
 # GOV OSV #
-mlm_3_reg1 = glmer.nb(gov_event.b ~ t_ind * tx + (time | therapist:subjects) +
-       (time | therapist) +
-       (0 + tx + time:tx | therapist), 
-     data=b)
+mlm_3_reg1 = glmer.nb(gov_event.b ~ time * t_ind + (time | ccode:prio.grid) +
+       (time | country) + (0 + t_ind + time:t_ind | country), 
+     data=a)
+
+# subjects = prio.grid
+# therapist = country
+# time = time
 
 # use this to figure out code https://rpsychologist.com/r-guide-longitudinal-lme-lmer#three-level-models
 # if not, send Shawn an email
