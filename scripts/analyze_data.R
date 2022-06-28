@@ -18,22 +18,6 @@ options(scipen = 999)
 setwd("../")
 a = readRDS("./data/kunkel_cg.rds")
 
-# my number of grid-months w/ violence is 6685 (see test dataframe in data_clean script)
-
-# From Fjelde et al. 2019 analysis: Of the 2,387 spatial units in our data set, 
-# 214 see peacekeeping forces deployed and 159 experience one-sided violence 
-# with at least five people killed in one month at some point during the period 
-# from January 2000 to December 2011. 
-
-# two analyses to run:
-# one: regression analyzing whether peacekeepers reduced violence in all grids over course of PKO deployment
-# can also add mlm to this with country level
-
-# matching analysis with most data possible (i.e. all ACLED data on downloaded countries) to match
-# grids together
-
-
-
 ##########################################
         ### Regression Analysis ###
 ##########################################
@@ -75,7 +59,6 @@ summary(logit7)
 logit8 = glm.nb(a$fate.5 ~ a$t_ind + a$units_deployed + a$untrp + a$unpol + a$unmob + a$f_untrp +
                   a$f_unpol + a$f_unmob + a$mountains_mean + a$ttime_mean + a$pop_gpw_sum +
                   a$pop.dens + a$pko_lag)
-# switching to 5 death threshold for this model since regular continuous variable won't work
 
 # not using nlights here because economic activity might affect whether a violent event occurs but not whether a death happens
 # not using urban_gc here because population density might affect whether a violent event occurs but not whether a death happens
