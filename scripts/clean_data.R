@@ -12,9 +12,14 @@ setwd("../")
 
 # load the data #
 acled  = read.csv("./data/acled/1999-01-01-2021-12-31.csv") %>%
-  select(-c(event_id_cnty, event_id_no_cnty, actor1, assoc_actor_1,actor2,assoc_actor_2,region,admin3,location,source,source_scale,notes,timestamp))
+  select(-c(event_id_cnty, event_id_no_cnty, actor1, assoc_actor_1,actor2,assoc_actor_2,region,
+            admin3,location,source,source_scale,notes,timestamp))
 radpko = read.csv("./data/radpko/radpko_grid.csv")  %>%
-  select(-c(west_pko,west_untrp,west_unpol,west_unmob,asian_pko,asian_untrp,asian_unpol,asian_unmob,afr_pko,afr_untrp,afr_unpol,afr_unmob))
+  select(-c(west_pko,west_untrp,west_unpol,west_unmob,asian_pko,asian_untrp,asian_unpol,
+            asian_unmob,afr_pko,afr_untrp,afr_unpol,afr_unmob)) %>%
+  mutate(date = ymd(date),
+         month = month(date),
+         year = year(date))
 prio.static = read_csv("./data/prio/PRIO-GRID Static Variables - 2022-06-03.csv")
 prio.yearly = read_csv("./data/prio/PRIO-GRID Yearly Variables for 1999-2014 - 2022-06-03.csv")
 names(prio.static)[1] = "prio.grid" # rename for merging
@@ -28,7 +33,7 @@ prio.var$prio.grid = as.numeric(prio.var$prio.grid)
 rm(prio.static, prio.yearly)
 # change date-time
 acled$event_date = lubridate::dmy(acled$event_date)
-radpko$date = lubridate::ymd(radpko$date)
+radpko$date = lubridate::ymd(radpko$date) 
 
 # subset ACLED data to violence against civilians and dates from before 2019 and after 
 # 1999 to match RADPKO data (and to make analysis faster)
@@ -204,30 +209,26 @@ a$ccode[a$country == "South Sudan"] = 10
 a$ccode[a$country == "sudan"] = 11
 
 
-
-# add a post treated variable
-#####
-# the following code might be necessary
-# need to add a 1 going up by prio grid and date
-a = a[order(a$date, decreasing=FALSE), ] # first sort the grids by date
-a = a[order(a$prio.grid, decreasing=FALSE), ] # then by prio.grid
-
-a <- a %>%
-  group_by(prio.grid) %>% # adding a time variable starting with 1
-  mutate(time.var = 1:n()) %>%
-  as.data.frame()
-
-a$date = as.character(a$date)
-
-as.date=function(x, origin='1970-01-01') as.Date(x, origin=origin)
-a$date = as.Date(a$date, origin='1999-10-01', format = "%Y-%m-%d")
-
-a$first.treat = NA
-a = a %>% 
-  group_by(prio.grid) %>% 
-  mutate(first.treat = min(if_else(t_ind == 1, date, NA_integer_), na.rm = TRUE)) %>% 
-  ungroup() %>%
-  relocate(first.treat, .after = prio.grid)
+##### add a post treated variable #####
+a <- a %>% 
+  mutate(time = (year-1999)*(12) + month)
+dd <- a %>% as.data.frame() %>% select(prio.grid, time, t_ind, mission)
+dd <- split(dd, f = dd$prio.grid)
+dd <- lapply(dd, FUN = function(x){
+  y <- x[which(x$t_ind == 1),]
+  # create a "first treated" variable. needs to be 0 for untreated
+  x$first_treated <- ifelse(nrow(y) == 0, 0, min(y$time))
+  # create a "post treated" variable. needs to be 0 until treatment then 1
+  x$post_treatment <- ifelse(x$first_treated != 0 & x$time >= x$first_treated, 
+                             1, 0)
+  # create a "treated" variable. needs to be 0 if control and 1 if treated
+  x$treated <- ifelse(sum(x$t_ind, na.rm = T) > 0, 1, 0)
+  x
+})
+dd <- do.call(rbind, dd)
+dd <- dd[,c("prio.grid", "time", "first_treated", "post_treatment", "mission")]
+# merge back to main df
+a <- left_join(a, dd, by = c("prio.grid", "time", "mission"))
 
 ##### add a lagged variable #####
 
