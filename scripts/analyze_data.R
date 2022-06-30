@@ -1,5 +1,5 @@
 # Conflict Grids & Peacekeeping #
-# By: Adam Kunkel
+# By: Sky Kunkel
 
 ### load libraries ###
 library(tidygeocoder)
