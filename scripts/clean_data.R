@@ -14,6 +14,8 @@ setwd("../")
 acled  = read.csv("./data/acled/1999-01-01-2021-12-31.csv") %>%
   select(-c(event_id_cnty, event_id_no_cnty, actor1, assoc_actor_1,actor2,assoc_actor_2,region,
             admin3,location,source,source_scale,notes,timestamp))
+
+
 radpko = read.csv("./data/radpko/radpko_grid.csv")  %>%
   select(-c(west_pko,west_untrp,west_unpol,west_unmob,asian_pko,asian_untrp,asian_unpol,
             asian_unmob,afr_pko,afr_untrp,afr_unpol,afr_unmob)) %>%
@@ -37,9 +39,9 @@ radpko$date = lubridate::ymd(radpko$date)
 
 # subset ACLED data to violence against civilians and dates from before 2019 and after 
 # 1999 to match RADPKO data (and to make analysis faster)
-acled = subset(acled, acled$event_date < "2019-01-01" & acled$event_date > "1999-01-01" & 
-                 acled$event_type == "Violence against civilians")
-
+acled = subset(acled, event_date < "2019-01-01" & event_date > "1999-01-01" & 
+                 event_type == "Violence against civilians" | event_type == "Explosions/Remote violence")
+acled = subset(acled, inter1 == 7 | inter2 == 7)
 # change ACLED's classification of Abyei from admin1 unit to country unit to match RADPKO
 acled$country[acled$admin1=="Abyei"] = "Abyei"
 
@@ -296,3 +298,4 @@ saveRDS(a, file = "./data/kunkel_cg.rds")
 # data fully merged, cleaned, and exported #
 
 rm(list = ls())
+gc()
