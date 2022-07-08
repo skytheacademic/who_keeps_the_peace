@@ -156,11 +156,14 @@ a = a[order(a$t_ind, decreasing=TRUE), ]
 
 control.variables = cbind(a$mountains_mean, a$ttime_mean, a$urban_gc, a$nlights_calib_mean, 
                           a$pop_gpw_sum, a$pop.dens, a$prec_gpcp)
-
+t_ind = a$t_ind #treatment
+t_id = which(t_ind==1) #treated
+c_id = which(t_ind==0) #control
+tab1 = meantab(control.variables, t_ind, t_id, c_id)
+tab1
 # keep map stuff at the end of data.frame #
 a = a %>% relocate(c("xcoord", "ycoord", "col", "row", "geometry"), .after = last_col())
 
-t_ind = a$t_ind
 mom_covs = cbind(a$mountains_mean, a$ttime_mean, a$urban_gc, a$nlights_calib_mean, 
                  a$pop_gpw_sum, a$pop.dens, a$prec_gpcp)
 
@@ -195,7 +198,7 @@ tab1
 covs = cbind(a$mountains_mean, a$ttime_mean, a$urban_gc, a$nlights_calib_mean, 
                         a$pop_gpw_sum, a$pop.dens, a$prec_gpcp)
 tab2 = meantab(covs, t_ind, t_id_1, c_id_1)
-
+tab2
 # Save matched sample 
 b = a[c(t_id_1, c_id_1), ]
 
@@ -218,8 +221,14 @@ colnames(test_d_match1) = c("treated","control")
 
 senmw(test_d_match1,gamma=1,method="t")$pval
 
+test_d_match2 = data.frame(b$reb_death.b[b$t_ind==1],b$reb_death.b[b$t_ind==0])
+colnames(test_d_match2) = c("treated","control")
 
-# regressions w/ matched sample
+senmw(test_d_match1,gamma=1,method="t")$pval
+
+rm(list = setdiff(ls(), "b")) 
+gc()
+#### Negative binomial regression with matched sample ####
 
 # Gov OSV #
 logit17 = glm.nb(gov_event.b ~ units_deployed + untrp + unpol + unmob + f_untrp +
@@ -289,16 +298,16 @@ stargazer(logit22, logit24, title = "Matched Results (>4)", align = TRUE, digits
 
 
 
-############################
-# 3-level Multilevel Model #
-############################
+##############################################
+# 3-level Multilevel Model w/ matched sample#
+##############################################
 
 # is treatment binary? if so, use the following.
 
+a = sample_n(b, 1000)
 # GOV OSV #
 mlm_3_reg1 = glmer.nb(gov_event.b ~ time * t_ind + (time | ccode:prio.grid) +
-       (time | country) + (0 + t_ind + time:t_ind | country), 
-     data=a)
+       (time | country) + (0 + t_ind + time:t_ind | country), data=a)
 
 # subjects = prio.grid
 # therapist = country
@@ -320,26 +329,26 @@ gov_event.b ~ units_deployed + untrp + unpol + unmob + f_untrp +
 ###########################
 
 # Gov OSV #
-ran.int1 = lmer(gov_event.b ~ units_deployed + untrp + unpol + unmob + f_untrp +
+ran.int1 = lmer(gov_event.b ~ t_ind + untrp + unpol + unmob + f_untrp +
                   f_unpol + f_unmob + pko_lag + mountains_mean + ttime_mean + 
                   urban_gc + nlights_calib_mean + pop_gpw_sum + pop.dens +
                   (1 | ccode), data = b)
 summary(ran.int1)
 
-ran.int2 = lmer(gov_death.b ~ units_deployed + untrp + unpol + unmob + f_untrp +
+ran.int2 = lmer(gov_death.b ~ t_ind + untrp + unpol + unmob + f_untrp +
                    f_unpol + f_unmob + pko_lag + mountains_mean + ttime_mean + pop_gpw_sum + pop.dens +
                    (1 | ccode), data = b)
 summary(ran.int2)
 
 
 # Rebel OSV #
-ran.int3 = lmer(reb_event.b ~ units_deployed + untrp + unpol + unmob + f_untrp +
+ran.int3 = lmer(reb_event.b ~ t_ind + untrp + unpol + unmob + f_untrp +
                    f_unpol + f_unmob + pko_lag + mountains_mean + ttime_mean + 
                    urban_gc + nlights_calib_mean + pop_gpw_sum + pop.dens + 
                    (1 | ccode), data = b)
 summary(ran.int3)
 
-ran.int4 = lmer(reb_death.b ~ units_deployed + untrp + unpol + unmob + f_untrp +
+ran.int4 = lmer(reb_death.b ~ t_ind + untrp + unpol + unmob + f_untrp +
                    f_unpol + f_unmob + pko_lag + mountains_mean + ttime_mean + pop_gpw_sum + pop.dens + 
                    (1 | ccode), data = b)
 summary(ran.int4)
@@ -355,26 +364,26 @@ stargazer(ran.int1, ran.int2, ran.int3, ran.int4, title = "Matched MLM Results",
 ###########################
 
 # Gov OSV #
-ran.int5 = lmer(gov_event ~ units_deployed + untrp + unpol + unmob + f_untrp +
+ran.int5 = lmer(gov_event ~ t_ind + untrp + unpol + unmob + f_untrp +
                   f_unpol + f_unmob + pko_lag + mountains_mean + ttime_mean + 
                   urban_gc + nlights_calib_mean + pop_gpw_sum + pop.dens +
                   (1 | ccode), data = b)
 summary(ran.int5)
 
-ran.int6 = lmer(gov_death ~ units_deployed + untrp + unpol + unmob + f_untrp +
+ran.int6 = lmer(gov_death ~ t_ind + untrp + unpol + unmob + f_untrp +
                   f_unpol + f_unmob + pko_lag + mountains_mean + ttime_mean + pop_gpw_sum + pop.dens +
                   (1 | ccode), data = b)
 summary(ran.int6)
 
 
 # Rebel OSV #
-ran.int7 = lmer(reb_event ~ units_deployed + untrp + unpol + unmob + f_untrp +
+ran.int7 = lmer(reb_event ~ t_ind + untrp + unpol + unmob + f_untrp +
                   f_unpol + f_unmob + pko_lag + mountains_mean + ttime_mean + 
                   urban_gc + nlights_calib_mean + pop_gpw_sum + pop.dens + 
                   (1 | ccode), data = b)
 summary(ran.int7)
 
-ran.int8 = lmer(reb_death ~ units_deployed + untrp + unpol + unmob + f_untrp +
+ran.int8 = lmer(reb_death ~ t_ind + untrp + unpol + unmob + f_untrp +
                   f_unpol + f_unmob + pko_lag + mountains_mean + ttime_mean + pop_gpw_sum + pop.dens + 
                   (1 | ccode), data = b)
 summary(ran.int8)
