@@ -89,7 +89,7 @@ a = as.data.frame(b) # convert to dataframe
 # start by adding a dummy column so we know how many violent events occur in a grid per month
 a$event = 1
 
-# round daily event data down to the 1st of the month to match ACLED data
+# round daily event data down to the 1st of the month to match RADPKO data
 a$event_date <- floor_date(a$event_date, "month")
 
 # change variable types to prepare for merging
