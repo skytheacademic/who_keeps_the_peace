@@ -1,7 +1,7 @@
 # Conflict Grids & Peacekeeping #
 # By: Sky Kunkel
 
-### load libraries ###
+#### load libraries, read data ####
 library(tidygeocoder)
 library(tidyverse); library(viridis)
 library(gdata); library(designmatch) 
@@ -22,80 +22,76 @@ a = readRDS("./data/kunkel_cg.rds")
 ### Naive Logit Models, no distinction between actors ###
 ##########################################################
 
-#### Logit Model, binary outcome####
+#### Logit Model, continuous treatment####
 # naive model
-logit1 = glm.nb(formula = event.b ~ units_deployed + untrp + unpol + unmob + f_untrp +
+logit1 = glm.nb(formula = event.b ~ pko_deployed + untrp + unpol + unmob + f_untrp +
                   f_unpol + f_unmob + pko_lag, data = a)
 summary(logit1)
 
-logit2 = glm.nb(formula = death ~ units_deployed + untrp + unpol + unmob + f_untrp +
+logit2 = glm.nb(formula = death ~ pko_deployed + untrp + unpol + unmob + f_untrp +
                   f_unpol + f_unmob + pko_lag, data = a)
 summary(logit2)
 
 # model with controls #
-logit3 = glm.nb(formula = event.b ~ units_deployed + untrp + unpol + unmob + f_untrp +
+logit3 = glm.nb(formula = event.b ~ pko_deployed + untrp + unpol + unmob + f_untrp +
                   f_unpol + f_unmob + mountains_mean + ttime_mean + 
                   urban_gc + nlights_calib_mean + pop_gpw_sum + pop.dens + pko_lag,
                 data = a)
 summary(logit3)
 
-logit4 = glm.nb(formula = death ~ units_deployed + untrp + unpol + unmob + f_untrp +
+logit4 = glm.nb(formula = death ~ pko_deployed + untrp + unpol + unmob + f_untrp +
                   f_unpol + f_unmob + mountains_mean + ttime_mean + pop_gpw_sum + 
                   pop.dens + pko_lag, data = a)
 summary(logit4)
 
-#### Logit Model, continuous outcome #####
 
-logit5 = glm.nb(event ~ units_deployed + untrp + unpol + unmob + f_untrp +
-            f_unpol + f_unmob + pko_lag, data = a)
+#### Logit Model, binary treatment####
+logit5 = glm.nb(formula = event.b ~ t_ind + untrp + unpol + unmob + f_untrp +
+                  f_unpol + f_unmob + pko_lag, data = a)
 summary(logit5)
 
-logit6 = glm.nb(fatalities ~ units_deployed + untrp + unpol + unmob + f_untrp +
-            f_unpol + f_unmob + pko_lag, data = a)
+logit6 = glm.nb(formula = death ~ t_ind + untrp + unpol + unmob + f_untrp +
+                  f_unpol + f_unmob + pko_lag, data = a)
 summary(logit6)
 
 # model with controls #
-logit7 = glm.nb(event ~ units_deployed + untrp + unpol + unmob + f_untrp +
+logit7 = glm.nb(formula = event.b ~ t_ind + untrp + unpol + unmob + f_untrp +
                   f_unpol + f_unmob + mountains_mean + ttime_mean + 
-                  urban_gc + nlights_calib_mean + pop_gpw_sum + pop.dens + pko_lag, data = a)
+                  urban_gc + nlights_calib_mean + pop_gpw_sum + pop.dens + pko_lag,
+                data = a)
 summary(logit7)
 
-logit8 = glm.nb(fatalities ~ units_deployed + untrp + unpol + unmob + f_untrp +
-                  f_unpol + f_unmob + mountains_mean + ttime_mean + pop_gpw_sum +
+logit8 = glm.nb(formula = death ~ t_ind + untrp + unpol + unmob + f_untrp +
+                  f_unpol + f_unmob + mountains_mean + ttime_mean + pop_gpw_sum + 
                   pop.dens + pko_lag, data = a)
 summary(logit8)
-# not using nlights here because economic activity might affect whether a violent event occurs but not whether a death happens
-# not using urban_gc here because population density might affect whether a violent event occurs but not whether a death happens
-
-
-
 
 
 ##########################################################
 ### Logit Models, disaggregated by actors ###
 ##########################################################
 
-#### GOV OSV - Continuous outcome ####
-logit9 = glm.nb(gov_event ~ units_deployed + untrp + unpol + unmob + f_untrp +
+#### GOV OSV - Continuous treatment ####
+logit9 = glm.nb(gov_event.b ~ pko_deployed + untrp + unpol + unmob + f_untrp +
                   f_unpol + f_unmob + mountains_mean + ttime_mean + 
                   urban_gc + nlights_calib_mean + pop_gpw_sum + pop.dens + pko_lag,
                 data = a)
 summary(logit9)
 
-logit10 = glm.nb(gov_death ~ units_deployed + untrp + unpol + unmob + f_untrp +
+logit10 = glm.nb(gov_death.b ~ pko_deployed + untrp + unpol + unmob + f_untrp +
                   f_unpol + f_unmob + mountains_mean + ttime_mean + pop_gpw_sum + 
                    pop.dens + pko_lag,
                  data = a)
 summary(logit10)
 
-#### GOV OSV - Binary outcome ####
-logit11 = glm.nb(gov_event.b ~ units_deployed + untrp + unpol + unmob + f_untrp +
+#### GOV OSV - Binary treatment ####
+logit11 = glm.nb(gov_event.b ~ t_ind + untrp + unpol + unmob + f_untrp +
                   f_unpol + f_unmob + mountains_mean + ttime_mean + 
                   urban_gc + nlights_calib_mean + pop_gpw_sum + pop.dens + pko_lag,
                  data = a)
 summary(logit11)
 
-logit12 = glm.nb(gov_death.b ~ units_deployed + untrp + unpol + unmob + 
+logit12 = glm.nb(gov_death.b ~ t_ind + untrp + unpol + unmob + 
                    f_untrp + f_unpol + f_unmob + mountains_mean + ttime_mean + 
                    pop_gpw_sum + pop.dens + pko_lag,
                  data = a)
@@ -103,27 +99,27 @@ summary(logit12)
 # not using nlights here because economic activity might affect whether a violent event occurs but not whether a death happens
 # not using urban_gc here because population density might affect whether a violent event occurs but not whether a death happens
 
-#### REB OSV - Continuous Outcome ####
-logit13 = glm.nb(reb_event ~ units_deployed + untrp + unpol + unmob + f_untrp +
+#### REB OSV - Continuous Treatment ####
+logit13 = glm.nb(reb_event.b ~ pko_deployed + untrp + unpol + unmob + f_untrp +
                   f_unpol + f_unmob + mountains_mean + ttime_mean + 
                   urban_gc + nlights_calib_mean + pop_gpw_sum + pop.dens + pko_lag,
                  data = a)
 summary(logit13)
 
-logit14 = glm.nb(reb_death ~ units_deployed + untrp + unpol + unmob + f_untrp +
+logit14 = glm.nb(reb_death.b ~ pko_deployed + untrp + unpol + unmob + f_untrp +
                    f_unpol + f_unmob + mountains_mean + ttime_mean + pop_gpw_sum + 
                    pop.dens + pko_lag,
                  data = a)
 summary(logit14)
 
-#### REB OSV - Binary Outcome ####
-logit15 = glm.nb(reb_event.b ~ units_deployed + untrp + unpol + unmob + f_untrp +
+#### REB OSV - Binary Treatment ####
+logit15 = glm.nb(reb_event.b ~ t_ind + untrp + unpol + unmob + f_untrp +
                    f_unpol + f_unmob + mountains_mean + ttime_mean + 
                    urban_gc + nlights_calib_mean + pop_gpw_sum + pop.dens + pko_lag,
                  data = a)
 summary(logit15)
 
-logit16 = glm.nb(reb_death.b ~ units_deployed + untrp + unpol + unmob + 
+logit16 = glm.nb(reb_death.b ~ t_ind + untrp + unpol + unmob + 
                    f_untrp + f_unpol + f_unmob + mountains_mean + ttime_mean + 
                    pop_gpw_sum + pop.dens + pko_lag,
                  data = a)
@@ -135,7 +131,8 @@ summary(logit16)
 
 #### Figures and Plots for non-matched regressions ####
 
-stargazer(logit9, logit10, logit13, logit14, title = "Pre-matched Results", align = TRUE, digits=3, font.size = "scriptsize",
+stargazer(logit11, logit12, logit15, logit16, title = "Pre-matched Results Pr(Violence)", 
+          align = TRUE, digits=3, font.size = "scriptsize",
           out = "./results/pre_matched_logit.txt")
 
 # descriptive statistics table #
@@ -202,11 +199,6 @@ tab2
 # Save matched sample 
 b = a[c(t_id_1, c_id_1), ]
 
-# this might be for matching: "Moreover, we match for grid characteristics identified 
-# in the disaggregate literature of civil war: INFANT MORTALITY RATE, POPULATION, 
-# AVERAGE MOUNTAINS, and AVERAGE RAIN PRECIPITATION"
-
-
 # number of observations before and after matching 
 
 table((a$t_ind))
@@ -231,13 +223,13 @@ gc()
 #### Negative binomial regression with matched sample ####
 
 # Gov OSV #
-logit17 = glm.nb(gov_event.b ~ units_deployed + untrp + unpol + unmob + f_untrp +
+logit17 = glm.nb(gov_event.b ~ t_ind + untrp + unpol + unmob + f_untrp +
                   f_unpol + f_unmob + pko_lag + mountains_mean + ttime_mean + 
-                  urban_gc + nlights_calib_mean + pop_gpw_sum + pop.dens, data = b)
+                  urban_gc + nlights_calib_mean + pop_gpw_sum + pop.dens + pko_lag, data = b)
 summary(logit17)
 
-logit18 = glm.nb(gov_death.b ~ units_deployed + untrp + unpol + unmob + f_untrp +
-                   f_unpol + f_unmob + mountains_mean + ttime_mean + pop_gpw_sum + pop.dens,
+logit18 = glm.nb(gov_death.b ~ t_ind + untrp + unpol + unmob + f_untrp +
+                   f_unpol + f_unmob + mountains_mean + ttime_mean + pop_gpw_sum + pop.dens + pko_lag,
                  data = b)
 summary(logit18)
 
@@ -246,20 +238,20 @@ summary(logit18)
 
 
 # Rebel OSV #
-logit19 = glm.nb(reb_event.b ~ units_deployed + untrp + unpol + unmob + f_untrp +
+logit19 = glm.nb(reb_event.b ~ t_ind + untrp + unpol + unmob + f_untrp +
                    f_unpol + f_unmob + pko_lag + mountains_mean + ttime_mean + 
-                   urban_gc + nlights_calib_mean + pop_gpw_sum + pop.dens, data = b)
+                   urban_gc + nlights_calib_mean + pop_gpw_sum + pop.dens + pko_lag, data = b)
 summary(logit19)
 
-logit20 = glm.nb(reb_death.b ~ units_deployed + untrp + unpol + unmob + f_untrp +
-                   f_unpol + f_unmob + pko_lag + mountains_mean + ttime_mean + pop_gpw_sum + pop.dens,
+logit20 = glm.nb(reb_death.b ~ t_ind + untrp + unpol + unmob + f_untrp +
+                   f_unpol + f_unmob + pko_lag + mountains_mean + ttime_mean + pop_gpw_sum + pop.dens + pko_lag,
                  data = b)
 summary(logit20)
 # not using nlights here because economic activity might affect whether a violent event occurs but not whether a death happens
 # not using urban_gc here because population density might affect whether a violent event occurs but not whether a death happens
 
 # regression table #
-stargazer(logit17, logit18, logit19, logit20, title = "Matched Results", align = TRUE, digits=3, font.size = "scriptsize",
+stargazer(logit17, logit18, logit19, logit20, title = "Matched Results Pr(Violence)", align = TRUE, digits=3, font.size = "scriptsize",
           out = "./results/matched_logit.txt")
 
 
@@ -267,13 +259,13 @@ stargazer(logit17, logit18, logit19, logit20, title = "Matched Results", align =
 # same regressions but using 5 death threshold after Fjelde et al. (2019) #
 
 # Gov OSV #
-logit21 = glm.nb(gov_event.5 ~ units_deployed + untrp + unpol + unmob + f_untrp +
+logit21 = glm.nb(gov_event.5 ~ t_ind + untrp + unpol + unmob + f_untrp +
                    f_unpol + f_unmob + pko_lag + mountains_mean + ttime_mean + 
-                   urban_gc + nlights_calib_mean + pop_gpw_sum + pop.dens, data = b)
-summary(logit21) # also didn't run, calculated deviance probably became infinite
+                   urban_gc + nlights_calib_mean + pop_gpw_sum + pop.dens + pko_lag, data = b)
+summary(logit21) 
 
-logit22 = glm.nb(gov_death.5 ~ units_deployed + untrp + unpol + unmob + f_untrp +
-                   f_unpol + f_unmob + pko_lag + mountains_mean + ttime_mean + pop_gpw_sum + pop.dens,
+logit22 = glm.nb(gov_death.5 ~ t_ind + untrp + unpol + unmob + f_untrp +
+                   f_unpol + f_unmob + pko_lag + mountains_mean + ttime_mean + pop_gpw_sum + pop.dens + pko_lag,
                  data = b)
 summary(logit22)
 
@@ -282,18 +274,18 @@ summary(logit22)
 
 
 # Rebel OSV #
-logit23 = glm.nb(reb_event.5 ~ units_deployed + untrp + unpol + unmob + f_untrp +
+logit23 = glm.nb(reb_event.5 ~ t_ind + untrp + unpol + unmob + f_untrp +
                    f_unpol + f_unmob + pko_lag + mountains_mean + ttime_mean + 
-                   urban_gc + nlights_calib_mean + pop_gpw_sum + pop.dens, data = b)
+                   urban_gc + nlights_calib_mean + pop_gpw_sum + pop.dens + pko_lag, data = b)
 summary(logit23) # same as pre-matched, still won't run
 
-logit24 = glm.nb(reb_death.5 ~ units_deployed + untrp + unpol + unmob + f_untrp +
-                   f_unpol + f_unmob + pko_lag + mountains_mean + ttime_mean + pop_gpw_sum + pop.dens,
+logit24 = glm.nb(reb_death.5 ~ t_ind + untrp + unpol + unmob + f_untrp +
+                   f_unpol + f_unmob + pko_lag + mountains_mean + ttime_mean + pop_gpw_sum + pop.dens + pko_lag,
                  data = b)
 summary(logit24)
 
 
-stargazer(logit22, logit24, title = "Matched Results (>4)", align = TRUE, digits=3, font.size = "scriptsize",
+stargazer(logit21, logit22, logit23, logit24, title = "Matched Results (>4)", align = TRUE, digits=3, font.size = "scriptsize",
           out = "./results/Matched_logit_5.txt")
 
 
@@ -331,12 +323,12 @@ gov_event.b ~ units_deployed + untrp + unpol + unmob + f_untrp +
 # Gov OSV #
 ran.int1 = lmer(gov_event.b ~ t_ind + untrp + unpol + unmob + f_untrp +
                   f_unpol + f_unmob + pko_lag + mountains_mean + ttime_mean + 
-                  urban_gc + nlights_calib_mean + pop_gpw_sum + pop.dens +
+                  urban_gc + nlights_calib_mean + pop_gpw_sum + pop.dens + pko_lag +
                   (1 | ccode), data = b)
 summary(ran.int1)
 
 ran.int2 = lmer(gov_death.b ~ t_ind + untrp + unpol + unmob + f_untrp +
-                   f_unpol + f_unmob + pko_lag + mountains_mean + ttime_mean + pop_gpw_sum + pop.dens +
+                   f_unpol + f_unmob + pko_lag + mountains_mean + ttime_mean + pop_gpw_sum + pop.dens + pko_lag +
                    (1 | ccode), data = b)
 summary(ran.int2)
 
@@ -344,12 +336,12 @@ summary(ran.int2)
 # Rebel OSV #
 ran.int3 = lmer(reb_event.b ~ t_ind + untrp + unpol + unmob + f_untrp +
                    f_unpol + f_unmob + pko_lag + mountains_mean + ttime_mean + 
-                   urban_gc + nlights_calib_mean + pop_gpw_sum + pop.dens + 
+                   urban_gc + nlights_calib_mean + pop_gpw_sum + pop.dens + pko_lag +
                    (1 | ccode), data = b)
 summary(ran.int3)
 
 ran.int4 = lmer(reb_death.b ~ t_ind + untrp + unpol + unmob + f_untrp +
-                   f_unpol + f_unmob + pko_lag + mountains_mean + ttime_mean + pop_gpw_sum + pop.dens + 
+                   f_unpol + f_unmob + pko_lag + mountains_mean + ttime_mean + pop_gpw_sum + pop.dens + pko_lag +
                    (1 | ccode), data = b)
 summary(ran.int4)
 
@@ -366,12 +358,12 @@ stargazer(ran.int1, ran.int2, ran.int3, ran.int4, title = "Matched MLM Results",
 # Gov OSV #
 ran.int5 = lmer(gov_event ~ t_ind + untrp + unpol + unmob + f_untrp +
                   f_unpol + f_unmob + pko_lag + mountains_mean + ttime_mean + 
-                  urban_gc + nlights_calib_mean + pop_gpw_sum + pop.dens +
+                  urban_gc + nlights_calib_mean + pop_gpw_sum + pop.dens + pko_lag +
                   (1 | ccode), data = b)
 summary(ran.int5)
 
 ran.int6 = lmer(gov_death ~ t_ind + untrp + unpol + unmob + f_untrp +
-                  f_unpol + f_unmob + pko_lag + mountains_mean + ttime_mean + pop_gpw_sum + pop.dens +
+                  f_unpol + f_unmob + pko_lag + mountains_mean + ttime_mean + pop_gpw_sum + pop.dens + pko_lag +
                   (1 | ccode), data = b)
 summary(ran.int6)
 
@@ -379,12 +371,12 @@ summary(ran.int6)
 # Rebel OSV #
 ran.int7 = lmer(reb_event ~ t_ind + untrp + unpol + unmob + f_untrp +
                   f_unpol + f_unmob + pko_lag + mountains_mean + ttime_mean + 
-                  urban_gc + nlights_calib_mean + pop_gpw_sum + pop.dens + 
+                  urban_gc + nlights_calib_mean + pop_gpw_sum + pop.dens + pko_lag +
                   (1 | ccode), data = b)
 summary(ran.int7)
 
 ran.int8 = lmer(reb_death ~ t_ind + untrp + unpol + unmob + f_untrp +
-                  f_unpol + f_unmob + pko_lag + mountains_mean + ttime_mean + pop_gpw_sum + pop.dens + 
+                  f_unpol + f_unmob + pko_lag + mountains_mean + ttime_mean + pop_gpw_sum + pop.dens + pko_lag +
                   (1 | ccode), data = b)
 summary(ran.int8)
 
