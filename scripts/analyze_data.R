@@ -8,7 +8,7 @@ library(gdata); library(designmatch)
 
 library(ggpubr); library(ggiraphExtra); library(coefplot); library(stargazer) # need to add these to dockerfile
 library(spdep); library(gurobi); library(MASS); library(lme4); library(vtable)
-library(sensitivitymw); library(lme4)
+library(sensitivitymw); library(lme4); library(lmtest); library(sandwich)
 
 
 # turn off scientific notation
@@ -216,39 +216,41 @@ senmw(test_d_match1,gamma=1,method="t")$pval
 test_d_match2 = data.frame(b$reb_death.b[b$t_ind==1],b$reb_death.b[b$t_ind==0])
 colnames(test_d_match2) = c("treated","control")
 
-senmw(test_d_match1,gamma=1,method="t")$pval
+senmw(test_d_match2,gamma=1,method="t")$pval
 
 rm(list = setdiff(ls(), "b")) 
 gc()
-#### Negative binomial regression with matched sample ####
+
+#### Negative binomial regression with matched sample and clustered standard errors ####
 
 # Gov OSV #
 logit17 = glm.nb(gov_event.b ~ t_ind + untrp + unpol + unmob + f_untrp +
                   f_unpol + f_unmob + pko_lag + mountains_mean + ttime_mean + 
                   urban_gc + nlights_calib_mean + pop_gpw_sum + pop.dens + pko_lag, data = b)
 summary(logit17)
+se_reg_c1 <- round(coeftest(logit17, vcov = vcovPL(logit17, cluster = b$prio.grid)),4)
+se_reg_c1
 
 logit18 = glm.nb(gov_death.b ~ t_ind + untrp + unpol + unmob + f_untrp +
                    f_unpol + f_unmob + mountains_mean + ttime_mean + pop_gpw_sum + pop.dens + pko_lag,
                  data = b)
 summary(logit18)
-
-# not using nlights here because economic activity might affect whether a violent event occurs but not whether a death happens
-# not using urban_gc here because population density might affect whether a violent event occurs but not whether a death happens
-
+se_reg_c2 <- round(coeftest(logit18, vcov = vcovPL(logit18, cluster = b$prio.grid)),4)
+se_reg_c2
 
 # Rebel OSV #
 logit19 = glm.nb(reb_event.b ~ t_ind + untrp + unpol + unmob + f_untrp +
                    f_unpol + f_unmob + pko_lag + mountains_mean + ttime_mean + 
                    urban_gc + nlights_calib_mean + pop_gpw_sum + pop.dens + pko_lag, data = b)
 summary(logit19)
+se_reg_c3 <- round(coeftest(logit19, vcov = vcovPL(logit19, cluster = b$prio.grid)),4)
+se_reg_c3
 
 logit20 = glm.nb(reb_death.b ~ t_ind + untrp + unpol + unmob + f_untrp +
                    f_unpol + f_unmob + pko_lag + mountains_mean + ttime_mean + pop_gpw_sum + pop.dens + pko_lag,
                  data = b)
 summary(logit20)
-# not using nlights here because economic activity might affect whether a violent event occurs but not whether a death happens
-# not using urban_gc here because population density might affect whether a violent event occurs but not whether a death happens
+se_reg_c4 <- round(coeftest(logit20, vcov = vcovPL(logit20, cluster = b$prio.grid)),4)
 
 # regression table #
 stargazer(logit17, logit18, logit19, logit20, title = "Matched Results Pr(Violence)", align = TRUE, digits=3, font.size = "scriptsize",
@@ -263,14 +265,15 @@ logit21 = glm.nb(gov_event.5 ~ t_ind + untrp + unpol + unmob + f_untrp +
                    f_unpol + f_unmob + pko_lag + mountains_mean + ttime_mean + 
                    urban_gc + nlights_calib_mean + pop_gpw_sum + pop.dens + pko_lag, data = b)
 summary(logit21) 
+se_reg_c5 <- round(coeftest(logit21, vcov = vcovPL(logit21, cluster = b$prio.grid)),4)
+se_reg_c5
 
 logit22 = glm.nb(gov_death.5 ~ t_ind + untrp + unpol + unmob + f_untrp +
                    f_unpol + f_unmob + pko_lag + mountains_mean + ttime_mean + pop_gpw_sum + pop.dens + pko_lag,
                  data = b)
 summary(logit22)
-
-# not using nlights here because economic activity might affect whether a violent event occurs but not whether a death happens
-# not using urban_gc here because population density might affect whether a violent event occurs but not whether a death happens
+se_reg_c6 <- round(coeftest(logit22, vcov = vcovPL(logit22, cluster = b$prio.grid)),4)
+se_reg_c6
 
 
 # Rebel OSV #
@@ -278,11 +281,15 @@ logit23 = glm.nb(reb_event.5 ~ t_ind + untrp + unpol + unmob + f_untrp +
                    f_unpol + f_unmob + pko_lag + mountains_mean + ttime_mean + 
                    urban_gc + nlights_calib_mean + pop_gpw_sum + pop.dens + pko_lag, data = b)
 summary(logit23) # same as pre-matched, still won't run
+se_reg_c7 <- round(coeftest(logit23, vcov = vcovPL(logit23, cluster = b$prio.grid)),4)
+se_reg_c7
 
 logit24 = glm.nb(reb_death.5 ~ t_ind + untrp + unpol + unmob + f_untrp +
                    f_unpol + f_unmob + pko_lag + mountains_mean + ttime_mean + pop_gpw_sum + pop.dens + pko_lag,
                  data = b)
 summary(logit24)
+se_reg_c8 <- round(coeftest(logit24, vcov = vcovPL(logit24, cluster = b$prio.grid)),4)
+se_reg_c8
 
 
 stargazer(logit21, logit22, logit23, logit24, title = "Matched Results (>4)", align = TRUE, digits=3, font.size = "scriptsize",
@@ -299,20 +306,36 @@ stargazer(logit21, logit22, logit23, logit24, title = "Matched Results (>4)", al
 a = sample_n(b, 1000)
 # GOV OSV #
 mlm_3_reg1 = glmer.nb(gov_event.b ~ time * t_ind + (time | ccode:prio.grid) +
-       (time | country) + (0 + t_ind + time:t_ind | country), data=a)
+       (time | country) + (0 + t_ind + time:t_ind | country) +
+         untrp + unpol + unmob + f_untrp +
+         f_unpol + f_unmob + pko_lag + mountains_mean + ttime_mean + 
+         urban_gc + nlights_calib_mean + pop_gpw_sum + pop.dens + pko_lag, data=b)
+summary(mlm_3_reg1)
 
-# subjects = prio.grid
-# therapist = country
-# time = time
+mlm_3_reg2 = glmer.nb(gov_death.b ~ time * t_ind + (time | ccode:prio.grid) +
+                        (time | country) + (0 + t_ind + time:t_ind | country) +
+                        untrp + unpol + unmob + f_untrp +
+                        f_unpol + f_unmob + pko_lag + mountains_mean + ttime_mean + 
+                        urban_gc + nlights_calib_mean + pop_gpw_sum + pop.dens + pko_lag, data=b)
+summary(mlm_3_reg2)
 
-# use this to figure out code https://rpsychologist.com/r-guide-longitudinal-lme-lmer#three-level-models
-# if not, send Shawn an email
-
-gov_event.b ~ units_deployed + untrp + unpol + unmob + f_untrp +
-  f_unpol + f_unmob + pko_lag + mountains_mean + ttime_mean + 
-  urban_gc + nlights_calib_mean + pop_gpw_sum + pop.dens +
-  (1 | ccode)
 # Rebel OSV #
+mlm_3_reg3 = glmer.nb(reb_event.b ~ time * t_ind + (time | ccode:prio.grid) +
+                        (time | country) + (0 + t_ind + time:t_ind | country) +
+                        untrp + unpol + unmob + f_untrp +
+                        f_unpol + f_unmob + pko_lag + mountains_mean + ttime_mean + 
+                        urban_gc + nlights_calib_mean + pop_gpw_sum + pop.dens + pko_lag, data=b)
+summary(mlm_3_reg3)
+
+mlm_3_reg4 = glmer.nb(reb_death.b ~ time * t_ind + (time | ccode:prio.grid) +
+                        (time | country) + (0 + t_ind + time:t_ind | country) +
+                        untrp + unpol + unmob + f_untrp +
+                        f_unpol + f_unmob + pko_lag + mountains_mean + ttime_mean + 
+                        urban_gc + nlights_calib_mean + pop_gpw_sum + pop.dens + pko_lag, data=b)
+summary(mlm_3_reg4)
+
+stargazer(mlm_3_reg1, mlm_3_reg2, mlm_3_reg3, mlm_3_reg4, title = "Matched MLM 3-Level Results", align = TRUE, digits=3, font.size = "scriptsize",
+          out = "./results/Matched_mlm_3_b.txt")
 
 # 2-Level Multilevel model #
 
@@ -321,68 +344,33 @@ gov_event.b ~ units_deployed + untrp + unpol + unmob + f_untrp +
 ###########################
 
 # Gov OSV #
-ran.int1 = lmer(gov_event.b ~ t_ind + untrp + unpol + unmob + f_untrp +
+ran.int1 = glmer.nb(gov_event.b ~ t_ind + untrp + unpol + unmob + f_untrp +
                   f_unpol + f_unmob + pko_lag + mountains_mean + ttime_mean + 
                   urban_gc + nlights_calib_mean + pop_gpw_sum + pop.dens + pko_lag +
                   (1 | ccode), data = b)
 summary(ran.int1)
 
-ran.int2 = lmer(gov_death.b ~ t_ind + untrp + unpol + unmob + f_untrp +
+ran.int2 = glmer.nb(gov_death.b ~ t_ind + untrp + unpol + unmob + f_untrp +
                    f_unpol + f_unmob + pko_lag + mountains_mean + ttime_mean + pop_gpw_sum + pop.dens + pko_lag +
                    (1 | ccode), data = b)
 summary(ran.int2)
 
 
 # Rebel OSV #
-ran.int3 = lmer(reb_event.b ~ t_ind + untrp + unpol + unmob + f_untrp +
+ran.int3 = glmer.nb(reb_event.b ~ t_ind + untrp + unpol + unmob + f_untrp +
                    f_unpol + f_unmob + pko_lag + mountains_mean + ttime_mean + 
                    urban_gc + nlights_calib_mean + pop_gpw_sum + pop.dens + pko_lag +
                    (1 | ccode), data = b)
 summary(ran.int3)
 
-ran.int4 = lmer(reb_death.b ~ t_ind + untrp + unpol + unmob + f_untrp +
+ran.int4 = glmer.nb(reb_death.b ~ t_ind + untrp + unpol + unmob + f_untrp +
                    f_unpol + f_unmob + pko_lag + mountains_mean + ttime_mean + pop_gpw_sum + pop.dens + pko_lag +
                    (1 | ccode), data = b)
 summary(ran.int4)
 
 
-stargazer(ran.int1, ran.int2, ran.int3, ran.int4, title = "Matched MLM Results", align = TRUE, digits=3, font.size = "scriptsize",
+stargazer(ran.int1, ran.int2, ran.int3, ran.int4, title = "Matched MLM 2-Level Results", align = TRUE, digits=3, font.size = "scriptsize",
           out = "./results/Matched_mlm_b.txt")
-
-
-
-###########################
-# random intercept continuous #
-###########################
-
-# Gov OSV #
-ran.int5 = lmer(gov_event ~ t_ind + untrp + unpol + unmob + f_untrp +
-                  f_unpol + f_unmob + pko_lag + mountains_mean + ttime_mean + 
-                  urban_gc + nlights_calib_mean + pop_gpw_sum + pop.dens + pko_lag +
-                  (1 | ccode), data = b)
-summary(ran.int5)
-
-ran.int6 = lmer(gov_death ~ t_ind + untrp + unpol + unmob + f_untrp +
-                  f_unpol + f_unmob + pko_lag + mountains_mean + ttime_mean + pop_gpw_sum + pop.dens + pko_lag +
-                  (1 | ccode), data = b)
-summary(ran.int6)
-
-
-# Rebel OSV #
-ran.int7 = lmer(reb_event ~ t_ind + untrp + unpol + unmob + f_untrp +
-                  f_unpol + f_unmob + pko_lag + mountains_mean + ttime_mean + 
-                  urban_gc + nlights_calib_mean + pop_gpw_sum + pop.dens + pko_lag +
-                  (1 | ccode), data = b)
-summary(ran.int7)
-
-ran.int8 = lmer(reb_death ~ t_ind + untrp + unpol + unmob + f_untrp +
-                  f_unpol + f_unmob + pko_lag + mountains_mean + ttime_mean + pop_gpw_sum + pop.dens + pko_lag +
-                  (1 | ccode), data = b)
-summary(ran.int8)
-
-
-stargazer(ran.int5, ran.int6, ran.int7, ran.int8, title = "Matched MLM Results", align = TRUE, digits=3, font.size = "scriptsize",
-          out = "./results/Matched_mlm_c.txt")
 
 
 
@@ -444,23 +432,23 @@ vcovCluster <- function(
 }
 
 # Gov OSV #
-se_reg1 <- lm(gov_event ~ units_deployed + untrp + unpol + unmob + f_untrp +
+se_reg1 <- glm.nb(gov_event ~ t_ind + untrp + unpol + unmob + f_untrp +
                f_unpol + f_unmob + pko_lag + mountains_mean + ttime_mean + urban_gc + 
-               nlights_calib_mean + pop_gpw_sum + pop.dens, data=b)
+               nlights_calib_mean + pop_gpw_sum + pop.dens + pko_lag, data=b)
 se_reg_c1 <- round(coeftest(se_reg1, vcov = vcovCluster(se_reg1, cluster = b$prio.grid)),4)
 
-se_reg2 <- lm(gov_death ~ units_deployed + untrp + unpol + unmob + f_untrp +
+se_reg2 <- lm(gov_death ~ t_ind + untrp + unpol + unmob + f_untrp +
                 f_unpol + f_unmob + pko_lag + mountains_mean + ttime_mean + pop_gpw_sum + 
                 pop.dens, data=b)
 se_reg_c2 <- round(coeftest(se_reg2, vcov = vcovCluster(se_reg2, cluster = b$prio.grid)),4)
 
 # Rebel OSV #
-se_reg3 <- lm(greb_event ~ units_deployed + untrp + unpol + unmob + f_untrp +
+se_reg3 <- lm(greb_event ~ t_ind + untrp + unpol + unmob + f_untrp +
                 f_unpol + f_unmob + pko_lag + mountains_mean + ttime_mean + 
                 urban_gc + nlights_calib_mean + pop_gpw_sum + pop.dens, data=b)
 se_reg_c3 <- round(coeftest(se_reg3, vcov = vcovCluster(se_reg3, cluster = b$prio.grid)),4)
 
-se_reg4 <- lm(reb_death ~ units_deployed + untrp + unpol + unmob + f_untrp +
+se_reg4 <- lm(reb_death ~ t_ind + untrp + unpol + unmob + f_untrp +
                 f_unpol + f_unmob + pko_lag + mountains_mean + ttime_mean + pop_gpw_sum + 
                 pop.dens, data=b)
 se_reg_c4 <- round(coeftest(se_reg4, vcov = vcovCluster(se_reg4, cluster = b$prio.grid)),4)
