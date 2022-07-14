@@ -24,44 +24,44 @@ a = readRDS("./data/kunkel_cg.rds")
 
 #### Logit Model, continuous treatment####
 # naive model
-logit1 = glm.nb(formula = event.b ~ pko_deployed + untrp + unpol + unmob + f_untrp +
+logit1 = glm.nb(event.b ~ pko_deployed + untrp + unpol + unmob + f_untrp +
                   f_unpol + f_unmob + pko_lag, data = a)
 summary(logit1)
 
-logit2 = glm.nb(formula = death ~ pko_deployed + untrp + unpol + unmob + f_untrp +
+logit2 = glm.nb(death ~ pko_deployed + untrp + unpol + unmob + f_untrp +
                   f_unpol + f_unmob + pko_lag, data = a)
 summary(logit2)
 
 # model with controls #
-logit3 = glm.nb(formula = event.b ~ pko_deployed + untrp + unpol + unmob + f_untrp +
+logit3 = glm.nb(event.b ~ pko_deployed + untrp + unpol + unmob + f_untrp +
                   f_unpol + f_unmob + mountains_mean + ttime_mean + 
                   urban_gc + nlights_calib_mean + pop_gpw_sum + pop.dens + pko_lag,
                 data = a)
 summary(logit3)
 
-logit4 = glm.nb(formula = death ~ pko_deployed + untrp + unpol + unmob + f_untrp +
+logit4 = glm.nb(death ~ pko_deployed + untrp + unpol + unmob + f_untrp +
                   f_unpol + f_unmob + mountains_mean + ttime_mean + pop_gpw_sum + 
                   pop.dens + pko_lag, data = a)
 summary(logit4)
 
 
 #### Logit Model, binary treatment####
-logit5 = glm.nb(formula = event.b ~ t_ind + untrp + unpol + unmob + f_untrp +
+logit5 = glm.nb(event.b ~ t_ind + untrp + unpol + unmob + f_untrp +
                   f_unpol + f_unmob + pko_lag, data = a)
 summary(logit5)
 
-logit6 = glm.nb(formula = death ~ t_ind + untrp + unpol + unmob + f_untrp +
+logit6 = glm.nb(death ~ t_ind + untrp + unpol + unmob + f_untrp +
                   f_unpol + f_unmob + pko_lag, data = a)
 summary(logit6)
 
 # model with controls #
-logit7 = glm.nb(formula = event.b ~ t_ind + untrp + unpol + unmob + f_untrp +
+logit7 = glm.nb(event.b ~ t_ind + untrp + unpol + unmob + f_untrp +
                   f_unpol + f_unmob + mountains_mean + ttime_mean + 
                   urban_gc + nlights_calib_mean + pop_gpw_sum + pop.dens + pko_lag,
                 data = a)
 summary(logit7)
 
-logit8 = glm.nb(formula = death ~ t_ind + untrp + unpol + unmob + f_untrp +
+logit8 = glm.nb(death ~ t_ind + untrp + unpol + unmob + f_untrp +
                   f_unpol + f_unmob + mountains_mean + ttime_mean + pop_gpw_sum + 
                   pop.dens + pko_lag, data = a)
 summary(logit8)
