@@ -37,6 +37,20 @@ rm(prio.static, prio.yearly)
 acled$event_date = lubridate::dmy(acled$event_date)
 radpko$date = lubridate::ymd(radpko$date) 
 
+# change female PKs to proportion
+radpko$f_untrp.p = radpko$f_untrp/radpko$untrp
+radpko = radpko %>%
+  relocate(f_untrp.p, .after = untrp)
+radpko$f_unpol.p = radpko$f_unpol/radpko$unpol
+radpko = radpko %>%
+  relocate(f_unpol.p, .after = unpol)
+radpko$f_unmob.p = radpko$f_unmob/radpko$unmob
+radpko = radpko %>%
+  relocate(f_unmob.p, .after = unmob)
+radpko$f_untrp = NULL
+radpko$f_unpol = NULL
+radpko$f_unmob = NULL
+
 # subset ACLED data to violence against civilians and dates from before 2019 and after 
 # 1999 to match RADPKO data (and to make analysis faster)
 acled = subset(acled, event_date < "2019-01-01" & event_date > "1999-01-01" & 
@@ -157,9 +171,12 @@ a$pko_deployed[is.na(a$pko_deployed)] <- 0
 a$untrp[is.na(a$untrp)] <- 0
 a$unpol[is.na(a$unpol)] <- 0
 a$unmob[is.na(a$unmob)] <- 0
-a$f_untrp[is.na(a$f_untrp)] <- 0
-a$f_unpol[is.na(a$f_unpol)] <- 0
-a$f_unmob[is.na(a$f_unmob)] <- 0
+a$f_untrp.p[is.na(a$f_untrp.p)] <- 0
+a$f_unpol.p[is.na(a$f_unpol.p)] <- 0
+a$f_unmob.p[is.na(a$f_unmob.p)] <- 0
+a$f_untrp.p[is.nan(a$f_untrp.p)] <- 0
+a$f_unpol.p[is.nan(a$f_unpol.p)] <- 0
+a$f_unmob.p[is.nan(a$f_unmob.p)] <- 0
 a$fatalities[is.na(a$fatalities)] <- 0
 a$event[is.na(a$event)] <- 0
 a$mountains_mean[is.na(a$mountains_mean)] <- 0
@@ -246,7 +263,7 @@ a <- a %>%                            # Add lagged column
 
 ##### Impute Covariates #####
 
-# data imputation of control variables by Prio Grid
+# data imputation of control variables
 a$mountains_mean<-ave(a$mountains_mean,a$prio.grid,FUN=function(x) 
   ifelse(is.na(x), mean(x,na.rm=TRUE), x))
 a$ttime_mean<-ave(a$ttime_mean,a$prio.grid,FUN=function(x) 
