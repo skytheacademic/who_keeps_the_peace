@@ -180,8 +180,21 @@ a$f_unmob.p[is.nan(a$f_unmob.p)] <- 0
 a$fatalities[is.na(a$fatalities)] <- 0
 a$event[is.na(a$event)] <- 0
 a$mountains_mean[is.na(a$mountains_mean)] <- 0
+# add proportions of each type to get total gender balance and then split treatment by balance
+a$gen.bal = a$f_untrp.p + a$f_unpol.p + a$f_unmob.p 
+a$t_bal = 0 # make balanced treatment indicator
+a$t_bal[a$gen.bal > median(a$gen.bal[a$t_ind==1])] = 1
+a$t_unbal = 0 # make un_balanced treatment indicator
+a$t_unbal[a$gen.bal < 0.06416706 & a$t_ind == 1] = 1
+# add variable denoting pk type by binary measure of treatment
+a$untrp_maj = 0
+a$untrp_maj[a$untrp > a$unpol & a$untrp > a$unmob] = 1
+a$unpol_maj = 0
+a$unpol_maj[a$unpol > a$untrp & a$unpol > a$unmob] = 1
+a$unmob_maj = 0
+a$unmob_maj[a$unmob > a$unpol & a$unmob > a$untrp] = 1
 
-### add OSV by distinct actors variables ###
+#### add OSV by distinct actors variables ####
 # violent events + binaries #
 a$inter1[is.na(a$inter1)] <- 0
 a$gov_event = 0
@@ -278,15 +291,6 @@ a$pop.dens<-ave(a$pop.dens,a$prio.grid,FUN=function(x)
   ifelse(is.na(x), mean(x,na.rm=TRUE), x))
 a$prec_gpcp<-ave(a$prec_gpcp,a$prio.grid,FUN=function(x) 
   ifelse(is.na(x), mean(x,na.rm=TRUE), x))
-
-# check how many variables are still missing
-sum(is.na(a$mountains_mean))
-sum(is.na(a$ttime_mean))
-sum(is.na(a$urban_gc))
-sum(is.na(a$nlights_calib_mean))
-sum(is.na(a$pop_gpw_sum))
-sum(is.na(a$pop.dens))
-sum(is.na(a$prec_gpcp))
 
 ##### Merge UCDP data #####
 # read in data
