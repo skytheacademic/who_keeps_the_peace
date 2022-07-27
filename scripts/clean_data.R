@@ -240,6 +240,12 @@ a$ccode[a$country == "Sierra Leone"] = 9
 a$ccode[a$country == "South Sudan"] = 10
 a$ccode[a$country == "sudan"] = 11
 
+# add summary violence 6 months prior 
+a = a %>% group_by(prio.grid) %>% 
+  mutate(viol_6 = 
+           lag(event, 6) + lag(event, 5) + lag(event, 4) + 
+           lag(event, 3) + lag(event, 2) + lag(event, 1)) %>%
+  relocate(viol_6, .after = event)
 
 ##### add a post treated variable #####
 a <- a %>% 
