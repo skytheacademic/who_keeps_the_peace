@@ -8,7 +8,7 @@ library(gdata); library(designmatch)
 
 library(ggpubr); library(ggiraphExtra); library(coefplot); library(stargazer) # need to add these to dockerfile
 library(spdep); library(gurobi); library(MASS); library(lme4); library(vtable)
-library(sensitivitymw); library(lme4); library(lmtest); library(sandwich)
+library(sensitivitymw); library(lmtest); library(sandwich); library(glmmTMB)
 
 
 # turn off scientific notation
@@ -399,6 +399,7 @@ se_reg_c8
 # pk effectiveness by pk gender #
 stargazer(se_reg_c1, se_reg_c2, se_reg_c3, se_reg_c4, title = "Matched Results Pr(Violence) by PK Gender", 
           align = TRUE, digits=3, font.size = "scriptsize",
+          add.lines = (c(""))
           out = "./results/matched_gender.txt")
 
 # pk effectiveness by pk type #
@@ -408,47 +409,82 @@ stargazer(se_reg_c5, se_reg_c6, se_reg_c7, se_reg_c8, title = "Matched Results P
 
 
 
-###########################
-# random intercept MLM #
-###########################
+#### MLM by PK Gender ####
 
 # Gov OSV #
 ran.int1 = glmer.nb(gov_event.b ~ t_bal + t_unbal + mountains_mean + ttime_mean + urban_gc + 
                       nlights_calib_mean + pop_gpw_sum + pop.dens + pko_lag + viol_6 + 
                       t_bal*pko_lag + t_unbal*pko_lag +
                       t_bal*viol_6 + t_unbal*viol_6 +
-                  (1 | ccode), data = b)
+                      (1 | ccode), data = b, family = nbinom2(link = "logit"), 
+                    method="detect_separation")
 summary(ran.int1)
 
-ran.int2 = glmer.nb(gov_death.b ~ t_bal + t_unbal + mountains_mean + ttime_mean + pop_gpw_sum + 
+ran.int2 = glmmTMB(gov_death.b ~ t_bal + t_unbal + mountains_mean + ttime_mean + pop_gpw_sum + 
                       pop.dens + pko_lag + viol_6 +
                       t_bal*pko_lag + t_unbal*pko_lag +
                       t_bal*viol_6 + t_unbal*viol_6 +
-                   (1 | ccode), data = b)
+                   (1 | ccode), data = b, family = nbinom2(link = "logit"))
 summary(ran.int2)
 
 
 # Rebel OSV #
-ran.int3 = glmer.nb(reb_event.b ~ t_bal + t_unbal + mountains_mean + ttime_mean + urban_gc + 
+ran.int3 = glmmTMB(reb_event.b ~ t_bal + t_unbal + mountains_mean + ttime_mean + urban_gc + 
                       nlights_calib_mean + pop_gpw_sum + pop.dens + pko_lag + viol_6 + 
                       t_bal*pko_lag + t_unbal*pko_lag +
                       t_bal*viol_6 + t_unbal*viol_6 +
-                   (1 | ccode), data = b)
+                   (1 | ccode), data = b, family = nbinom2(link = "logit"))
 summary(ran.int3)
 
-ran.int4 = glmer.nb(reb_death.b ~ t_bal + t_unbal + mountains_mean + ttime_mean + pop_gpw_sum + pop.dens +
+ran.int4 = glmmTMB(reb_death.b ~ t_bal + t_unbal + mountains_mean + ttime_mean + pop_gpw_sum + pop.dens +
                       pko_lag + viol_6 +
                       t_bal*pko_lag + t_unbal*pko_lag +
                       t_bal*viol_6 + t_unbal*viol_6 +
-                   (1 | ccode), data = b)
+                   (1 | ccode), data = b, family = nbinom2(link = "logit"))
 summary(ran.int4)
 
 
-stargazer(ran.int1, ran.int2, ran.int3, ran.int4, title = "Matched MLM 2-Level Results", 
+stargazer(ran.int1, ran.int2, ran.int3, ran.int4, title = "MLM Matched, PKs by Gender", 
           align = TRUE, digits=3, font.size = "scriptsize",
           out = "./results/Matched_mlm_b.txt")
 
+#### MLM by PK Type ####
+# Gov OSV #
+ran.int5 = glmmTMB(gov_event.b ~ untrp_maj + unpol_maj + unmob_maj + mountains_mean + ttime_mean + 
+                     urban_gc + nlights_calib_mean + pop_gpw_sum + pop.dens + pko_lag + viol_6 + 
+                     untrp_maj*pko_lag + unpol_maj*pko_lag + unmob_maj*pko_lag +
+                     untrp_maj*viol_6 + unpol_maj*viol_6 + unmob_maj*viol_6 +
+                     (1 | ccode), data = b, family = nbinom2(link = "logit"),
+                   control = glmmTMBControl(optimizer = optim, optArgs = list(method="BFGS")))
+summary(ran.int5)
 
+ran.int6 = glmmTMB(gov_death.b ~ untrp_maj + unpol_maj + unmob_maj + mountains_mean + ttime_mean + 
+                     pop_gpw_sum + pop.dens + pko_lag + viol_6 + 
+                     untrp_maj*pko_lag + unpol_maj*pko_lag + unmob_maj*pko_lag +
+                     untrp_maj*viol_6 + unpol_maj*viol_6 + unmob_maj*viol_6 +
+                     (1 | ccode), data = b, family = nbinom2(link = "logit"))
+summary(ran.int6)
+
+
+# Rebel OSV #
+ran.int7 = glmmTMB(reb_event.b ~ untrp_maj + unpol_maj + unmob_maj + mountains_mean + ttime_mean + 
+                     urban_gc + nlights_calib_mean + pop_gpw_sum + pop.dens + pko_lag + viol_6 + 
+                     untrp_maj*pko_lag + unpol_maj*pko_lag + unmob_maj*pko_lag +
+                     untrp_maj*viol_6 + unpol_maj*viol_6 + unmob_maj*viol_6 +
+                     (1 | ccode), data = b, family = nbinom2(link = "logit"))
+summary(ran.int7)
+
+ran.int8 = glmmTMB(reb_death.b ~ untrp_maj + unpol_maj + unmob_maj + mountains_mean + ttime_mean + 
+                     pop_gpw_sum + pop.dens + pko_lag + viol_6 + 
+                     untrp_maj*pko_lag + unpol_maj*pko_lag + unmob_maj*pko_lag +
+                     untrp_maj*viol_6 + unpol_maj*viol_6 + unmob_maj*viol_6 +
+                     (1 | ccode), data = b, family = nbinom2(link = "logit"))
+summary(ran.int8)
+
+
+stargazer(ran.int5, ran.int6, ran.int7, ran.int8, title = "MLM Matched, PKs by Gender", 
+          align = TRUE, digits=3, font.size = "scriptsize",
+          out = "./results/Matched_mlm_b.txt")
 
 #########################
 # Robustness Checks #
