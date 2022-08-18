@@ -261,6 +261,7 @@ stargazer(reg21, reg22, reg23, reg24, title = "Pre-matched Results Pr(Violence) 
           se = list(reg21se, reg22se, reg23se, reg24se), p = list(reg21p, reg22p, reg23p, reg24p),
           omit = c("t_bal:pko_lag", "t_unbal:pko_lag", "t_bal:viol_6", "t_unbal:viol_6"),
           notes = "Robust Standard Errors clustered at the PRIO-Grid level.",
+          apply.coef = exp, apply.se   = exp,
           out = "./results/pre_matched_gender.txt")
 
 # unmatched pk effectiveness by pk type #
@@ -275,6 +276,7 @@ stargazer(reg25, reg26, reg27, reg28, title = "Pre-matched Results Pr(Violence) 
           se = list(reg25se, reg26se, reg27se, reg28se), p = list(reg25p, reg26p, reg27p, reg28p),
           omit = c("untrp_maj:pko_lag", "unpol_maj:pko_lag", "unmob_maj:pko_lag", "untrp_maj:viol_6", "unpol_maj:viol_6", 
                    "unmob_maj:viol_6"),
+          apply.coef = exp, apply.se = exp,
           out = "./results/pre_matched_troop.txt")
 
 # descriptive statistics table #
@@ -459,6 +461,10 @@ reg25se = se_reg_c5[,2]
 reg26se = se_reg_c6[,2]
 reg27se = se_reg_c7[,2]
 reg28se = se_reg_c8[,2]
+
+
+### Exponentiate coeffecients and standard errors here??
+
 
 # Save P-values from robust clustering outputs for use in table
 reg21p = se_reg_c1[,4]
