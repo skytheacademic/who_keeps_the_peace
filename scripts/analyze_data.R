@@ -225,8 +225,6 @@ summary(reg28)
 se_reg_c8 <- round(coeftest(reg28, vcov = vcovPL(reg28, cluster = a$prio.grid)),4)
 se_reg_c8
 
-
-
 # Save Standard Errors to objects for use in table
 reg21se = se_reg_c1[,2]
 reg22se = se_reg_c2[,2]
@@ -249,8 +247,8 @@ reg28p = se_reg_c8[,4]
 
 #### Figures and Plots for non-matched regressions ####
 
+## logit outputs ##
 # unmatched pk effectiveness by pk gender #
-
 stargazer(reg21, reg22, reg23, reg24, title = "Pre-matched Results Pr(Violence) by PK Gender", 
           align = TRUE, digits=3, font.size = "scriptsize",
           style = "ajps", dep.var.labels = c("Rebel Event", "Rebel Death","Gov't Event","Gov't Death"), 
@@ -261,11 +259,9 @@ stargazer(reg21, reg22, reg23, reg24, title = "Pre-matched Results Pr(Violence) 
           se = list(reg21se, reg22se, reg23se, reg24se), p = list(reg21p, reg22p, reg23p, reg24p),
           omit = c("t_bal:pko_lag", "t_unbal:pko_lag", "t_bal:viol_6", "t_unbal:viol_6"),
           notes = "Robust Standard Errors clustered at the PRIO-Grid level.",
-          apply.coef = exp, apply.se   = exp,
           out = "./results/pre_matched_gender.txt")
 
 # unmatched pk effectiveness by pk type #
-
 stargazer(reg25, reg26, reg27, reg28, title = "Pre-matched Results Pr(Violence) by Troop Type", 
           align = TRUE, digits=3, font.size = "scriptsize",
           style = "ajps", dep.var.labels = c("Rebel Event", "Rebel Death","Gov't Event","Gov't Death"), 
@@ -276,8 +272,37 @@ stargazer(reg25, reg26, reg27, reg28, title = "Pre-matched Results Pr(Violence) 
           se = list(reg25se, reg26se, reg27se, reg28se), p = list(reg25p, reg26p, reg27p, reg28p),
           omit = c("untrp_maj:pko_lag", "unpol_maj:pko_lag", "unmob_maj:pko_lag", "untrp_maj:viol_6", "unpol_maj:viol_6", 
                    "unmob_maj:viol_6"),
-          apply.coef = exp, apply.se = exp,
+          notes = "Robust Standard Errors clustered at the PRIO-Grid level.",
           out = "./results/pre_matched_troop.txt")
+
+## Odds ratios outputs ##
+stargazer(reg21, reg22, reg23, reg24, title = "Pre-matched Results Pr(Violence) by PK Gender", 
+          align = TRUE, digits=3, font.size = "scriptsize",
+          style = "ajps", dep.var.labels = c("Rebel Event", "Rebel Death","Gov't Event","Gov't Death"), 
+          dep.var.caption = "Pr()", 
+          covariate.labels = c("Balanced PK Unit", "Unbalanced PK Unit", "Avg. Mountain", "Travel Time Nearest City",
+                               "% Urban", "Night Lights", "Population Sum", "Population Density", "PK Lag", 
+                               "Violence 6 Months Before"), 
+          se = list(reg21se, reg22se, reg23se, reg24se), p = list(reg21p, reg22p, reg23p, reg24p),
+          omit = c("t_bal:pko_lag", "t_unbal:pko_lag", "t_bal:viol_6", "t_unbal:viol_6"),
+          notes = "Important: this table is only for interpretation in terms of estimates and p-values. Standard errors are not correctly inputted.",
+          apply.coef = exp, t.auto=F, p.auto=F,
+          out = "./results/pre_matched_gender_or.txt")
+
+# unmatched pk effectiveness by pk type #
+stargazer(reg25, reg26, reg27, reg28, title = "Pre-matched Results Pr(Violence) by Troop Type", 
+          align = TRUE, digits=3, font.size = "scriptsize",
+          style = "ajps", dep.var.labels = c("Rebel Event", "Rebel Death","Gov't Event","Gov't Death"), 
+          dep.var.caption = "Pr()", 
+          covariate.labels = c("Majority Trp. PK Unit", "Majority Pol. PK Unit", "Majority Obs. PK Unit", "Avg. Mountain", 
+                               "Travel Time Nearest City", "% Urban", "Night Lights", "Population Sum", "Population Density", 
+                               "PK Lag", "Violence 6 Months Before"), 
+          se = list(reg25se, reg26se, reg27se, reg28se), p = list(reg25p, reg26p, reg27p, reg28p),
+          omit = c("untrp_maj:pko_lag", "unpol_maj:pko_lag", "unmob_maj:pko_lag", "untrp_maj:viol_6", "unpol_maj:viol_6", 
+                   "unmob_maj:viol_6"),
+          notes = "Important: this table is only for interpretation in terms of estimates and p-values. Standard errors are not correctly inputted.",
+          apply.coef = exp, t.auto=F, p.auto=F,
+          out = "./results/pre_matched_troop_or.txt")
 
 # descriptive statistics table #
 labs = c("Total PKs deployed", "Gender Balanced Units", "Gender Un-Balanced Units",
@@ -478,8 +503,7 @@ reg28p = se_reg_c8[,4]
 
 #### Figures and Plots for non-matched regressions ####
 
-# matched pk effectiveness by pk gender #
-
+## logit outputs ##
 stargazer(reg1, reg2, reg3, reg4, title = "Matched Results Pr(Violence) by PK Gender", 
           align = TRUE, digits=3, font.size = "scriptsize",
           style = "ajps", dep.var.labels = c("Rebel Event", "Rebel Death","Gov't Event","Gov't Death"), 
@@ -493,7 +517,6 @@ stargazer(reg1, reg2, reg3, reg4, title = "Matched Results Pr(Violence) by PK Ge
           out = "./results/matched_gender.txt")
 
 # matched pk effectiveness by pk type #
-
 stargazer(reg5, reg6, reg7, reg8, title = "Matched Results Pr(Violence) by Troop Type", 
           align = TRUE, digits=3, font.size = "scriptsize",
           style = "ajps", dep.var.labels = c("Rebel Event", "Rebel Death","Gov't Event","Gov't Death"), 
@@ -505,6 +528,35 @@ stargazer(reg5, reg6, reg7, reg8, title = "Matched Results Pr(Violence) by Troop
           omit = c("untrp_maj:pko_lag", "unpol_maj:pko_lag", "unmob_maj:pko_lag", "untrp_maj:viol_6", "unpol_maj:viol_6", 
                    "unmob_maj:viol_6"),
           out = "./results/matched_troop.txt")
+
+
+## odds ratios outputs ##
+stargazer(reg1, reg2, reg3, reg4, title = "Matched Results Pr(Violence) by PK Gender", 
+          align = TRUE, digits=3, font.size = "scriptsize",
+          style = "ajps", dep.var.labels = c("Rebel Event", "Rebel Death","Gov't Event","Gov't Death"), 
+          dep.var.caption = "Pr()", 
+          covariate.labels = c("Balanced PK Unit", "Unbalanced PK Unit", "Avg. Mountain", "Travel Time Nearest City",
+                               "% Urban", "Night Lights", "Population Sum", "Population Density", "PK Lag", 
+                               "Violence 6 Months Before"), 
+          se = list(reg21se, reg22se, reg23se, reg24se), p = list(reg21p, reg22p, reg23p, reg24p),
+          omit = c("t_bal:pko_lag", "t_unbal:pko_lag", "t_bal:viol_6", "t_unbal:viol_6"),
+          apply.coef = exp, t.auto=F, p.auto=F,
+          notes = "Important: this table is only for interpretation in terms of estimates and p-values. Standard errors are not correctly inputted.",
+          out = "./results/matched_gender_or.txt")
+
+stargazer(reg5, reg6, reg7, reg8, title = "Matched Results Pr(Violence) by Troop Type", 
+          align = TRUE, digits=3, font.size = "scriptsize",
+          style = "ajps", dep.var.labels = c("Rebel Event", "Rebel Death","Gov't Event","Gov't Death"), 
+          dep.var.caption = "Pr()", 
+          covariate.labels = c("Majority Trp. PK Unit", "Majority Pol. PK Unit", "Majority Obs. PK Unit", "Avg. Mountain", 
+                               "Travel Time Nearest City", "% Urban", "Night Lights", "Population Sum", "Population Density", 
+                               "PK Lag", "Violence 6 Months Before"), 
+          se = list(reg25se, reg26se, reg27se, reg28se), p = list(reg25p, reg26p, reg27p, reg28p),
+          omit = c("untrp_maj:pko_lag", "unpol_maj:pko_lag", "unmob_maj:pko_lag", "untrp_maj:viol_6", "unpol_maj:viol_6", 
+                   "unmob_maj:viol_6"),
+          notes = "Important: this table is only for interpretation in terms of estimates and p-values. Standard errors are not correctly inputted.",
+          apply.coef = exp, t.auto=F, p.auto=F,
+          out = "./results/matched_troop_or.txt")
 
 # descriptive statistics table #
 labs = c("Total PKs deployed", "Gender Balanced Units", "Gender Un-Balanced Units",
