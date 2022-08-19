@@ -397,7 +397,7 @@ senmw(test_d_match2,gamma=1,method="t")$pval
 
 rm(list = setdiff(ls(), "b")) 
 gc()
-
+saveRDS(b, "./data/kunkel_cg_matched.RDS")
 #### Negative binomial regression with matched sample and clustered standard errors ####
 
 #### GOV OSV - Binary treatment by gender ####
@@ -557,6 +557,14 @@ stargazer(reg5, reg6, reg7, reg8, title = "Matched Results Pr(Violence) by Troop
           notes = "Important: this table is only for interpretation in terms of estimates and p-values. Standard errors are not correctly inputted.",
           apply.coef = exp, t.auto=F, p.auto=F,
           out = "./results/matched_troop_or.txt")
+
+# Predicted Probabilities Plot #
+pred1 = predicts(reg1, "1; 0,1; 0,1; mean; mean; mean; mode; mode; mean; mode; mode; mean; mean; mean; mean")
+# https://cran.r-project.org/web/packages/glm.predict/vignettes/predicts.html
+
+# marginal effects #
+# https://cran.r-project.org/web/packages/sjPlot/vignettes/plot_marginal_effects.html
+
 
 # descriptive statistics table #
 labs = c("Total PKs deployed", "Gender Balanced Units", "Gender Un-Balanced Units",
