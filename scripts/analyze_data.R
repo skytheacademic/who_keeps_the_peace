@@ -398,8 +398,11 @@ senmw(test_d_match2,gamma=1,method="t")$pval
 rm(list = setdiff(ls(), "b")) 
 gc()
 saveRDS(b, "./data/kunkel_cg_matched.RDS")
-#### Negative binomial regression with matched sample and clustered standard errors ####
 
+
+
+#### Negative binomial regression with matched sample and clustered standard errors ####
+b = readRDS("./data/kunkel_cg_matched.RDS")
 #### GOV OSV - Binary treatment by gender ####
 reg1 = glm.nb(gov_event.b ~ t_bal + t_unbal + mountains_mean + ttime_mean + urban_gc + 
                  nlights_calib_mean + pop_gpw_sum + pop.dens + pko_lag + viol_6 + 
@@ -558,6 +561,162 @@ stargazer(reg5, reg6, reg7, reg8, title = "Matched Results Pr(Violence) by Troop
           apply.coef = exp, t.auto=F, p.auto=F,
           out = "./results/matched_troop_or.txt")
 
+
+
+#### Continuous GOV OSV - Binary treatment by gender ####
+rm(list = setdiff(ls(), "b")) 
+
+reg1 = glm.nb(gov_event ~ t_bal + t_unbal + mountains_mean + ttime_mean + urban_gc + 
+                nlights_calib_mean + pop_gpw_sum + pop.dens + pko_lag + viol_6 + 
+                t_bal*pko_lag + t_unbal*pko_lag +
+                t_bal*viol_6 + t_unbal*viol_6,
+              data = b)
+summary(reg1)
+se_reg_c1 <- round(coeftest(reg1, vcov = vcovPL(reg1, cluster = b$prio.grid)),4)
+se_reg_c1
+
+reg2 = glm.nb(gov_death ~ t_bal + t_unbal + mountains_mean + ttime_mean + pop_gpw_sum + pop.dens +
+                pko_lag + viol_6 +
+                t_bal*pko_lag + t_unbal*pko_lag +
+                t_bal*viol_6 + t_unbal*viol_6,
+              data = b)
+summary(reg2)
+se_reg_c2 <- round(coeftest(reg2, vcov = vcovPL(reg2, cluster = b$prio.grid)),4)
+se_reg_c2
+
+#### REB OSV - Binary treatment by gender ####
+reg3 = glm.nb(reb_event ~ t_bal + t_unbal + mountains_mean + ttime_mean + urban_gc + 
+                nlights_calib_mean + pop_gpw_sum + pop.dens + pko_lag + viol_6 + 
+                t_bal*pko_lag + t_unbal*pko_lag +
+                t_bal*viol_6 + t_unbal*viol_6, data = b)
+summary(reg3)
+se_reg_c3 <- round(coeftest(reg3, vcov = vcovPL(reg3, cluster = b$prio.grid)),4)
+se_reg_c3
+
+reg4 = glm.nb(reb_death ~ t_bal + t_unbal + mountains_mean + ttime_mean + pop_gpw_sum + pop.dens +
+                pko_lag + viol_6 +
+                t_bal*pko_lag + t_unbal*pko_lag +
+                t_bal*viol_6 + t_unbal*viol_6,
+              data = b)
+summary(reg4)
+se_reg_c4 <- round(coeftest(reg4, vcov = vcovPL(reg4, cluster = b$prio.grid)),4)
+se_reg_c4
+
+#### GOV OSV - Binary treatment by PK Type ####
+reg5 = glm.nb(gov_event ~ untrp_maj + unpol_maj + unmob_maj + mountains_mean + ttime_mean + 
+                urban_gc + nlights_calib_mean + pop_gpw_sum + pop.dens + pko_lag + viol_6 + 
+                untrp_maj*pko_lag + unpol_maj*pko_lag + unmob_maj*pko_lag +
+                untrp_maj*viol_6 + unpol_maj*viol_6 + unmob_maj*viol_6,
+              data = b)
+summary(reg5)
+se_reg_c5 <- round(coeftest(reg5, vcov = vcovPL(reg5, cluster = b$prio.grid)),4)
+se_reg_c5
+
+reg6 = glm.nb(gov_death ~ untrp_maj + unpol_maj + unmob_maj + mountains_mean + ttime_mean + 
+                pop_gpw_sum + pop.dens + pko_lag + viol_6 + 
+                untrp_maj*pko_lag + unpol_maj*pko_lag + unmob_maj*pko_lag +
+                untrp_maj*viol_6 + unpol_maj*viol_6 + unmob_maj*viol_6, 
+              data = b)
+summary(reg6)
+se_reg_c6 <- round(coeftest(reg6, vcov = vcovPL(reg6, cluster = b$prio.grid)),4)
+se_reg_c6
+
+#### REB OSV - Binary treatment by PK Type ####
+reg7 = glm.nb(reb_event ~ untrp_maj + unpol_maj + unmob_maj + mountains_mean + ttime_mean + 
+                urban_gc + nlights_calib_mean + pop_gpw_sum + pop.dens + pko_lag + viol_6 + 
+                untrp_maj*pko_lag + unpol_maj*pko_lag + unmob_maj*pko_lag +
+                untrp_maj*viol_6 + unpol_maj*viol_6 + unmob_maj*viol_6,
+              data = b)
+summary(reg7)
+se_reg_c7 <- round(coeftest(reg7, vcov = vcovPL(reg7, cluster = b$prio.grid)),4)
+se_reg_c7
+
+reg8 = glm.nb(reb_death ~ untrp_maj + unpol_maj + unmob_maj + mountains_mean + ttime_mean + 
+                pop_gpw_sum + pop.dens + pko_lag + viol_6 + 
+                untrp_maj*pko_lag + unpol_maj*pko_lag + unmob_maj*pko_lag +
+                untrp_maj*viol_6 + unpol_maj*viol_6 + unmob_maj*viol_6,
+              data = b)
+summary(reg8)
+se_reg_c8 <- round(coeftest(reg8, vcov = vcovPL(reg8, cluster = b$prio.grid)),4)
+se_reg_c8
+
+#### Matched Figures ####
+# Save Standard Errors to objects for use in table
+reg21se = se_reg_c1[,2]
+reg22se = se_reg_c2[,2]
+reg23se = se_reg_c3[,2]
+reg24se = se_reg_c4[,2]
+reg25se = se_reg_c5[,2]
+reg26se = se_reg_c6[,2]
+reg27se = se_reg_c7[,2]
+reg28se = se_reg_c8[,2]
+
+# Save P-values from robust clustering outputs for use in table
+reg21p = se_reg_c1[,4]
+reg22p = se_reg_c2[,4]
+reg23p = se_reg_c3[,4]
+reg24p = se_reg_c4[,4]
+reg25p = se_reg_c5[,4]
+reg26p = se_reg_c6[,4]
+reg27p = se_reg_c7[,4]
+reg28p = se_reg_c8[,4]
+
+## logit outputs ##
+stargazer(reg1, reg2, reg3, reg4, title = "Matched Results Violence by PK Gender", 
+          align = TRUE, digits=3, font.size = "scriptsize",
+          style = "ajps", dep.var.labels = c("Rebel Event", "Rebel Death","Gov't Event","Gov't Death"), 
+          dep.var.caption = "Count Outcome", 
+          covariate.labels = c("Balanced PK Unit", "Unbalanced PK Unit", "Avg. Mountain", "Travel Time Nearest City",
+                               "% Urban", "Night Lights", "Population Sum", "Population Density", "PK Lag", 
+                               "Violence 6 Months Before"), 
+          se = list(reg21se, reg22se, reg23se, reg24se), p = list(reg21p, reg22p, reg23p, reg24p),
+          omit = c("t_bal:pko_lag", "t_unbal:pko_lag", "t_bal:viol_6", "t_unbal:viol_6"),
+          notes = "Robust Standard Errors clustered at the PRIO-Grid level.",
+          out = "./results/matched_gender_c.txt")
+
+# matched pk effectiveness by pk type #
+stargazer(reg5, reg6, reg7, reg8, title = "Matched Results Violence by Troop Type", 
+          align = TRUE, digits=3, font.size = "scriptsize",
+          style = "ajps", dep.var.labels = c("Rebel Event", "Rebel Death","Gov't Event","Gov't Death"), 
+          dep.var.caption = "Count Outcome", 
+          covariate.labels = c("Majority Trp. PK Unit", "Majority Pol. PK Unit", "Majority Obs. PK Unit", "Avg. Mountain", 
+                               "Travel Time Nearest City", "% Urban", "Night Lights", "Population Sum", "Population Density", 
+                               "PK Lag", "Violence 6 Months Before"), 
+          se = list(reg25se, reg26se, reg27se, reg28se), p = list(reg25p, reg26p, reg27p, reg28p),
+          omit = c("untrp_maj:pko_lag", "unpol_maj:pko_lag", "unmob_maj:pko_lag", "untrp_maj:viol_6", "unpol_maj:viol_6", 
+                   "unmob_maj:viol_6"),
+          out = "./results/matched_troop_c.txt")
+
+
+## odds ratios outputs ##
+stargazer(reg1, reg2, reg3, reg4, title = "Matched Results Violence by PK Gender", 
+          align = TRUE, digits=3, font.size = "scriptsize",
+          style = "ajps", dep.var.labels = c("Rebel Event", "Rebel Death","Gov't Event","Gov't Death"), 
+          dep.var.caption = "Count Outcome", 
+          covariate.labels = c("Balanced PK Unit", "Unbalanced PK Unit", "Avg. Mountain", "Travel Time Nearest City",
+                               "% Urban", "Night Lights", "Population Sum", "Population Density", "PK Lag", 
+                               "Violence 6 Months Before"), 
+          se = list(reg21se, reg22se, reg23se, reg24se), p = list(reg21p, reg22p, reg23p, reg24p),
+          omit = c("t_bal:pko_lag", "t_unbal:pko_lag", "t_bal:viol_6", "t_unbal:viol_6"),
+          apply.coef = exp, t.auto=F, p.auto=F,
+          notes = "Important: this table is only for interpretation in terms of estimates and p-values. Standard errors are not correctly inputted.",
+          out = "./results/matched_gender_or_c.txt")
+
+stargazer(reg5, reg6, reg7, reg8, title = "Matched Results Violence by Troop Type", 
+          align = TRUE, digits=3, font.size = "scriptsize",
+          style = "ajps", dep.var.labels = c("Rebel Event", "Rebel Death","Gov't Event","Gov't Death"), 
+          dep.var.caption = "Pr()", 
+          covariate.labels = c("Majority Trp. PK Unit", "Majority Pol. PK Unit", "Majority Obs. PK Unit", "Avg. Mountain", 
+                               "Travel Time Nearest City", "% Urban", "Night Lights", "Population Sum", "Population Density", 
+                               "PK Lag", "Violence 6 Months Before"), 
+          se = list(reg25se, reg26se, reg27se, reg28se), p = list(reg25p, reg26p, reg27p, reg28p),
+          omit = c("untrp_maj:pko_lag", "unpol_maj:pko_lag", "unmob_maj:pko_lag", "untrp_maj:viol_6", "unpol_maj:viol_6", 
+                   "unmob_maj:viol_6"),
+          notes = "Important: this table is only for interpretation in terms of estimates and p-values. Standard errors are not correctly inputted.",
+          apply.coef = exp, t.auto=F, p.auto=F,
+          out = "./results/matched_troop_or_c.txt")
+
+# look at CDA_08 in 681 folder for a good way to model count outcomes like this (p. 51)
 # Predicted Probabilities Plot #
 pred1 = predicts(reg1, "1; 0,1; 0,1; mean; mean; mean; mode; mode; mean; mode; mode; mean; mean; mean; mean")
 # https://cran.r-project.org/web/packages/glm.predict/vignettes/predicts.html
