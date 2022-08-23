@@ -5,10 +5,12 @@
 library(tidygeocoder)
 library(tidyverse); library(viridis)
 library(gdata); library(designmatch) 
+library(magrittr)
 
 library(ggpubr); library(ggiraphExtra); library(coefplot); library(stargazer) # need to add these to dockerfile
 library(spdep); library(gurobi); library(MASS); library(lme4); library(vtable)
 library(sensitivitymw); library(lmtest); library(sandwich); library(glmmTMB)
+library(ggeffects)
 
 
 # turn off scientific notation
@@ -716,6 +718,8 @@ stargazer(reg5, reg6, reg7, reg8, title = "Matched Results Violence by Troop Typ
           apply.coef = exp, t.auto=F, p.auto=F,
           out = "./results/matched_troop_or_c.txt")
 
+
+
 # look at CDA_08 in 681 folder for a good way to model count outcomes like this (p. 51)
 # Predicted Probabilities Plot #
 pred1 = predicts(reg1, "1; 0,1; 0,1; mean; mean; mean; mode; mode; mean; mode; mode; mean; mean; mean; mean")
@@ -723,6 +727,31 @@ pred1 = predicts(reg1, "1; 0,1; 0,1; mean; mean; mean; mode; mode; mean; mode; m
 
 # marginal effects #
 # https://cran.r-project.org/web/packages/sjPlot/vignettes/plot_marginal_effects.html
+# https://strengejacke.github.io/ggeffects/
+reg1.bal = ggpredict(reg1, terms = "t_bal")
+reg1.unbal = ggpredict(reg1, terms = "t_unbal")
+
+# extract the values so we can plot it on the same graph
+re1.pred = reg1.bal$predicted
+re1.x    = reg1.bal$x
+re1.ci_high = c(reg1.bal$conf.low[1], reg1.bal$conf.high[1])
+re1.ci_low  = c(reg1.bal$conf.low[2], reg1.bal$conf.high[2])
+re1 = as.data.frame(cbind(re1.pred, re1.x, re1.ci_high, re1.ci_low))
+re1$group = "Gender Balanced"
+rm(re1.pred, re1.x, re1.ci_high, re1.ci_low)
+re1.pred = reg1.unbal$predicted
+re1.x    = reg1.unbal$x
+re1.ci_high = c(reg1.unbal$conf.low[1], reg1.unbal$conf.high[1])
+re1.ci_low  = c(reg1.unbal$conf.low[2], reg1.unbal$conf.high[2])
+re1.1 = as.data.frame(cbind(re1.pred, re1.x, re1.ci_high, re1.ci_low))
+re1.1$group = "Gender Unbalanced"
+re1 = rbind(re1, re1.1) %>%
+  rename(predicted = re1.pred, x = re1.x, conf.low = re1.ci_low, conf.high = re1.ci_high)
+
+
+ggplot(re1, aes(x, predicted), fill = group) +
+  geom_line() +
+  geom_ribbon(aes(ymin = conf.low, ymax = conf.high), alpha = .1)
 
 
 # descriptive statistics table #
