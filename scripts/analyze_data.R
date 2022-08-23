@@ -719,7 +719,8 @@ stargazer(reg5, reg6, reg7, reg8, title = "Matched Results Violence by Troop Typ
           out = "./results/matched_troop_or_c.txt")
 
 
-
+### do death plots ###
+# maybe plot rebel vs gov deaths on same plots?
 # marginal effects #
 reg1.bal = ggpredict(reg1, terms = "t_bal")
 reg1.bal$group = "Gender Balanced"
