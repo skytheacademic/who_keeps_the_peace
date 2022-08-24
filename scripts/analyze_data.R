@@ -567,17 +567,16 @@ stargazer(reg5, reg6, reg7, reg8, title = "Matched Results Pr(Violence) by Troop
 #### Marginal effects plots ####
 ################################
 
-# do death plots: reg2, reg4, reg6, reg8
-# marginal effects #
-reg2.bal = ggpredict(reg2, terms = "t_bal")
-reg2.bal$group = "Incumbent deaths, Gender Balanced PKs"
-reg2.unbal = ggpredict(reg2, terms = "t_unbal")
-reg2.unbal$group = "Incumbent deaths, Gender Unbalanced PKs"
+# marginal effects on gender balance #
+reg2.bal = ggpredict(reg2, terms = "t_bal", condition = c(t_unbal = 0))
+reg2.bal$group = "Incumbent Deaths, Gender Balanced PKs"
+reg2.unbal = ggpredict(reg2, terms = "t_unbal", condition = c(t_bal = 0))
+reg2.unbal$group = "Incumbent Deaths, Gender Unbalanced PKs"
 reg2_gg = rbind(reg2.bal, reg2.unbal)
-reg4.bal = ggpredict(reg4, terms = "t_bal")
-reg4.bal$group = "Rebels deaths, Gender Balanced PKs"
-reg4.unbal = ggpredict(reg4, terms = "t_unbal")
-reg4.unbal$group = "Rebel deaths, Gender Unbalanced PKs"
+reg4.bal = ggpredict(reg4, terms = "t_bal", condition = c(t_unbal = 0))
+reg4.bal$group = "Rebels Deaths, Gender Balanced PKs"
+reg4.unbal = ggpredict(reg4, terms = "t_unbal", condition = c(t_bal = 0))
+reg4.unbal$group = "Rebel Deaths, Gender Unbalanced PKs"
 reg4_gg = rbind(reg4.bal, reg4.unbal)
 
 gen_death = rbind(reg2_gg, reg4_gg)
@@ -585,10 +584,37 @@ gen_death = rbind(reg2_gg, reg4_gg)
 ggplot(gen_death) +
   geom_line(aes(x, predicted, colour = group)) +
   geom_ribbon(aes(x, ymin = conf.low, ymax = conf.high, colour = group, 
-                  fill = group), linetype = "dashed", alpha = 0.15) +
+                  fill = group), linetype = "dashed", alpha = 0.1, show.legend = F) +
   ylab("Predicted Pr(Civilian Deaths)") + theme_pubclean() +
-  ylim(-0.01, 0.132) + theme(legend.position = "right") +
-  guides(fill = guide_legend(title = "Faction and Gender Balance of PK Unit"))
+  ylim(-0.01, 0.15) + theme(legend.position = "right") +
+  guides(fill = guide_legend(title = "Faction and Gender Balance of PK Unit")) +
+  scale_x_continuous(breaks = seq(0,1,1))
+
+# marginal effects on peacekeeper composition
+reg6.trp = ggpredict(reg6, terms = "untrp_maj", condition = c(unpol_maj = 0, unmob_maj = 0))
+reg6.trp$group = "Incumbent Deaths, Majority Troop PKs"
+reg6.pol = ggpredict(reg6, terms = "unpol_maj", condition = c(untrp_maj = 0, unmob_maj = 0))
+reg6.pol$group = "Incumbent Deaths, Majority Police PKs"
+reg6.mob = ggpredict(reg6, terms = "unmob_maj", condition = c(untrp_maj = 0, unpol_maj = 0))
+reg6.mob$group = "Incumbent Deaths, Majority Observers PKs"
+reg6_gg = rbind(reg6.trp, reg6.pol, reg6.mob)
+reg8.trp = ggpredict(reg8, terms = "untrp_maj", condition = c(unpol_maj = 0, unmob_maj = 0))
+reg8.trp$group = "Rebels Deaths, Majority Troop PKs"
+reg8.pol = ggpredict(reg8, terms = "unpol_maj", condition = c(untrp_maj = 0, unmob_maj = 0))
+reg8.pol$group = "Rebels Deaths, Majority Police PKs"
+reg8.mob = ggpredict(reg8, terms = "unmob_maj", condition = c(untrp_maj = 0, unpol_maj = 0))
+reg8.mob$group = "Rebels Deaths, Majority Observers PKs"
+reg8_gg = rbind(reg8.trp, reg8.pol,reg8.mob)
+gen_death_1 = rbind(reg6_gg, reg8_gg)
+
+ggplot(gen_death_1) +
+  geom_line(aes(x, predicted, colour = group)) +
+  geom_ribbon(aes(x, ymin = conf.low, ymax = conf.high, colour = group, 
+                  fill = group), linetype = "dashed", alpha = 0.1, show.legend = F) +
+  ylab("Predicted Pr(Civilian Deaths)") + theme_pubclean() +
+  ylim(-0.01, 0.75) + theme(legend.position = "right") +
+  guides(fill = guide_legend(title = "Faction and Gender Balance of PK Unit")) +
+  scale_x_continuous(breaks = seq(0,1,1))
 
 
 
