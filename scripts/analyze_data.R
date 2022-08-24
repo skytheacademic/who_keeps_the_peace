@@ -506,7 +506,7 @@ reg26p = se_reg_c6[,4]
 reg27p = se_reg_c7[,4]
 reg28p = se_reg_c8[,4]
 
-#### Figures and Plots for non-matched regressions ####
+#### Figures and Plots for matched regressions ####
 
 ## logit outputs ##
 stargazer(reg1, reg2, reg3, reg4, title = "Matched Results Pr(Violence) by PK Gender", 
@@ -562,6 +562,44 @@ stargazer(reg5, reg6, reg7, reg8, title = "Matched Results Pr(Violence) by Troop
           notes = "Important: this table is only for interpretation in terms of estimates and p-values. Standard errors are not correctly inputted.",
           apply.coef = exp, t.auto=F, p.auto=F,
           out = "./results/matched_troop_or.txt")
+
+################################
+#### Marginal effects plots ####
+################################
+
+# do death plots: reg2, reg4, reg6, reg8
+# marginal effects #
+reg2.bal = ggpredict(reg2, terms = "t_bal")
+reg2.bal$group = "Incumbent deaths, Gender Balanced PKs"
+reg2.unbal = ggpredict(reg2, terms = "t_unbal")
+reg2.unbal$group = "Incumbent deaths, Gender Unbalanced PKs"
+reg2_gg = rbind(reg2.bal, reg2.unbal)
+reg4.bal = ggpredict(reg4, terms = "t_bal")
+reg4.bal$group = "Rebels deaths, Gender Balanced PKs"
+reg4.unbal = ggpredict(reg4, terms = "t_unbal")
+reg4.unbal$group = "Rebel deaths, Gender Unbalanced PKs"
+reg4_gg = rbind(reg4.bal, reg4.unbal)
+
+gen_death = rbind(reg2_gg, reg4_gg)
+
+ggplot(gen_death) +
+  geom_line(aes(x, predicted, colour = group)) +
+  geom_ribbon(aes(x, ymin = conf.low, ymax = conf.high, colour = group, 
+                  fill = group), linetype = "dashed", alpha = 0.15) +
+  ylab("Predicted Pr(Civilian Deaths)") + theme_pubclean() +
+  ylim(-0.01, 0.132) + theme(legend.position = "right") +
+  guides(fill = guide_legend(title = "Faction and Gender Balance of PK Unit"))
+
+
+
+# this plot works, testing with above
+ggplot(reg2_gg) +
+  geom_line(aes(x, predicted, colour = factor(group))) +
+  geom_ribbon(aes(x, ymin = conf.low, ymax = conf.high, colour = factor(group), 
+                  fill = factor(group)), linetype = "dashed", alpha = 0.15) +
+  ylab("Predicted Violence Events") + theme_pubclean() + 
+  guides(fill=guide_legend(title="New Legend Title"))
+scale_x_continuous(breaks = seq(0,1,1))
 
 
 
@@ -719,22 +757,7 @@ stargazer(reg5, reg6, reg7, reg8, title = "Matched Results Violence by Troop Typ
           out = "./results/matched_troop_or_c.txt")
 
 
-### do death plots ###
-# maybe plot rebel vs gov deaths on same plots?
-# marginal effects #
-reg1.bal = ggpredict(reg1, terms = "t_bal")
-reg1.bal$group = "Gender Balanced"
-reg1.unbal = ggpredict(reg1, terms = "t_unbal")
-reg1.unbal$group = "Gender unbalanced"
-reg1_gg = rbind(reg1.bal, reg1.unbal)
 
-ggplot(reg1_gg) +
-  geom_line(aes(x, predicted, colour = factor(group))) +
-  geom_ribbon(aes(x, ymin = conf.low, ymax = conf.high, colour = factor(group), 
-                  fill = factor(group)), linetype = "dashed", alpha = 0.15) +
-  ylab("Predicted Violence Events") + theme_pubclean() + 
-  guides(fill=guide_legend(title="New Legend Title"))
-  scale_x_continuous(breaks = seq(0,1,1)) + 
   
 
 
