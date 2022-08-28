@@ -333,7 +333,7 @@ reg14.gg$group = "Incumbent Deaths"
 gen_death.c = rbind(reg13.gg, reg14.gg)
 
 
-pdf("./results/pre_match_pks_plot")
+pdf("./results/pre_match_pks_plot.pdf")
 ggplot(gen_death.c) +
   geom_line(aes(x, predicted, colour = group)) +
   geom_ribbon(aes(x, ymin = conf.low, ymax = conf.high, colour = group, 
