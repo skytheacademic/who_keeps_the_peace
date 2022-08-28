@@ -104,26 +104,30 @@ reg13 = glm.nb(gov_event.b ~ pko_deployed + mountains_mean + ttime_mean + urban_
                  nlights_calib_mean + pop_gpw_sum + pop.dens + pko_lag + viol_6 +
                   pko_deployed*pko_lag + pko_deployed*viol_6,
                 data = a)
-summary(reg13)
+se_reg_13 <- round(coeftest(reg13, vcov = vcovPL(reg13, cluster = a$prio.grid)),4)
+se_reg_13
 
 reg14 = glm.nb(gov_death.b ~ pko_deployed + mountains_mean + ttime_mean + pop_gpw_sum +
                pop.dens + pko_lag + viol_6 +
                pko_deployed*pko_lag + pko_deployed*viol_6,
                  data = a)
-summary(reg14)
+se_reg_14 <- round(coeftest(reg14, vcov = vcovPL(reg14, cluster = a$prio.grid)),4)
+se_reg_14
 
 #### REB OSV - Continuous Treatment ####
 reg15 = glm.nb(reb_event.b ~ pko_deployed + mountains_mean + ttime_mean + urban_gc + 
                  nlights_calib_mean + pop_gpw_sum + pop.dens + pko_lag + viol_6 +
                  pko_deployed*pko_lag + pko_deployed*viol_6,
                  data = a)
-summary(reg15)
+se_reg_15 <- round(coeftest(reg15, vcov = vcovPL(reg15, cluster = a$prio.grid)),4)
+se_reg_15
 
 reg16 = glm.nb(reb_death.b ~ pko_deployed + mountains_mean + ttime_mean + pop_gpw_sum +
                  pop.dens + pko_lag + viol_6 +
                  pko_deployed*pko_lag + pko_deployed*viol_6,
                  data = a)
-summary(reg16)
+se_reg_16 <- round(coeftest(reg16, vcov = vcovPL(reg16, cluster = a$prio.grid)),4)
+se_reg_16
 
 #### GOV OSV - Naive Binary treatment ####
 reg17 = glm.nb(gov_event.b ~ t_ind + mountains_mean + ttime_mean + urban_gc + 
@@ -320,6 +324,23 @@ stargazer(a[c("event", "death", "gov_event.b", "reb_event.b","gov_death.b", "reb
           style = "ajps", omit.summary.stat = "n",
           title = "Outcomes Summarized by Grid-month observations",
           out = "./results/violence_table.txt")
+
+# marginal effects on pko treatment size #
+reg13.gg = ggpredict(reg13, terms = "pko_deployed")
+reg13.gg$group = "Incumbent Violent Events"
+reg14.gg = ggpredict(reg14, terms = "pko_deployed")
+reg14.gg$group = "Incumbent Deaths"
+gen_death.c = rbind(reg13.gg, reg14.gg)
+
+
+pdf("./results/pre_match_pks_plot")
+ggplot(gen_death.c) +
+  geom_line(aes(x, predicted, colour = group)) +
+  geom_ribbon(aes(x, ymin = conf.low, ymax = conf.high, colour = group, 
+                  fill = group), linetype = "dashed", alpha = 0.1, show.legend = F) +
+  xlab("Peacekeeper Count") + ylab("Predicted Violence Against Civilians") + theme_pubclean() +
+  ggtitle("Predicted Violence Outcomes from State Actors based on Peacekeeper Counts")
+dev.off()
 
 rm(list = setdiff(ls(), "a")) 
 gc()
