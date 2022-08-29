@@ -106,6 +106,12 @@ reg13 = glm.nb(gov_event.b ~ pko_deployed + mountains_mean + ttime_mean + urban_
                 data = a)
 se_reg_13 <- round(coeftest(reg13, vcov = vcovPL(reg13, cluster = a$prio.grid)),4)
 se_reg_13
+reg13.1 = glm(gov_event.b ~ pko_deployed + mountains_mean + ttime_mean + urban_gc + 
+                 nlights_calib_mean + pop_gpw_sum + pop.dens + pko_lag + viol_6 +
+                 pko_deployed*pko_lag + pko_deployed*viol_6,
+               data = a, family = negative.binomial(theta = 1))
+se_reg_13.1 <- round(coeftest(reg13.1, vcov = vcovPL(reg13.1, cluster = a$prio.grid)),4)
+se_reg_13.1
 
 reg14 = glm.nb(gov_death.b ~ pko_deployed + mountains_mean + ttime_mean + pop_gpw_sum +
                pop.dens + pko_lag + viol_6 +
@@ -115,10 +121,10 @@ se_reg_14 <- round(coeftest(reg14, vcov = vcovPL(reg14, cluster = a$prio.grid)),
 se_reg_14
 
 #### REB OSV - Continuous Treatment ####
-reg15 = glm.nb(reb_event.b ~ pko_deployed + mountains_mean + ttime_mean + urban_gc + 
+reg15 = glm(reb_event.b ~ pko_deployed + mountains_mean + ttime_mean + urban_gc + 
                  nlights_calib_mean + pop_gpw_sum + pop.dens + pko_lag + viol_6 +
                  pko_deployed*pko_lag + pko_deployed*viol_6,
-                 data = a)
+                 data = a, family = binomial(link='logit'))
 se_reg_15 <- round(coeftest(reg15, vcov = vcovPL(reg15, cluster = a$prio.grid)),4)
 se_reg_15
 

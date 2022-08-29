@@ -1,9 +1,22 @@
 # Conflict Grids & Peacekeeping: Figures and Plots #
 
-library(stargazer)
+library(tidygeocoder)
+library(tidyverse); library(viridis)
+library(gdata); library(designmatch) 
+library(magrittr)
+
+library(ggpubr); library(ggiraphExtra); library(coefplot); library(stargazer) # need to add these to dockerfile
+library(spdep); library(gurobi); library(MASS); library(lme4); library(vtable)
+library(sensitivitymw); library(lmtest); library(sandwich); library(glmmTMB)
+library(ggeffects)
+
+
+# turn off scientific notation
+options(scipen = 999)
+
 # reading in cleaned data
-setwd("../data/")
-a = readRDS("merged_data.rds")
+setwd("../")
+a = readRDS("./data/kunkel_cg.rds")
 
 ### Descriptive Statistics Tables ###
 acled  = read.csv("acled_data.csv")
@@ -22,9 +35,120 @@ stargazer(radpko[c("pko_deployed", "untrp","unpol", "unmob", 'prio.grid')], cova
           title = "RADPKO Descriptive Statistics",
           out = "../results/RADPKO_tex_table.txt")
 
+reg13 = glm.nb(gov_event.b ~ pko_deployed + mountains_mean + ttime_mean + urban_gc + 
+                 nlights_calib_mean + pop_gpw_sum + pop.dens + pko_lag + viol_6 +
+                 pko_deployed*pko_lag + pko_deployed*viol_6,
+               data = a)
+se_reg_13 <- round(coeftest(reg13, vcov = vcovPL(reg13, cluster = a$prio.grid)),4)
+se_reg_13
 
-# make plots of Mali with PRIO borders, showing violence and PKs #
+reg14 = glm.nb(gov_death.b ~ pko_deployed + mountains_mean + ttime_mean + pop_gpw_sum +
+                 pop.dens + pko_lag + viol_6 +
+                 pko_deployed*pko_lag + pko_deployed*viol_6,
+               data = a)
+se_reg_14 <- round(coeftest(reg14, vcov = vcovPL(reg14, cluster = a$prio.grid)),4)
+se_reg_14
 
+#### REB OSV - Continuous Treatment ####
+reg15 = glm.nb(reb_event.b ~ pko_deployed + mountains_mean + ttime_mean + urban_gc + 
+                 nlights_calib_mean + pop_gpw_sum + pop.dens + pko_lag + viol_6 +
+                 pko_deployed*pko_lag + pko_deployed*viol_6,
+               data = a)
+se_reg_15 <- round(coeftest(reg15, vcov = vcovPL(reg15, cluster = a$prio.grid)),4)
+se_reg_15
+
+reg16 = glm.nb(reb_death.b ~ pko_deployed + mountains_mean + ttime_mean + pop_gpw_sum +
+                 pop.dens + pko_lag + viol_6 +
+                 pko_deployed*pko_lag + pko_deployed*viol_6,
+               data = a)
+se_reg_16 <- round(coeftest(reg16, vcov = vcovPL(reg16, cluster = a$prio.grid)),4)
+se_reg_16
+
+
+
+# marginal effects on pko treatment size #
+reg13.gg = ggpredict(reg13, terms = "pko_deployed")
+reg13.gg$group = "Incumbent Violent Events"
+reg14.gg = ggpredict(reg14, terms = "pko_deployed")
+reg14.gg$group = "Incumbent Deaths"
+gen_death.c = rbind(reg13.gg, reg14.gg)
+
+
+pdf("./results/pre_match_pks_plot.pdf")
+ggplot(gen_death.c) +
+  geom_line(aes(x, predicted, colour = group)) +
+  geom_ribbon(aes(x, ymin = conf.low, ymax = conf.high, colour = group, 
+                  fill = group), linetype = "dashed", alpha = 0.1, show.legend = F) +
+  xlab("Peacekeeper Count") + ylab("Predicted Violence Against Civilians") + theme_pubclean() +
+  ggtitle("Predicted Violence Outcomes from State Actors based on Peacekeeper Counts")
+dev.off()
+
+rm(list = setdiff(ls(), "a")) 
+gc()
+
+##### Run and plot PKs by composition #####
+
+# Troops #
+reg1.1 = glm(gov_event.b ~ untrp + mountains_mean + ttime_mean + urban_gc + 
+                 nlights_calib_mean + pop_gpw_sum + pop.dens + pko_lag + viol_6 +
+                untrp*pko_lag + untrp*viol_6,
+               data = a, family = negative.binomial(theta = 1))
+se_reg_1.1 <- round(coeftest(reg1.1, vcov = vcovPL(reg1.1, cluster = a$prio.grid)),4)
+se_reg_1.1
+
+reg2 = glm.nb(gov_death.b ~ untrp + mountains_mean + ttime_mean + pop_gpw_sum +
+                 pop.dens + pko_lag + viol_6 +
+                untrp:pko_lag + untrp:viol_6,
+               data = a)
+se_reg_2 <- round(coeftest(reg2, vcov = vcovPL(reg2, cluster = a$prio.grid)),4)
+se_reg_2
+
+reg3 = glm.nb(reb_event.b ~ untrp + mountains_mean + ttime_mean + urban_gc + 
+                 nlights_calib_mean + pop_gpw_sum + pop.dens + pko_lag + viol_6 +
+                untrp*pko_lag + untrp*viol_6,
+               data = a)
+se_reg_3 <- round(coeftest(reg3, vcov = vcovPL(reg3, cluster = a$prio.grid)),4)
+se_reg_3
+
+reg4 = glm.nb(reb_death.b ~ untrp + mountains_mean + ttime_mean + pop_gpw_sum +
+                 pop.dens + pko_lag + viol_6 +
+                untrp*pko_lag + untrp*viol_6,
+               data = a)
+se_reg_4 <- round(coeftest(reg4, vcov = vcovPL(reg4, cluster = a$prio.grid)),4)
+se_reg_4
+
+
+# Police #
+reg5 = glm.nb(gov_event.b ~ untrp + mountains_mean + ttime_mean + urban_gc + 
+                nlights_calib_mean + pop_gpw_sum + pop.dens + pko_lag + viol_6 +
+                pko_deployed*pko_lag + pko_deployed*viol_6,
+              data = a)
+se_reg_1 <- round(coeftest(reg1, vcov = vcovPL(reg1, cluster = a$prio.grid)),4)
+se_reg_1
+
+reg2 = glm.nb(gov_death.b ~ untrp + mountains_mean + ttime_mean + pop_gpw_sum +
+                pop.dens + pko_lag + viol_6 +
+                pko_deployed*pko_lag + pko_deployed*viol_6,
+              data = a)
+se_reg_2 <- round(coeftest(reg2, vcov = vcovPL(reg2, cluster = a$prio.grid)),4)
+se_reg_2
+
+reg3 = glm.nb(reb_event.b ~ untrp + mountains_mean + ttime_mean + urban_gc + 
+                nlights_calib_mean + pop_gpw_sum + pop.dens + pko_lag + viol_6 +
+                pko_deployed*pko_lag + pko_deployed*viol_6,
+              data = a)
+se_reg_3 <- round(coeftest(reg3, vcov = vcovPL(reg3, cluster = a$prio.grid)),4)
+se_reg_3
+
+reg4 = glm.nb(reb_death.b ~ untrp + mountains_mean + ttime_mean + pop_gpw_sum +
+                pop.dens + pko_lag + viol_6 +
+                pko_deployed*pko_lag + pko_deployed*viol_6,
+              data = a)
+se_reg_4 <- round(coeftest(reg4, vcov = vcovPL(reg4, cluster = a$prio.grid)),4)
+se_reg_4
+# Observers #
+
+##### Plot of Mali w/ PRIO grids #####
 # let's add a plot of Mali to check #
 a.min = subset(a, country == "Mali")
 table(a.min$fatalities)
@@ -125,25 +249,8 @@ pdf("../results/plot_4.pdf")
 plot_4
 dev.off()
 
-# gg.all = ggarrange(plot_1, 
-#                    ggarrange(plot_2, plot_3, labels = c("Presence of PKO (Binary Count)", "Presence of PKs (Total)")),
-#                    nrow = 2, labels = "Fatalities")
-# mali.plot = annotate_figure(
-#   gg.all,
-#   top = text_grob("Visualizing the Overlap of PKOs & Violence in Mali",
-#                   color = "blue", face = "bold", size = 14),
-#   bottom = text_grob("Data source: \n ACLED & RADPKO", color = "blue",
-#                      hjust = 1, x = 1, face = "italic", size = 10),
-#   left = text_grob("Fig arranged using ggpubr",
-#                    color = "black", rot = 90),
-#   fig.lab = "Figure 1", fig.lab.face = "bold"
-# )
 
-# mali.plot
-
-
-
-### Time-series plots of MINUSMA ###
+##### Time-series plots of MINUSMA #####
 #subset
 a.una = subset(a, country == "Democratic Republic of Congo") 
 
