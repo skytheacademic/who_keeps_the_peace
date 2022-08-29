@@ -7,7 +7,7 @@ library(magrittr)
 
 library(ggpubr); library(ggiraphExtra); library(coefplot); library(stargazer) # need to add these to dockerfile
 library(spdep); library(gurobi); library(MASS); library(lme4); library(vtable)
-library(sensitivitymw); library(lmtest); library(sandwich); library(glmmTMB)
+library(sensitivitymw); library(lmtest); library(sandwich); library(magick)
 library(ggeffects)
 
 
@@ -18,64 +18,137 @@ options(scipen = 999)
 setwd("../")
 a = readRDS("./data/kunkel_cg.rds")
 
-### Descriptive Statistics Tables ###
-acled  = read.csv("acled_data.csv")
-radpko = read.csv("radpko_grid.csv")
-acled$event_date = lubridate::dmy(acled$event_date)
-acled = subset(acled, event_date < "2019-01-01" & event_date > "1999-01-01" & 
-                 event_type == "Violence against civilians")
 
-stargazer(acled[c("year", "time_precision", "geo_precision","fatalities")], covariate.labels = 
-            c("Year", "Time Precision", "Geo Precision", "Deaths"),digits=1, 
-          title = "ACLED Descriptive Statistics",
-          out = "../results/ACLED_tex_table.txt")
-
-stargazer(radpko[c("pko_deployed", "untrp","unpol", "unmob", 'prio.grid')], covariate.labels = 
-            c("Total PKs", "UN Troops", "UN Police", "UN Observers", "Prio Grid"), digits = 2, 
-          title = "RADPKO Descriptive Statistics",
-          out = "../results/RADPKO_tex_table.txt")
-
-reg13 = glm.nb(gov_event.b ~ pko_deployed + mountains_mean + ttime_mean + urban_gc + 
+##### Run and plot PKs by composition #####
+# Troops #
+reg1 = glm(gov_event.b ~ untrp + mountains_mean + ttime_mean + urban_gc + 
                  nlights_calib_mean + pop_gpw_sum + pop.dens + pko_lag + viol_6 +
-                 pko_deployed*pko_lag + pko_deployed*viol_6,
-               data = a)
-se_reg_13 <- round(coeftest(reg13, vcov = vcovPL(reg13, cluster = a$prio.grid)),4)
-se_reg_13
+                untrp*pko_lag + untrp*viol_6,
+               data = a, family = negative.binomial(theta = 1))
 
-reg14 = glm.nb(gov_death.b ~ pko_deployed + mountains_mean + ttime_mean + pop_gpw_sum +
+reg2 = glm(gov_death.b ~ untrp + mountains_mean + ttime_mean + pop_gpw_sum +
                  pop.dens + pko_lag + viol_6 +
-                 pko_deployed*pko_lag + pko_deployed*viol_6,
-               data = a)
-se_reg_14 <- round(coeftest(reg14, vcov = vcovPL(reg14, cluster = a$prio.grid)),4)
-se_reg_14
+                untrp:pko_lag + untrp:viol_6,
+               data = a, family = negative.binomial(theta = 1))
 
-#### REB OSV - Continuous Treatment ####
-reg15 = glm.nb(reb_event.b ~ pko_deployed + mountains_mean + ttime_mean + urban_gc + 
+reg3 = glm(reb_event.b ~ untrp + mountains_mean + ttime_mean + urban_gc + 
                  nlights_calib_mean + pop_gpw_sum + pop.dens + pko_lag + viol_6 +
-                 pko_deployed*pko_lag + pko_deployed*viol_6,
-               data = a)
-se_reg_15 <- round(coeftest(reg15, vcov = vcovPL(reg15, cluster = a$prio.grid)),4)
-se_reg_15
+                untrp*pko_lag + untrp*viol_6,
+               data = a, family = negative.binomial(theta = 1))
 
-reg16 = glm.nb(reb_death.b ~ pko_deployed + mountains_mean + ttime_mean + pop_gpw_sum +
+reg4 = glm(reb_death.b ~ untrp + mountains_mean + ttime_mean + pop_gpw_sum +
                  pop.dens + pko_lag + viol_6 +
-                 pko_deployed*pko_lag + pko_deployed*viol_6,
-               data = a)
-se_reg_16 <- round(coeftest(reg16, vcov = vcovPL(reg16, cluster = a$prio.grid)),4)
-se_reg_16
+                untrp*pko_lag + untrp*viol_6,
+               data = a, family = negative.binomial(theta = 1))
+
+# Police #
+reg5 = glm(gov_event.b ~ unpol + mountains_mean + ttime_mean + urban_gc + 
+                nlights_calib_mean + pop_gpw_sum + pop.dens + pko_lag + viol_6 +
+              unpol*pko_lag + unpol*viol_6,
+              data = a, family = negative.binomial(theta = 1))
+
+reg6 = glm(gov_death.b ~ unpol + mountains_mean + ttime_mean + pop_gpw_sum +
+                pop.dens + pko_lag + viol_6 +
+              unpol*pko_lag + unpol*viol_6,
+              data = a, family = negative.binomial(theta = 1))
+
+reg7 = glm(reb_event.b ~ unpol + mountains_mean + ttime_mean + urban_gc + 
+                nlights_calib_mean + pop_gpw_sum + pop.dens + pko_lag + viol_6 +
+              unpol*pko_lag + unpol*viol_6,
+              data = a, family = negative.binomial(theta = 1))
+
+reg8 = glm(reb_death.b ~ unpol + mountains_mean + ttime_mean + pop_gpw_sum +
+                pop.dens + pko_lag + viol_6 +
+              unpol*pko_lag + unpol*viol_6,
+              data = a, family = negative.binomial(theta = 1))
+# Observers #
+reg9 = glm(gov_event.b ~ unmob + mountains_mean + ttime_mean + urban_gc + 
+             nlights_calib_mean + pop_gpw_sum + pop.dens + pko_lag + viol_6 +
+             unmob*pko_lag + unmob*viol_6,
+           data = a, family = negative.binomial(theta = 1))
+
+reg10 = glm(gov_death.b ~ unmob + mountains_mean + ttime_mean + pop_gpw_sum +
+             pop.dens + pko_lag + viol_6 +
+             unmob*pko_lag + unmob*viol_6,
+           data = a, family = negative.binomial(theta = 1))
+
+reg11 = glm(reb_event.b ~ unmob + mountains_mean + ttime_mean + urban_gc + 
+             nlights_calib_mean + pop_gpw_sum + pop.dens + pko_lag + viol_6 +
+             unmob*pko_lag + unmob*viol_6,
+           data = a, family = negative.binomial(theta = 1))
+
+reg12 = glm(reb_death.b ~ unmob + mountains_mean + ttime_mean + pop_gpw_sum +
+             pop.dens + pko_lag + viol_6 +
+             unmob*pko_lag + unmob*viol_6,
+           data = a, family = negative.binomial(theta = 1))
+
+
+# Predict MEs and Plot #
+
+reg1.gg = ggpredict(reg1, terms = "untrp")
+reg1.gg$group = "Incumbent Violent Events"
+reg2.gg = ggpredict(reg2, terms = "untrp")
+reg2.gg$group = "Incumbent Deaths"
+me_pred_st_trp = rbind(reg1.gg, reg2.gg)
+me_pred_st_trp = me_pred_st_trp[-c(13:14, 27:28),]
+
+reg3.gg = ggpredict(reg3, terms = "untrp")
+reg3.gg$group = "Rebel Violent Events"
+reg4.gg = ggpredict(reg4, terms = "untrp")
+reg4.gg$group = "Rebel Deaths"
+me_pred_rb_trp = rbind(reg3.gg, reg4.gg)
+me_pred_rb_trp = me_pred_st_trp[-c(13:14, 27:28),]
 
 
 
+
+
+
+reg13.gg = ggpredict(reg13, terms = "pko_deployed")
+reg13.gg$group = "Incumbent Violent Events"
+reg14.gg = ggpredict(reg14, terms = "pko_deployed")
+reg14.gg$group = "Incumbent Deaths"
+gen_death.c.gov = rbind(reg13.gg, reg14.gg)
+
+
+
+
+
+rm(list = setdiff(ls(), "a")) 
+gc()
+#### ME of violence by naive PKs ####
+reg13 = glm(gov_event.b ~ pko_deployed + mountains_mean + ttime_mean + urban_gc + 
+              nlights_calib_mean + pop_gpw_sum + pop.dens + pko_lag + viol_6 +
+              pko_deployed*pko_lag + pko_deployed*viol_6,
+            data = a, family = negative.binomial(theta = 1))
+reg14 = glm(gov_death.b ~ pko_deployed + mountains_mean + ttime_mean + pop_gpw_sum +
+              pop.dens + pko_lag + viol_6 +
+              pko_deployed*pko_lag + pko_deployed*viol_6,
+            data = a, family = negative.binomial(theta = 1))
+#REB OSV - Continuous Treatment
+reg15 = glm(reb_event.b ~ pko_deployed + mountains_mean + ttime_mean + urban_gc + 
+              nlights_calib_mean + pop_gpw_sum + pop.dens + pko_lag + viol_6 +
+              pko_deployed*pko_lag + pko_deployed*viol_6,
+            data = a, family = negative.binomial(theta = 1))
+reg16 = glm(reb_death.b ~ pko_deployed + mountains_mean + ttime_mean + pop_gpw_sum +
+              pop.dens + pko_lag + viol_6 +
+              pko_deployed*pko_lag + pko_deployed*viol_6,
+            data = a, family = negative.binomial(theta = 1))
 # marginal effects on pko treatment size #
 reg13.gg = ggpredict(reg13, terms = "pko_deployed")
 reg13.gg$group = "Incumbent Violent Events"
 reg14.gg = ggpredict(reg14, terms = "pko_deployed")
 reg14.gg$group = "Incumbent Deaths"
-gen_death.c = rbind(reg13.gg, reg14.gg)
+gen_death.c.gov = rbind(reg13.gg, reg14.gg)
 
+reg15.gg = ggpredict(reg15, terms = "pko_deployed")
+reg15.gg$group = "Rebel Violent Events"
+reg16.gg = ggpredict(reg16, terms = "pko_deployed")
+reg16.gg$group = "Rebel Deaths"
+gen_death.c.reb = rbind(reg15.gg, reg16.gg)
 
-pdf("./results/pre_match_pks_plot.pdf")
-ggplot(gen_death.c) +
+pdf("./results/pks_pred_gov.pdf")
+ggplot(gen_death.c.gov) +
   geom_line(aes(x, predicted, colour = group)) +
   geom_ribbon(aes(x, ymin = conf.low, ymax = conf.high, colour = group, 
                   fill = group), linetype = "dashed", alpha = 0.1, show.legend = F) +
@@ -83,70 +156,126 @@ ggplot(gen_death.c) +
   ggtitle("Predicted Violence Outcomes from State Actors based on Peacekeeper Counts")
 dev.off()
 
+pdf("./results/pks_pred_reb.pdf")
+ggplot(gen_death.c.reb) +
+  geom_line(aes(x, predicted, colour = group)) +
+  geom_ribbon(aes(x, ymin = conf.low, ymax = conf.high, colour = group, 
+                  fill = group), linetype = "dashed", alpha = 0.1, show.legend = F) +
+  xlab("Peacekeeper Count") + ylab("Predicted Violence Against Civilians") + theme_pubclean() +
+  ggtitle("Predicted Violence Outcomes from Rebel Actors based on Peacekeeper Counts")
+dev.off()
+
 rm(list = setdiff(ls(), "a")) 
 gc()
 
-##### Run and plot PKs by composition #####
 
-# Troops #
-reg1.1 = glm(gov_event.b ~ untrp + mountains_mean + ttime_mean + urban_gc + 
-                 nlights_calib_mean + pop_gpw_sum + pop.dens + pko_lag + viol_6 +
-                untrp*pko_lag + untrp*viol_6,
-               data = a, family = negative.binomial(theta = 1))
-se_reg_1.1 <- round(coeftest(reg1.1, vcov = vcovPL(reg1.1, cluster = a$prio.grid)),4)
-se_reg_1.1
+#### ME of violence with matched PKs
+rm(list = ls())
+a = readRDS("./data/kunkel_cg_matched.RDS")
 
-reg2 = glm.nb(gov_death.b ~ untrp + mountains_mean + ttime_mean + pop_gpw_sum +
-                 pop.dens + pko_lag + viol_6 +
-                untrp:pko_lag + untrp:viol_6,
-               data = a)
-se_reg_2 <- round(coeftest(reg2, vcov = vcovPL(reg2, cluster = a$prio.grid)),4)
-se_reg_2
+# reg1 = glm.nb(gov_event.b ~ t_bal + t_unbal + mountains_mean + ttime_mean + urban_gc + 
+#                 nlights_calib_mean + pop_gpw_sum + pop.dens + pko_lag + viol_6 + 
+#                 t_bal*pko_lag + t_unbal*pko_lag +
+#                 t_bal*viol_6 + t_unbal*viol_6,
+#               data = a)
+reg2 = glm(gov_death.b ~ t_bal + t_unbal + mountains_mean + ttime_mean + pop_gpw_sum + pop.dens +
+                pko_lag + viol_6 +
+                t_bal*pko_lag + t_unbal*pko_lag +
+                t_bal*viol_6 + t_unbal*viol_6,
+              data = a, family = negative.binomial(theta = 1))
+# REB OSV - Binary treatment by gender #
+# reg3 = glm.nb(reb_event.b ~ t_bal + t_unbal + mountains_mean + ttime_mean + urban_gc + 
+#                 nlights_calib_mean + pop_gpw_sum + pop.dens + pko_lag + viol_6 + 
+#                 t_bal*pko_lag + t_unbal*pko_lag +
+#                 t_bal*viol_6 + t_unbal*viol_6, data = a)
+reg4 = glm(reb_death.b ~ t_bal + t_unbal + mountains_mean + ttime_mean + pop_gpw_sum + pop.dens +
+                pko_lag + viol_6 +
+                t_bal*pko_lag + t_unbal*pko_lag +
+                t_bal*viol_6 + t_unbal*viol_6,
+              data = a, family = negative.binomial(theta = 1))
+# GOV OSV - Binary treatment by PK Type #
+reg5 = glm(gov_event.b ~ untrp_maj + unpol_maj + unmob_maj + mountains_mean + ttime_mean + 
+                urban_gc + nlights_calib_mean + pop_gpw_sum + pop.dens + pko_lag + viol_6 + 
+                untrp_maj*pko_lag + unpol_maj*pko_lag + unmob_maj*pko_lag +
+                untrp_maj*viol_6 + unpol_maj*viol_6 + unmob_maj*viol_6,
+              data = a, family = negative.binomial(theta = 1))
+reg6 = glm(gov_death.b ~ untrp_maj + unpol_maj + unmob_maj + mountains_mean + ttime_mean + 
+                pop_gpw_sum + pop.dens + pko_lag + viol_6 + 
+                untrp_maj*pko_lag + unpol_maj*pko_lag + unmob_maj*pko_lag +
+                untrp_maj*viol_6 + unpol_maj*viol_6 + unmob_maj*viol_6, 
+              data = a, family = negative.binomial(theta = 1))
+# REB OSV - Binary treatment by PK Type #
+reg7 = glm(reb_event.b ~ untrp_maj + unpol_maj + unmob_maj + mountains_mean + ttime_mean + 
+                urban_gc + nlights_calib_mean + pop_gpw_sum + pop.dens + pko_lag + viol_6 + 
+                untrp_maj*pko_lag + unpol_maj*pko_lag + unmob_maj*pko_lag +
+                untrp_maj*viol_6 + unpol_maj*viol_6 + unmob_maj*viol_6,
+              data = a, family = negative.binomial(theta = 1))
+reg8 = glm(reb_death.b ~ untrp_maj + unpol_maj + unmob_maj + mountains_mean + ttime_mean + 
+                pop_gpw_sum + pop.dens + pko_lag + viol_6 + 
+                untrp_maj*pko_lag + unpol_maj*pko_lag + unmob_maj*pko_lag +
+                untrp_maj*viol_6 + unpol_maj*viol_6 + unmob_maj*viol_6,
+              data = a, family = negative.binomial(theta = 1))
 
-reg3 = glm.nb(reb_event.b ~ untrp + mountains_mean + ttime_mean + urban_gc + 
-                 nlights_calib_mean + pop_gpw_sum + pop.dens + pko_lag + viol_6 +
-                untrp*pko_lag + untrp*viol_6,
-               data = a)
-se_reg_3 <- round(coeftest(reg3, vcov = vcovPL(reg3, cluster = a$prio.grid)),4)
-se_reg_3
 
-reg4 = glm.nb(reb_death.b ~ untrp + mountains_mean + ttime_mean + pop_gpw_sum +
-                 pop.dens + pko_lag + viol_6 +
-                untrp*pko_lag + untrp*viol_6,
-               data = a)
-se_reg_4 <- round(coeftest(reg4, vcov = vcovPL(reg4, cluster = a$prio.grid)),4)
-se_reg_4
+# marginal effects on gender balance #
+reg2.bal = ggpredict(reg2, terms = "t_bal", condition = c(t_unbal = 0))
+reg2.bal$group = "Incumbent Deaths, Gender Balanced PKs"
+reg2.unbal = ggpredict(reg2, terms = "t_unbal", condition = c(t_bal = 0))
+reg2.unbal$group = "Incumbent Deaths, Gender Unbalanced PKs"
+reg2_gg = rbind(reg2.bal, reg2.unbal)
+reg4.bal = ggpredict(reg4, terms = "t_bal", condition = c(t_unbal = 0))
+reg4.bal$group = "Rebels Deaths, Gender Balanced PKs"
+reg4.unbal = ggpredict(reg4, terms = "t_unbal", condition = c(t_bal = 0))
+reg4.unbal$group = "Rebel Deaths, Gender Unbalanced PKs"
+reg4_gg = rbind(reg4.bal, reg4.unbal)
+
+gen_death = rbind(reg2_gg, reg4_gg)
+
+ggplot(gen_death) +
+  geom_line(aes(x, predicted, colour = group)) +
+  geom_ribbon(aes(x, ymin = conf.low, ymax = conf.high, colour = group, 
+                  fill = group), linetype = "dashed", alpha = 0.1, show.legend = F) +
+  ylab("Predicted Pr(Civilian Deaths)") + theme_pubclean() +
+  ylim(-0.01, 0.15) + theme(legend.position = "right") +
+  guides(fill = guide_legend(title = "Faction and Gender Balance of PK Unit")) +
+  scale_x_continuous(breaks = seq(0,1,1))
 
 
-# Police #
-reg5 = glm.nb(gov_event.b ~ untrp + mountains_mean + ttime_mean + urban_gc + 
-                nlights_calib_mean + pop_gpw_sum + pop.dens + pko_lag + viol_6 +
-                pko_deployed*pko_lag + pko_deployed*viol_6,
-              data = a)
-se_reg_1 <- round(coeftest(reg1, vcov = vcovPL(reg1, cluster = a$prio.grid)),4)
-se_reg_1
+# let's make a plot for the odds ratios instead
+# https://stackoverflow.com/questions/47085514/simple-way-to-visualise-odds-ratios-in-r
 
-reg2 = glm.nb(gov_death.b ~ untrp + mountains_mean + ttime_mean + pop_gpw_sum +
-                pop.dens + pko_lag + viol_6 +
-                pko_deployed*pko_lag + pko_deployed*viol_6,
-              data = a)
-se_reg_2 <- round(coeftest(reg2, vcov = vcovPL(reg2, cluster = a$prio.grid)),4)
-se_reg_2
+# marginal effects on peacekeeper composition
+reg6.trp = ggpredict(reg6, terms = "untrp_maj", condition = c(unpol_maj = 0, unmob_maj = 0))
+reg6.trp$group = "Incumbent Deaths, Majority Troop PKs"
+reg8.trp = ggpredict(reg8, terms = "untrp_maj", condition = c(unpol_maj = 0, unmob_maj = 0))
+reg8.trp$group = "Rebels Deaths, Majority Troop PKs"
+death_trp_pred = rbind(reg6.trp, reg8.trp)
 
-reg3 = glm.nb(reb_event.b ~ untrp + mountains_mean + ttime_mean + urban_gc + 
-                nlights_calib_mean + pop_gpw_sum + pop.dens + pko_lag + viol_6 +
-                pko_deployed*pko_lag + pko_deployed*viol_6,
-              data = a)
-se_reg_3 <- round(coeftest(reg3, vcov = vcovPL(reg3, cluster = a$prio.grid)),4)
-se_reg_3
+reg6.pol = ggpredict(reg6, terms = "unpol_maj", condition = c(untrp_maj = 0, unmob_maj = 0))
+reg6.pol$group = "Incumbent Deaths, Majority Police PKs"
+reg8.pol = ggpredict(reg8, terms = "unpol_maj", condition = c(untrp_maj = 0, unmob_maj = 0))
+reg8.pol$group = "Rebels Deaths, Majority Police PKs"
 
-reg4 = glm.nb(reb_death.b ~ untrp + mountains_mean + ttime_mean + pop_gpw_sum +
-                pop.dens + pko_lag + viol_6 +
-                pko_deployed*pko_lag + pko_deployed*viol_6,
-              data = a)
-se_reg_4 <- round(coeftest(reg4, vcov = vcovPL(reg4, cluster = a$prio.grid)),4)
-se_reg_4
-# Observers #
+reg6.mob = ggpredict(reg6, terms = "unmob_maj", condition = c(untrp_maj = 0, unpol_maj = 0))
+reg6.mob$group = "Incumbent Deaths, Majority Observers PKs"
+reg8.mob = ggpredict(reg8, terms = "unmob_maj", condition = c(untrp_maj = 0, unpol_maj = 0))
+reg8.mob$group = "Rebels Deaths, Majority Observers PKs"
+# reg6_gg = rbind(reg6.trp, reg6.pol, reg6.mob)
+
+
+# reg8_gg = rbind(reg8.trp, reg8.pol,reg8.mob)
+# gen_death_1 = rbind(reg6_gg, reg8_gg)
+
+ggplot(death_trp_pred) +
+  geom_line(aes(x, predicted, colour = group)) +
+  geom_ribbon(aes(x, ymin = conf.low, ymax = conf.high, colour = group, 
+                  fill = group), linetype = "dashed", alpha = 0.1, show.legend = F) +
+  ylab("Predicted Pr(Civilian Deaths)") + theme_pubclean() +
+  ylim(-0.01, 0.10) + theme(legend.position = "right") +
+  guides(fill = guide_legend(title = "Faction and Composition of PK Unit")) +
+  scale_x_continuous(breaks = seq(0,1,1))
+
+
 
 ##### Plot of Mali w/ PRIO grids #####
 # let's add a plot of Mali to check #
