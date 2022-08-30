@@ -173,21 +173,21 @@ gc()
 rm(list = ls())
 a = readRDS("./data/kunkel_cg_matched.RDS")
 
-# reg1 = glm.nb(gov_event.b ~ t_bal + t_unbal + mountains_mean + ttime_mean + urban_gc + 
-#                 nlights_calib_mean + pop_gpw_sum + pop.dens + pko_lag + viol_6 + 
-#                 t_bal*pko_lag + t_unbal*pko_lag +
-#                 t_bal*viol_6 + t_unbal*viol_6,
-#               data = a)
+reg1 = glm(gov_event.b ~ t_bal + t_unbal + mountains_mean + ttime_mean + urban_gc +
+                nlights_calib_mean + pop_gpw_sum + pop.dens + pko_lag + viol_6 +
+                t_bal*pko_lag + t_unbal*pko_lag +
+                t_bal*viol_6 + t_unbal*viol_6,
+              data = a, family = negative.binomial(theta = 1))
 reg2 = glm(gov_death.b ~ t_bal + t_unbal + mountains_mean + ttime_mean + pop_gpw_sum + pop.dens +
                 pko_lag + viol_6 +
                 t_bal*pko_lag + t_unbal*pko_lag +
                 t_bal*viol_6 + t_unbal*viol_6,
               data = a, family = negative.binomial(theta = 1))
 # REB OSV - Binary treatment by gender #
-# reg3 = glm.nb(reb_event.b ~ t_bal + t_unbal + mountains_mean + ttime_mean + urban_gc + 
-#                 nlights_calib_mean + pop_gpw_sum + pop.dens + pko_lag + viol_6 + 
-#                 t_bal*pko_lag + t_unbal*pko_lag +
-#                 t_bal*viol_6 + t_unbal*viol_6, data = a)
+reg3 = glm(reb_event.b ~ t_bal + t_unbal + mountains_mean + ttime_mean + urban_gc +
+                nlights_calib_mean + pop_gpw_sum + pop.dens + pko_lag + viol_6 +
+                t_bal*pko_lag + t_unbal*pko_lag +
+                t_bal*viol_6 + t_unbal*viol_6, data = a, family = negative.binomial(theta = 1))
 reg4 = glm(reb_death.b ~ t_bal + t_unbal + mountains_mean + ttime_mean + pop_gpw_sum + pop.dens +
                 pko_lag + viol_6 +
                 t_bal*pko_lag + t_unbal*pko_lag +
@@ -243,6 +243,20 @@ ggplot(gen_death) +
 
 # let's make a plot for the odds ratios instead
 # https://stackoverflow.com/questions/47085514/simple-way-to-visualise-odds-ratios-in-r
+exp(reg5$coefficients)
+
+# exp the coefficients and confidence intervals, then turn into a dataframe
+# from there, plot the line and the confidence bands
+
+exp(confint(reg1))
+exp(confint(reg2))
+exp(confint(reg3))
+exp(confint(reg4))
+exp(confint(reg5))
+exp(confint(reg6))
+exp(confint(reg7))
+exp(confint(reg8))
+
 
 # marginal effects on peacekeeper composition
 reg6.trp = ggpredict(reg6, terms = "untrp_maj", condition = c(unpol_maj = 0, unmob_maj = 0))
