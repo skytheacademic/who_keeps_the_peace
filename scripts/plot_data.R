@@ -194,27 +194,27 @@ reg4 = glm(reb_death.b ~ t_bal + t_unbal + mountains_mean + ttime_mean + pop_gpw
                 t_bal*viol_6 + t_unbal*viol_6,
               data = a, family = negative.binomial(theta = 1))
 # GOV OSV - Binary treatment by PK Type #
-reg5 = glm(gov_event.b ~ untrp_maj + unpol_maj + unmob_maj + mountains_mean + ttime_mean + 
+reg5 = glm.nb(gov_event.b ~ untrp_maj + unpol_maj + unmob_maj + mountains_mean + ttime_mean + 
                 urban_gc + nlights_calib_mean + pop_gpw_sum + pop.dens + pko_lag + viol_6 + 
                 untrp_maj*pko_lag + unpol_maj*pko_lag + unmob_maj*pko_lag +
                 untrp_maj*viol_6 + unpol_maj*viol_6 + unmob_maj*viol_6,
-              data = a, family = negative.binomial(theta = 1))
-reg6 = glm(gov_death.b ~ untrp_maj + unpol_maj + unmob_maj + mountains_mean + ttime_mean + 
-                pop_gpw_sum + pop.dens + pko_lag + viol_6 + 
-                untrp_maj*pko_lag + unpol_maj*pko_lag + unmob_maj*pko_lag +
-                untrp_maj*viol_6 + unpol_maj*viol_6 + unmob_maj*viol_6, 
-              data = a, family = negative.binomial(theta = 1))
+              data = a)
+# reg6 = glm(gov_death.b ~ untrp_maj + unpol_maj + unmob_maj + mountains_mean + ttime_mean + 
+#                 pop_gpw_sum + pop.dens + pko_lag + viol_6 + 
+#                 untrp_maj*pko_lag + unpol_maj*pko_lag + unmob_maj*pko_lag +
+#                 untrp_maj*viol_6 + unpol_maj*viol_6 + unmob_maj*viol_6, 
+#               data = a, family = negative.binomial(theta = 1))
 # REB OSV - Binary treatment by PK Type #
 reg7 = glm(reb_event.b ~ untrp_maj + unpol_maj + unmob_maj + mountains_mean + ttime_mean + 
                 urban_gc + nlights_calib_mean + pop_gpw_sum + pop.dens + pko_lag + viol_6 + 
                 untrp_maj*pko_lag + unpol_maj*pko_lag + unmob_maj*pko_lag +
                 untrp_maj*viol_6 + unpol_maj*viol_6 + unmob_maj*viol_6,
               data = a, family = negative.binomial(theta = 1))
-reg8 = glm(reb_death.b ~ untrp_maj + unpol_maj + unmob_maj + mountains_mean + ttime_mean + 
-                pop_gpw_sum + pop.dens + pko_lag + viol_6 + 
-                untrp_maj*pko_lag + unpol_maj*pko_lag + unmob_maj*pko_lag +
-                untrp_maj*viol_6 + unpol_maj*viol_6 + unmob_maj*viol_6,
-              data = a, family = negative.binomial(theta = 1))
+# reg8 = glm.nb(reb_death.b ~ untrp_maj + unpol_maj + unmob_maj + mountains_mean + ttime_mean + 
+#                 pop_gpw_sum + pop.dens + pko_lag + viol_6 + 
+#                 untrp_maj*pko_lag + unpol_maj*pko_lag + unmob_maj*pko_lag +
+#                 untrp_maj*viol_6 + unpol_maj*viol_6 + unmob_maj*viol_6,
+#               data = a)
 
 
 # marginal effects on gender balance #
@@ -243,19 +243,150 @@ ggplot(gen_death) +
 
 # let's make a plot for the odds ratios instead
 # https://stackoverflow.com/questions/47085514/simple-way-to-visualise-odds-ratios-in-r
-exp(reg5$coefficients)
 
 # exp the coefficients and confidence intervals, then turn into a dataframe
 # from there, plot the line and the confidence bands
 
-exp(confint(reg1))
-exp(confint(reg2))
-exp(confint(reg3))
-exp(confint(reg4))
-exp(confint(reg5))
-exp(confint(reg6))
-exp(confint(reg7))
-exp(confint(reg8))
+### REG 1 ###
+reg1.cf = exp(reg1$coefficients) %>%
+  as.data.frame()
+reg1.ci = exp(confint(reg1)) %>%
+  as.data.frame()
+reg1.cf = cbind(reg1.cf, reg1.ci)
+names(reg1.cf)[1] = "Government_event"
+names(reg1.cf)[2] = "ci_low"
+names(reg1.cf)[3] = "ci_high"
+reg1.cf = reg1.cf[-c(12:15),]
+reg1.cf$row_names = row.names(reg1.cf)
+y_labs = rev(c("Balanced PK Unit", "Unbalanced PK Unit", "Avg. Mountains","Avg. Travel Time", 
+           "Percent Urban", "Avg. Night Lights", "Sum Population", "Population Density", 
+           "PKO Lag", "Total Violence 6 Months Before", "Intercept"))
+level_order = rev(c("t_bal", "t_unbal", "mountains_mean", "ttime_mean", "urban_gc", "nlights_calib_mean",
+                "pop_gpw_sum", "pop.dens", "pko_lag", "viol_6", "(Intercept)"))
+ggplot(reg1.cf, aes(y = factor(row_names, level = level_order), x = Government_event)) + 
+    geom_vline(aes(xintercept = 1), size = .25, linetype = "dashed") + 
+    geom_errorbarh(aes(xmax = ci_high, xmin = ci_low), size = .5, height = 
+                     .2, color = "gray50") +
+    geom_point(size = 2.5, color = "#99325D") +
+    xlim(0,2.35) +
+    theme_pubclean() +
+    scale_y_discrete(labels = y_labs) +
+    ylab("") +
+    xlab("Odds ratio") +
+    ggtitle("Gender Balance of Peacekeeping Unit and Risk of Violence by Government")
+
+### REG 2 ###
+reg2.cf = exp(reg2$coefficients) %>%
+  as.data.frame()
+reg2.ci = exp(confint(reg2)) %>%
+  as.data.frame()
+reg2.cf = cbind(reg2.cf, reg2.ci)
+names(reg2.cf)[1] = "Government_death"
+names(reg2.cf)[2] = "ci_low"
+names(reg2.cf)[3] = "ci_high"
+reg2.cf = reg2.cf[-c(10:13),]
+y_labs_d = rev(c("Balanced PK Unit", "Unbalanced PK Unit", "Avg. Mountains","Avg. Travel Time", 
+                 "Sum Population", "Population Density", "PKO Lag", "Total Violence 6 Months Before", 
+                 "Intercept"))
+level_order_d = rev(c("t_bal", "t_unbal", "mountains_mean", "ttime_mean", "pop_gpw_sum", "pop.dens", 
+                      "pko_lag", "viol_6", "(Intercept)"))
+reg2.cf$row_names = row.names(reg2.cf)
+ggplot(reg2.cf, aes(y = factor(row_names, level = level_order_d), x = Government_death)) + 
+  geom_vline(aes(xintercept = 1), size = .25, linetype = "dashed") + 
+  geom_errorbarh(aes(xmax = ci_high, xmin = ci_low), size = .5, height = 
+                   .2, color = "gray50") +
+  geom_point(size = 2.5, color = "#99325D") +
+  xlim(0,2.35) +
+  theme_pubclean() +
+  scale_y_discrete(labels = y_labs_d) +
+  ylab("") +
+  xlab("Odds ratio") +
+  ggtitle("Gender Balance of Peacekeeping Unit and Risk of Death by Government")
+
+### REG 3 ###
+reg3.cf = exp(reg3$coefficients) %>%
+  as.data.frame()
+reg3.ci = exp(confint(reg3)) %>%
+  as.data.frame()
+reg3.cf = cbind(reg3.cf, reg3.ci)
+names(reg3.cf)[1] = "Rebel_event"
+names(reg3.cf)[2] = "ci_low"
+names(reg3.cf)[3] = "ci_high"
+reg3.cf = reg3.cf[-c(4,7,12:15),] # removing int. effects and avg mountains and night 
+                                  # lights because it doesn't look good
+y_labs = rev(c("Balanced PK Unit", "Unbalanced PK Unit", "Avg. Travel Time", 
+               "Percent Urban", "Sum Population", "Population Density", 
+               "PKO Lag", "Total Violence 6 Months Before", "Intercept"))
+level_order = rev(c("t_bal", "t_unbal", "ttime_mean", "urban_gc",
+                    "pop_gpw_sum", "pop.dens", "pko_lag", "viol_6", "(Intercept)"))
+reg3.cf$row_names = row.names(reg3.cf)
+ggplot(reg3.cf, aes(y = factor(row_names, level = level_order), x = Rebel_event)) + 
+  geom_vline(aes(xintercept = 1), size = .25, linetype = "dashed") + 
+  geom_errorbarh(aes(xmax = ci_high, xmin = ci_low), size = .5, height = 
+                   .2, color = "gray50") +
+  geom_point(size = 2.5, color = "#239929") +
+  xlim(0,1.32) +
+  theme_pubclean() +
+  scale_y_discrete(labels = y_labs) +
+  ylab("") +
+  xlab("Odds ratio") +
+  ggtitle("Gender Balance of Peacekeeping Unit and Risk of Violence by Rebels")
+
+### REG 4 ###
+reg4.cf = exp(reg4$coefficients) %>%
+  as.data.frame()
+reg4.ci = exp(confint(reg4)) %>%
+  as.data.frame()
+reg4.cf = cbind(reg4.cf, reg4.ci)
+names(reg4.cf)[1] = "Rebel_death"
+names(reg4.cf)[2] = "ci_low"
+names(reg4.cf)[3] = "ci_high"
+reg4.cf = reg4.cf[-c(4,10:13),]
+y_labs_d = rev(c("Balanced PK Unit", "Unbalanced PK Unit","Avg. Travel Time", 
+                 "Sum Population", "Population Density", "PKO Lag", "Total Violence 6 Months Before", 
+                 "Intercept"))
+level_order_d = rev(c("t_bal", "t_unbal", "ttime_mean", "pop_gpw_sum", "pop.dens", 
+                      "pko_lag", "viol_6", "(Intercept)"))
+reg4.cf$row_names = row.names(reg4.cf)
+ggplot(reg4.cf, aes(y = factor(row_names, level = level_order_d), x = Rebel_death)) + 
+  geom_vline(aes(xintercept = 1), size = .25, linetype = "dashed") + 
+  geom_errorbarh(aes(xmax = ci_high, xmin = ci_low), size = .5, height = 
+                   .2, color = "gray50") +
+  geom_point(size = 2.5, color = "#239929") +
+  xlim(0,1.32) +
+  theme_pubclean() +
+  scale_y_discrete(labels = y_labs_d) +
+  ylab("") +
+  xlab("Odds ratio") +
+  ggtitle("Gender Balance of Peacekeeping Unit and Risk of Death by Rebels")
+
+reg5.cf = exp(reg5$coefficients) %>%
+  as.data.frame()
+reg5.ci = exp(confint(reg5)) %>%
+  as.data.frame()
+reg5.cf = cbind(reg5.cf, reg5.ci)
+names(reg5.cf)[1] = "Government event"
+names(reg5.cf)[2] = "ci_low"
+names(reg5.cf)[3] = "ci_high"
+reg5.cf = reg5.cf[-c(12:15),]
+
+reg7.cf = exp(reg7$coefficients) %>%
+  as.data.frame()
+reg7.ci = exp(confint(reg7)) %>%
+  as.data.frame()
+reg7.cf = cbind(reg7.cf, reg7.ci)
+names(reg7.cf)[1] = "Rebel death"
+names(reg7.cf)[2] = "ci_low"
+names(reg7.cf)[3] = "ci_high"
+reg7.cf = reg7.cf[-c(10:13),]
+
+
+
+
+
+
+
+
 
 
 # marginal effects on peacekeeper composition
