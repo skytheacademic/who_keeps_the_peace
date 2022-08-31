@@ -263,18 +263,15 @@ y_labs = rev(c("Balanced PK Unit", "Unbalanced PK Unit", "Avg. Mountains","Avg. 
            "PKO Lag", "Total Violence 6 Months Before", "Intercept"))
 level_order = rev(c("t_bal", "t_unbal", "mountains_mean", "ttime_mean", "urban_gc", "nlights_calib_mean",
                 "pop_gpw_sum", "pop.dens", "pko_lag", "viol_6", "(Intercept)"))
+svg("./results/or_gov_event_b.svg")
 ggplot(reg1.cf, aes(y = factor(row_names, level = level_order), x = Government_event)) + 
     geom_vline(aes(xintercept = 1), size = .25, linetype = "dashed") + 
     geom_errorbarh(aes(xmax = ci_high, xmin = ci_low), size = .5, height = 
-                     .2, color = "gray50") +
-    geom_point(size = 2.5, color = "#99325D") +
-    xlim(0,2.35) +
-    theme_pubclean() +
-    scale_y_discrete(labels = y_labs) +
-    ylab("") +
-    xlab("Odds ratio") +
-    ggtitle("Gender Balance of Peacekeeping Unit and Risk of Violence by Government")
-
+                     .2, color = "gray50") + geom_point(size = 2.5, color = "#99325D") +
+    xlim(0,2.35) + theme_pubclean() + scale_y_discrete(labels = y_labs) + ylab("") +
+    xlab("Odds ratio") + ggtitle("Gender Balance of Peacekeeping Unit and Risk of Violence by Government")
+dev.off()
+# export via r viewer at 1220 x 600 as SVG
 ### REG 2 ###
 reg2.cf = exp(reg2$coefficients) %>%
   as.data.frame()
@@ -359,6 +356,31 @@ ggplot(reg4.cf, aes(y = factor(row_names, level = level_order_d), x = Rebel_deat
   ylab("") +
   xlab("Odds ratio") +
   ggtitle("Gender Balance of Peacekeeping Unit and Risk of Death by Rebels")
+
+
+# now read them in and make into gif
+or_p1 <- image_read("./results/or_gov_death_b.svg")
+or_p2 <- image_read("./results/or_gov_event_b.svg")
+or_p3 <- image_read("./results/or_reb_death_b.svg")
+or_p4 <- image_read("./results/or_reb_event_b.svg")
+
+# Let's make a GIF. Save your basic image. 
+mc1 <- monkeycat1
+
+# You can repeat/replicate an image just like you can in other vectors, with rep(). 
+mc_gif <- rep(mc1, 3)
+
+# You can recode/replace just like data vectors. 
+mc_gif[2] <- bluetail
+mc_gif
+
+# Let's add one more. 
+mc_gif2 <- c(mc_gif, rep(monkeycat2, 3))
+mc_gif2
+
+# To write/save your new GIFs, use the image_write function. 
+image_write_gif(mc_gif, "monkeycat.gif")
+
 
 reg5.cf = exp(reg5$coefficients) %>%
   as.data.frame()
