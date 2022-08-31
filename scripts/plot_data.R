@@ -100,20 +100,6 @@ me_pred_rb_trp = rbind(reg3.gg, reg4.gg)
 me_pred_rb_trp = me_pred_st_trp[-c(13:14, 27:28),]
 
 
-
-
-
-
-reg13.gg = ggpredict(reg13, terms = "pko_deployed")
-reg13.gg$group = "Incumbent Violent Events"
-reg14.gg = ggpredict(reg14, terms = "pko_deployed")
-reg14.gg$group = "Incumbent Deaths"
-gen_death.c.gov = rbind(reg13.gg, reg14.gg)
-
-
-
-
-
 rm(list = setdiff(ls(), "a")) 
 gc()
 #### ME of violence by naive PKs ####
@@ -153,7 +139,8 @@ ggplot(gen_death.c.gov) +
   geom_ribbon(aes(x, ymin = conf.low, ymax = conf.high, colour = group, 
                   fill = group), linetype = "dashed", alpha = 0.1, show.legend = F) +
   xlab("Peacekeeper Count") + ylab("Predicted Violence Against Civilians") + theme_pubclean() +
-  ggtitle("Predicted Violence Outcomes from State Actors based on Peacekeeper Counts")
+  ggtitle("Predicted Violence Outcomes from State Actors based on Peacekeeper Counts") +
+  theme(plot.title = element_text(hjust = 0.5))
 dev.off()
 
 pdf("./results/pks_pred_reb.pdf")
@@ -162,8 +149,27 @@ ggplot(gen_death.c.reb) +
   geom_ribbon(aes(x, ymin = conf.low, ymax = conf.high, colour = group, 
                   fill = group), linetype = "dashed", alpha = 0.1, show.legend = F) +
   xlab("Peacekeeper Count") + ylab("Predicted Violence Against Civilians") + theme_pubclean() +
-  ggtitle("Predicted Violence Outcomes from Rebel Actors based on Peacekeeper Counts")
+  ggtitle("Predicted Violence Outcomes from Rebel Actors based on Peacekeeper Counts") +
+  theme(plot.title = element_text(hjust = 0.5)) +
+  scale_y_discrete()
 dev.off()
+
+# turn into gif #
+# now read them in and make into gif
+pred_p1 <- image_read("./results/pks_pred_gov.svg")
+pred_p2 <- image_read("./results/pks_pred_reb.svg")
+
+
+# You can repeat/replicate an image just like you can in other vectors, with rep(). 
+mc_gif = rep(pred_p1, 2)
+
+# You can recode/replace just like data vectors. 
+mc_gif[2] = pred_p2
+mc_gif
+mc_gif = image_animate(mc_gif, delay = 1500)
+
+# To write/save your new GIFs, use the image_write function. 
+image_write_gif(mc_gif, "./results/naive_pks_vac.gif", delay = 10)
 
 rm(list = setdiff(ls(), "a")) 
 gc()
@@ -199,22 +205,22 @@ reg5 = glm.nb(gov_event.b ~ untrp_maj + unpol_maj + unmob_maj + mountains_mean +
                 untrp_maj*pko_lag + unpol_maj*pko_lag + unmob_maj*pko_lag +
                 untrp_maj*viol_6 + unpol_maj*viol_6 + unmob_maj*viol_6,
               data = a)
-# reg6 = glm(gov_death.b ~ untrp_maj + unpol_maj + unmob_maj + mountains_mean + ttime_mean + 
-#                 pop_gpw_sum + pop.dens + pko_lag + viol_6 + 
-#                 untrp_maj*pko_lag + unpol_maj*pko_lag + unmob_maj*pko_lag +
-#                 untrp_maj*viol_6 + unpol_maj*viol_6 + unmob_maj*viol_6, 
-#               data = a, family = negative.binomial(theta = 1))
+reg6 = glm(gov_death.b ~ untrp_maj + unpol_maj + unmob_maj + mountains_mean + ttime_mean + 
+               pop_gpw_sum + pop.dens + pko_lag + viol_6 + 
+               untrp_maj*pko_lag + unpol_maj*pko_lag + unmob_maj*pko_lag +
+               untrp_maj*viol_6 + unpol_maj*viol_6 + unmob_maj*viol_6, 
+             data = a, family = negative.binomial(theta = 1))
 # REB OSV - Binary treatment by PK Type #
 reg7 = glm(reb_event.b ~ untrp_maj + unpol_maj + unmob_maj + mountains_mean + ttime_mean + 
                 urban_gc + nlights_calib_mean + pop_gpw_sum + pop.dens + pko_lag + viol_6 + 
                 untrp_maj*pko_lag + unpol_maj*pko_lag + unmob_maj*pko_lag +
                 untrp_maj*viol_6 + unpol_maj*viol_6 + unmob_maj*viol_6,
               data = a, family = negative.binomial(theta = 1))
-# reg8 = glm.nb(reb_death.b ~ untrp_maj + unpol_maj + unmob_maj + mountains_mean + ttime_mean + 
-#                 pop_gpw_sum + pop.dens + pko_lag + viol_6 + 
-#                 untrp_maj*pko_lag + unpol_maj*pko_lag + unmob_maj*pko_lag +
-#                 untrp_maj*viol_6 + unpol_maj*viol_6 + unmob_maj*viol_6,
-#               data = a)
+reg8 = glm.nb(reb_death.b ~ untrp_maj + unpol_maj + unmob_maj + mountains_mean + ttime_mean + 
+               pop_gpw_sum + pop.dens + pko_lag + viol_6 + 
+               untrp_maj*pko_lag + unpol_maj*pko_lag + unmob_maj*pko_lag +
+               untrp_maj*viol_6 + unpol_maj*viol_6 + unmob_maj*viol_6,
+               data = a)
 
 
 # marginal effects on gender balance #
@@ -240,13 +246,9 @@ ggplot(gen_death) +
   guides(fill = guide_legend(title = "Faction and Gender Balance of PK Unit")) +
   scale_x_continuous(breaks = seq(0,1,1))
 
-
-# let's make a plot for the odds ratios instead
-# https://stackoverflow.com/questions/47085514/simple-way-to-visualise-odds-ratios-in-r
-
+##### Make Odds Ratio Plots and Turn into gif ####
 # exp the coefficients and confidence intervals, then turn into a dataframe
 # from there, plot the line and the confidence bands
-
 ### REG 1 ###
 reg1.cf = exp(reg1$coefficients) %>%
   as.data.frame()
@@ -364,24 +366,23 @@ or_p2 <- image_read("./results/or_gov_event_b.svg")
 or_p3 <- image_read("./results/or_reb_death_b.svg")
 or_p4 <- image_read("./results/or_reb_event_b.svg")
 
-# Let's make a GIF. Save your basic image. 
-mc1 <- monkeycat1
 
 # You can repeat/replicate an image just like you can in other vectors, with rep(). 
-mc_gif <- rep(mc1, 3)
+mc_gif = rep(or_p1, 4)
 
 # You can recode/replace just like data vectors. 
-mc_gif[2] <- bluetail
+mc_gif[2] = or_p2
+mc_gif[3] = or_p3
+mc_gif[4] = or_p4
 mc_gif
-
-# Let's add one more. 
-mc_gif2 <- c(mc_gif, rep(monkeycat2, 3))
-mc_gif2
+mc_gif = image_animate(mc_gif, delay = 1500)
 
 # To write/save your new GIFs, use the image_write function. 
-image_write_gif(mc_gif, "monkeycat.gif")
+image_write_gif(mc_gif, "./results/gender_violence_or.gif", delay = 15)
 
 
+
+### plots 5 and 7
 reg5.cf = exp(reg5$coefficients) %>%
   as.data.frame()
 reg5.ci = exp(confint(reg5)) %>%
@@ -410,13 +411,88 @@ reg7.cf = reg7.cf[-c(10:13),]
 
 
 
-
+#### ME effects and plot ####
 # marginal effects on peacekeeper composition
-reg6.trp = ggpredict(reg6, terms = "untrp_maj", condition = c(unpol_maj = 0, unmob_maj = 0))
+
+# 0 violent events in the last 6 months
+reg6.trp = ggpredict(reg6, terms = "untrp_maj", condition = c(unpol_maj = 0, unmob_maj = 0, viol_6 = 0))
 reg6.trp$group = "Incumbent Deaths, Majority Troop PKs"
-reg8.trp = ggpredict(reg8, terms = "untrp_maj", condition = c(unpol_maj = 0, unmob_maj = 0))
+reg8.trp = ggpredict(reg8, terms = "untrp_maj", condition = c(unpol_maj = 0, unmob_maj = 0, viol_6 = 0))
 reg8.trp$group = "Rebels Deaths, Majority Troop PKs"
 death_trp_pred = rbind(reg6.trp, reg8.trp)
+ggplot(death_trp_pred) +
+  geom_line(aes(x, predicted, colour = group)) +
+  geom_ribbon(aes(x, ymin = conf.low, ymax = conf.high, colour = group, 
+                  fill = group), linetype = "dashed", alpha = 0.1, show.legend = F) +
+  ylab("Predicted Pr(Civilian Deaths)") + theme_pubclean() +
+  theme(legend.position = "right") +
+  scale_x_continuous(breaks = seq(0,1,1)) +
+  ggtitle("Predicted Probability of violence based on treatment, 0 violent events in the last 6 months")
+
+# 5 violent events in the last 6 months
+reg6.trp = ggpredict(reg6, terms = "untrp_maj", condition = c(unpol_maj = 0, unmob_maj = 0, viol_6 = 5))
+reg6.trp$group = "Incumbent Deaths, Majority Troop PKs"
+reg8.trp = ggpredict(reg8, terms = "untrp_maj", condition = c(unpol_maj = 0, unmob_maj = 0, viol_6 = 5))
+reg8.trp$group = "Rebels Deaths, Majority Troop PKs"
+death_trp_pred = rbind(reg6.trp, reg8.trp)
+ggplot(death_trp_pred) +
+  geom_line(aes(x, predicted, colour = group)) +
+  geom_ribbon(aes(x, ymin = conf.low, ymax = conf.high, colour = group, 
+                  fill = group), linetype = "dashed", alpha = 0.1, show.legend = F) +
+  ylab("Predicted Pr(Civilian Deaths)") + theme_pubclean() +
+  theme(legend.position = "right") +
+  scale_x_continuous(breaks = seq(0,1,1)) +
+  ggtitle("Predicted Probability of violence based on treatment, 5 violent events in the last 6 months")
+
+# 10 
+reg6.trp = ggpredict(reg6, terms = "untrp_maj", condition = c(unpol_maj = 0, unmob_maj = 0, viol_6 = 10))
+reg6.trp$group = "Incumbent Deaths, Majority Troop PKs"
+reg8.trp = ggpredict(reg8, terms = "untrp_maj", condition = c(unpol_maj = 0, unmob_maj = 0, viol_6 = 10))
+reg8.trp$group = "Rebels Deaths, Majority Troop PKs"
+death_trp_pred = rbind(reg6.trp, reg8.trp)
+ggplot(death_trp_pred) +
+  geom_line(aes(x, predicted, colour = group)) +
+  geom_ribbon(aes(x, ymin = conf.low, ymax = conf.high, colour = group, 
+                  fill = group), linetype = "dashed", alpha = 0.1, show.legend = F) +
+  ylab("Predicted Pr(Civilian Deaths)") + theme_pubclean() +
+  theme(legend.position = "right") +
+  scale_x_continuous(breaks = seq(0,1,1)) +
+  ggtitle("Predicted Probability of violence based on treatment, 10 violent events in the last 6 months")
+
+# 20
+reg6.trp = ggpredict(reg6, terms = "untrp_maj", condition = c(unpol_maj = 0, unmob_maj = 0, viol_6 = 20))
+reg6.trp$group = "Incumbent Deaths, Majority Troop PKs"
+reg8.trp = ggpredict(reg8, terms = "untrp_maj", condition = c(unpol_maj = 0, unmob_maj = 0, viol_6 = 20))
+reg8.trp$group = "Rebels Deaths, Majority Troop PKs"
+death_trp_pred = rbind(reg6.trp, reg8.trp)
+ggplot(death_trp_pred) +
+  geom_line(aes(x, predicted, colour = group)) +
+  geom_ribbon(aes(x, ymin = conf.low, ymax = conf.high, colour = group, 
+                  fill = group), linetype = "dashed", alpha = 0.1, show.legend = F) +
+  ylab("Predicted Pr(Civilian Deaths)") + theme_pubclean() +
+  theme(legend.position = "right") +
+  scale_x_continuous(breaks = seq(0,1,1)) +
+  ggtitle("Predicted Probability of violence based on treatment, 20 violent events in the last 6 months")
+
+# now read them in and make into gif
+or_p1 <- image_read("./results/pr_vac_0.svg")
+or_p2 <- image_read("./results/pr_vac_5.svg")
+or_p3 <- image_read("./results/pr_vac_10.svg")
+or_p4 <- image_read("./results/pr_vac_20.svg")
+
+
+# You can repeat/replicate an image just like you can in other vectors, with rep(). 
+mc_gif = rep(or_p1, 4)
+
+# You can recode/replace just like data vectors. 
+mc_gif[2] = or_p2
+mc_gif[3] = or_p3
+mc_gif[4] = or_p4
+mc_gif
+mc_gif = image_animate(mc_gif, delay = 1500)
+
+image_write_gif(mc_gif, "./results/pr_vac.gif", delay = 5)
+
 
 reg6.pol = ggpredict(reg6, terms = "unpol_maj", condition = c(untrp_maj = 0, unmob_maj = 0))
 reg6.pol$group = "Incumbent Deaths, Majority Police PKs"
@@ -433,14 +509,10 @@ reg8.mob$group = "Rebels Deaths, Majority Observers PKs"
 # reg8_gg = rbind(reg8.trp, reg8.pol,reg8.mob)
 # gen_death_1 = rbind(reg6_gg, reg8_gg)
 
-ggplot(death_trp_pred) +
-  geom_line(aes(x, predicted, colour = group)) +
-  geom_ribbon(aes(x, ymin = conf.low, ymax = conf.high, colour = group, 
-                  fill = group), linetype = "dashed", alpha = 0.1, show.legend = F) +
-  ylab("Predicted Pr(Civilian Deaths)") + theme_pubclean() +
-  ylim(-0.01, 0.10) + theme(legend.position = "right") +
-  guides(fill = guide_legend(title = "Faction and Composition of PK Unit")) +
-  scale_x_continuous(breaks = seq(0,1,1))
+
+
+
+
 
 
 
