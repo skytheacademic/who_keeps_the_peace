@@ -290,6 +290,7 @@ y_labs_d = rev(c("Balanced PK Unit", "Unbalanced PK Unit", "Avg. Mountains","Avg
 level_order_d = rev(c("t_bal", "t_unbal", "mountains_mean", "ttime_mean", "pop_gpw_sum", "pop.dens", 
                       "pko_lag", "viol_6", "(Intercept)"))
 reg2.cf$row_names = row.names(reg2.cf)
+pdf("./results/or_gov_death_b.pdf")
 ggplot(reg2.cf, aes(y = factor(row_names, level = level_order_d), x = Government_death)) + 
   geom_vline(aes(xintercept = 1), size = .25, linetype = "dashed") + 
   geom_errorbarh(aes(xmax = ci_high, xmin = ci_low), size = .5, height = 
@@ -301,7 +302,7 @@ ggplot(reg2.cf, aes(y = factor(row_names, level = level_order_d), x = Government
   ylab("") +
   xlab("Odds ratio") +
   ggtitle("Gender Balance of Peacekeeping Unit and Risk of Death by Government")
-
+dev.off()
 ### REG 3 ###
 reg3.cf = exp(reg3$coefficients) %>%
   as.data.frame()
@@ -347,6 +348,7 @@ y_labs_d = rev(c("Balanced PK Unit", "Unbalanced PK Unit","Avg. Travel Time",
 level_order_d = rev(c("t_bal", "t_unbal", "ttime_mean", "pop_gpw_sum", "pop.dens", 
                       "pko_lag", "viol_6", "(Intercept)"))
 reg4.cf$row_names = row.names(reg4.cf)
+pdf("./results/or_reb_death_b.pdf")
 ggplot(reg4.cf, aes(y = factor(row_names, level = level_order_d), x = Rebel_death)) + 
   geom_vline(aes(xintercept = 1), size = .25, linetype = "dashed") + 
   geom_errorbarh(aes(xmax = ci_high, xmin = ci_low), size = .5, height = 
@@ -358,7 +360,7 @@ ggplot(reg4.cf, aes(y = factor(row_names, level = level_order_d), x = Rebel_deat
   ylab("") +
   xlab("Odds ratio") +
   ggtitle("Gender Balance of Peacekeeping Unit and Risk of Death by Rebels")
-
+dev.off()
 
 # now read them in and make into gif
 or_p1 <- image_read("./results/or_gov_death_b.svg")
