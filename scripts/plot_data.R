@@ -237,6 +237,7 @@ reg4_gg = rbind(reg4.bal, reg4.unbal)
 
 gen_death = rbind(reg2_gg, reg4_gg)
 
+pdf("./results/pks_pred_gen.pdf")
 ggplot(gen_death) +
   geom_line(aes(x, predicted, colour = group)) +
   geom_ribbon(aes(x, ymin = conf.low, ymax = conf.high, colour = group, 
@@ -245,7 +246,7 @@ ggplot(gen_death) +
   ylim(-0.01, 0.15) + theme(legend.position = "right") +
   guides(fill = guide_legend(title = "Faction and Gender Balance of PK Unit")) +
   scale_x_continuous(breaks = seq(0,1,1))
-
+dev.off()
 ##### Make Odds Ratio Plots and Turn into gif ####
 # exp the coefficients and confidence intervals, then turn into a dataframe
 # from there, plot the line and the confidence bands
