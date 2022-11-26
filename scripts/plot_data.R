@@ -48,6 +48,37 @@ ggplot(data=a.ag, aes(x=date,y=log.pks, group=1)) +
   geom_line(aes(x=date,y=log.r, group=1), colour = "blue") +
   facet_wrap(~mission)
 
+# add violence and pks leads and lags #
+a.ag = a.ag %>% 
+  group_by(mission) %>% 
+  mutate(viol_6.lag = 
+           lag(fatalities, 6) + lag(fatalities, 5) + lag(fatalities, 4) + 
+           lag(fatalities, 3) + lag(fatalities, 2) + lag(fatalities, 1)) %>%
+  relocate(viol_6.lag, .after = event)
+
+a.ag = a.ag %>% 
+  group_by(mission) %>% 
+  mutate(viol_6.lead = 
+           lead(fatalities, 6) + lead(fatalities, 5) + lead(fatalities, 4) + 
+           lead(fatalities, 3) + lead(fatalities, 2) + lead(fatalities, 1)) %>%
+  relocate(viol_6.lead, .after = viol_6.lag)
+
+a.ag = a.ag %>% 
+  group_by(mission) %>% 
+  mutate(pks_6.lag = 
+           lag(pks, 6) + lag(pks, 5) + lag(pks, 4) + 
+           lag(pks, 3) + lag(pks, 2) + lag(pks, 1)) %>%
+  relocate(pks_6.lag, .after = viol_6.lead)
+
+a.ag = a.ag %>% 
+  group_by(mission) %>% 
+  mutate(pks_6.lead = 
+           lead(pks, 6) + lead(pks, 5) + lead(pks, 4) + 
+           lead(pks, 3) + lead(pks, 2) + lead(pks, 1)) %>%
+  relocate(pks_6.lead, .after = pks_6.lag)
+
+
+
 # UNMIS, UNMISS, and MONUSCO could be good candidates for this
 a.sub = subset(a.ag, mission == "UNMIS" | mission == "UNMISS" | mission == "MONUSCO")
 # unmiss = subset(a.ag, mission == "UNMISS")
