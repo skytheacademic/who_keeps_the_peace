@@ -18,6 +18,45 @@ options(scipen = 999)
 setwd("../")
 a = readRDS("./data/kunkel_cg.rds")
 
+#### Make plot of violence and PKs deployed over time ####
+
+# summarize by group #
+a.ag = a %>%
+  group_by(mission, date) %>%
+  summarize(fatalities = sum(fatalities), event = sum(event), pks = sum(pko_deployed),
+            g_death = sum(gov_death), r_death = sum(reb_death))
+# plot over time
+
+# let's try making joyplot still need to log deaths?
+library(ggridges) # geom_density_ridges_gradient
+library(viridis)  # scale_fill_viridis
+library(hrbrthemes) # theme_ipsum
+
+a.ag$log.pks = log(a.ag$pks + 1)
+a.ag$log.fatalities = log(a.ag$fatalities + 1)
+a.ag$log.g = log(a.ag$g_death + 1)
+a.ag$log.r = log(a.ag$r_death + 1)
+
+ggplot(data=a.ag, aes(x=date,y=log.pks, group=1)) +
+  geom_line(colour = "blue") +
+  geom_line(aes(x=date,y=log.fatalities, group=1), colour = "red") +
+  facet_wrap(~mission)
+
+ggplot(data=a.ag, aes(x=date,y=log.pks, group=1)) +
+  geom_line(colour = "black") +
+  geom_line(aes(x=date,y=log.g, group=1), colour = "red") +
+  geom_line(aes(x=date,y=log.r, group=1), colour = "blue") +
+  facet_wrap(~mission)
+
+# UNMIS, UNMISS, and MONUSCO could be good candidates for this
+a.sub = subset(a.ag, mission == "UNMIS" | mission == "UNMISS" | mission == "MONUSCO")
+# unmiss = subset(a.ag, mission == "UNMISS")
+# monusco = subset(a.ag, mission == "MONUSCO")
+ggplot(data=a.sub, aes(x=date,y=pks, group=1)) +
+  geom_line(colour = "blue") +
+  geom_line(aes(x=date,y=fatalities, group=1), colour = "red") +
+  facet_grid(mission ~ .)
+
 
 ##### Run and plot PKs by composition #####
 # Troops #
