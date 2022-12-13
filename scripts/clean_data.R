@@ -17,8 +17,7 @@ acled  = read.csv("./data/acled/1999-01-01-2021-12-31.csv") %>%
             admin2)) %>%  
   mutate(event_date = dmy(event_date), month = month(event_date), year = year(event_date))
 
-# make date into date-time object
-acled$event_date = lubridate::dmy(acled$event_date)
+
 
 # subset ACLED data to violence against civilians and dates from before 2019 and after 
 # 1999 to match RADPKO data (and to make analysis faster)
@@ -62,6 +61,14 @@ radpko = read.csv("./data/radpko/radpko_grid.csv")  %>%
          month = month(date),
          year = year(date))
 
+# radpko has duplicate grid-months (different missions), so aggregate by grid
+radpko <- radpko %>% 
+  select(-c(country, mission, date)) %>% 
+  relocate(c(year, month), .after = prio.grid) %>% 
+  group_by(prio.grid, year, month) %>% 
+  summarise(across(units_deployed:f_unmob, sum)) %>% 
+  ungroup()
+
 # Create a "treatment" indicator telling us if PKs existed in a certain grid at a certain time 
 radpko$t_ind = 0
 radpko$t_ind[radpko$units_deployed >= 1] = 1
@@ -103,8 +110,7 @@ prio.yearly$prio.grid = as.character(prio.yearly$prio.grid)
 prio.var = left_join(prio.yearly, prio.static, by = c("prio.grid"))
 prio.var$prio.grid = as.numeric(prio.var$prio.grid)
 rm(prio.static, prio.yearly)
-# change date-time
-radpko$date = lubridate::ymd(radpko$date)
+
 
 #### adding PRIO-grid numbers to ACLED data ####
 # let's start by aggregating into month-level units # 
@@ -131,7 +137,9 @@ a$event_date = NULL
 # group fatalities and events by PRIO-grid & date
 # rearrange the columns to put the geo-locational data last
 a = a %>% 
-  relocate(c("year", "month"), .after = last_col())
+  relocate(c("year", "month"), .after = last_col()) %>%
+  relocate(c("vac_gov_death_any", "vac_reb_death_any", "vac_gov_event_any"), 
+           .before = "vac_reb_event_any")
 
 a <- a %>% 
   group_by(prio.grid, year, month) %>% 
@@ -155,9 +163,6 @@ merged.data = left_join(merged.data, prio.var, by = c("prio.grid", "year"))
 # rearrange the columns to put the geo-locational data last
 merged.data = merged.data %>% 
   relocate(c("xcoord", "ycoord"), .after = last_col())
-
-# verify there are no missing observations
-sum(is.na(merged.data$mission)) 
 
 # clear everything except the merged data
 rm(list = setdiff(ls(), "merged.data")) 
@@ -190,21 +195,6 @@ a <- a %>%
   mutate(across(fatalities:vac_reb_death_5, 
                 ~replace_na(.x, 0)))
 
-
-# turn countries into numbers for mlm #
-a$ccode = 0
-a$ccode[a$country == "Abyei"] = 1
-a$ccode[a$country == "Burundi"] = 2
-a$ccode[a$country == "Central African Republic"] = 3
-a$ccode[a$country == "Chad"] = 4
-a$ccode[a$country == "Cote d'Ivoire"] = 5
-a$ccode[a$country == "Democratic Republic of Congo"] = 6
-a$ccode[a$country == "Liberia"] = 7
-a$ccode[a$country == "Mali"] = 8
-a$ccode[a$country == "Sierra Leone"] = 9
-a$ccode[a$country == "South Sudan"] = 10
-a$ccode[a$country == "sudan"] = 11
-
 # add summary violence 6 months prior 
 a = a %>% group_by(prio.grid) %>% 
   mutate(viol_6 = 
@@ -215,7 +205,7 @@ a = a %>% group_by(prio.grid) %>%
 ##### add a post treated variable #####
 a <- a %>% 
   mutate(time = (year-1999)*(12) + month)
-dd <- a %>% as.data.frame() %>% select(prio.grid, time, t_ind, mission)
+dd <- a %>% as.data.frame() %>% select(prio.grid, time, t_ind)
 dd <- split(dd, f = dd$prio.grid)
 dd <- lapply(dd, FUN = function(x){
   y <- x[which(x$t_ind == 1),]
@@ -229,14 +219,15 @@ dd <- lapply(dd, FUN = function(x){
   x
 })
 dd <- do.call(rbind, dd)
-dd <- dd[,c("prio.grid", "time", "first_treated", "post_treatment", "mission")]
+dd <- dd[,c("prio.grid", "time", "first_treated", "post_treatment")]
 # merge back to main df
-a <- left_join(a, dd, by = c("prio.grid", "time", "mission"))
+a <- left_join(a, dd, by = c("prio.grid", "time"))
 
 ##### add a lagged variable #####
 
 # sort again to make sure it works
-a = a[order(a$date, decreasing=FALSE), ] 
+a = a[order(a$year, decreasing=FALSE), ] 
+a = a[order(a$month, decreasing=FALSE), ] 
 a = a[order(a$prio.grid, decreasing=FALSE), ]
 
 a <- a %>%                            # Add lagged column
@@ -271,18 +262,19 @@ df = read.csv("./data/ucdp_ged/ged211.csv") %>%
   mutate(date = ymd_hms(date_end)) %>% 
   # rename variable for ease of merging
   rename(prio.grid = priogrid_gid, ucdp_deaths = deaths_civilians) %>%
-  select(-"date_end")
+  mutate(date = ymd(date), month = month(date), year = year(date)) %>%
+  select(-c("date_end", "date"))
 
-df$date = floor_date(df$date, "month")
 df$ucdp_event = 1
 df = df %>%
-  group_by(prio.grid, date) %>%
+  group_by(prio.grid, year, month) %>%
   summarize(ucdp_deaths = sum(ucdp_deaths), ucdp_event = sum(ucdp_event))
 
-a = left_join(a, df, by = c("prio.grid", "date"))
+a = left_join(a, df, by = c("prio.grid", "year", "month"))
 a$ucdp_deaths[is.na(a$ucdp_deaths)] <- 0
 a$ucdp_event[is.na(a$ucdp_event)] <- 0
 
+rm(dd, df)
 
 ### reorganize and rename
 a <- a %>% 
