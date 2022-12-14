@@ -26,71 +26,72 @@ a = readRDS("./data/kunkel_cg.rds")
 
 #### Logit Model, continuous treatment####
 # naive model
-reg1 = glm.nb(event.b ~ pko_deployed, data = a)
+reg1 = glm.nb(acled_fatalities_any ~ radpko_pko_deployed, data = a)
 summary(reg1)
 
-reg2 = glm.nb(death ~ pko_deployed, data = a)
+reg2 = glm.nb(acled_fatalities_all ~ radpko_pko_deployed, data = a)
 summary(reg2)
-
+a$prio_mountains_mean
 # model with controls #
-reg3 = glm.nb(event.b ~ pko_deployed + mountains_mean + ttime_mean + urban_gc + 
-                  nlights_calib_mean + pop_gpw_sum + pop.dens + pko_lag + viol_6 +
-                pko_deployed*pko_lag + pko_deployed*viol_6,
+reg3 = glm.nb(acled_fatalities_any ~ radpko_pko_deployed + prio_mountains_mean + 
+                prio_ttime_mean + prio_urban_gc + prio_nlights_calib_mean + prio_pop_gpw_sum + 
+                prio_pop.dens + radpko_pko_lag + acled_viol_6 +
+                radpko_pko_deployed*radpko_pko_lag + radpko_pko_deployed*acled_viol_6,
                 data = a)
 summary(reg3)
 
-reg4 = glm.nb(death ~ pko_deployed + mountains_mean + ttime_mean + pop_gpw_sum + 
-                  pop.dens + pko_lag + viol_6 + pko_deployed*pko_lag + pko_deployed*viol_6, 
+reg4 = glm.nb(acled_fatalities_all ~ radpko_pko_deployed + prio_mountains_mean + prio_ttime_mean + prio_pop_gpw_sum + 
+                  prio_pop.dens + radpko_pko_lag + acled_viol_6 + radpko_pko_deployed*radpko_pko_lag + radpko_pko_deployed*acled_viol_6, 
                 data = a)
 summary(reg4)
 # won't run 
 
 #### Logit Model, binary treatment####
 # naive treatment model without controls
-reg5 = glm.nb(event.b ~ t_ind, data = a)
+reg5 = glm.nb(acled_fatalities_any ~ t_ind, data = a)
 summary(reg5)
 
-reg6 = glm.nb(death ~ t_ind, data = a)
+reg6 = glm.nb(acled_fatalities_all ~ t_ind, data = a)
 summary(reg6)
 
 # naive treatment model with controls #
-reg7 = glm.nb(event.b ~ t_ind + mountains_mean + ttime_mean + urban_gc + nlights_calib_mean + 
-                  pop_gpw_sum + pop.dens + pko_lag + viol_6 + t_ind*pko_lag + t_ind*viol_6,
+reg7 = glm.nb(acled_fatalities_any ~ t_ind + prio_mountains_mean + prio_ttime_mean + prio_urban_gc + prio_nlights_calib_mean + 
+                  prio_pop_gpw_sum + prio_pop.dens + radpko_pko_lag + acled_viol_6 + t_ind*radpko_pko_lag + t_ind*acled_viol_6,
                 data = a)
 summary(reg7)
 
-reg8 = glm.nb(death ~ t_ind + mountains_mean + ttime_mean + pop_gpw_sum + pop.dens + 
-                  pko_lag + viol_6 + t_ind*pko_lag + t_ind*viol_6, 
+reg8 = glm.nb(acled_fatalities_all ~ t_ind + prio_mountains_mean + prio_ttime_mean + prio_pop_gpw_sum + prio_pop.dens + 
+                  radpko_pko_lag + acled_viol_6 + t_ind*radpko_pko_lag + t_ind*acled_viol_6, 
                 data = a)
 summary(reg8)
 
 # treatment by gender with controls #
-reg9 = glm.nb(event.b ~ t_bal + t_unbal + mountains_mean + ttime_mean + urban_gc + 
-                nlights_calib_mean + pop_gpw_sum + pop.dens + pko_lag + viol_6 + 
-                t_bal*pko_lag + t_unbal*pko_lag +
-                t_bal*viol_6 + t_unbal*viol_6,
+reg9 = glm.nb(acled_fatalities_any ~ t_bal + t_unbal + prio_mountains_mean + prio_ttime_mean + prio_urban_gc + 
+                prio_nlights_calib_mean + prio_pop_gpw_sum + prio_pop.dens + radpko_pko_lag + acled_viol_6 + 
+                t_bal*radpko_pko_lag + t_unbal*radpko_pko_lag +
+                t_bal*acled_viol_6 + t_unbal*acled_viol_6,
                 data = a)
 summary(reg9)
 
-reg10 = glm.nb(death ~ t_bal + t_unbal + mountains_mean + ttime_mean + pop_gpw_sum + pop.dens +
-                 pko_lag + viol_6 +
-                 t_bal*pko_lag + t_unbal*pko_lag +
-                 t_bal*viol_6 + t_unbal*viol_6, 
+reg10 = glm.nb(acled_fatalities_all ~ t_bal + t_unbal + prio_mountains_mean + prio_ttime_mean + prio_pop_gpw_sum + prio_pop.dens +
+                 radpko_pko_lag + acled_viol_6 +
+                 t_bal*radpko_pko_lag + t_unbal*radpko_pko_lag +
+                 t_bal*acled_viol_6 + t_unbal*acled_viol_6, 
                 data = a)
 summary(reg10)
 
 # treatment by PK type with controls #
-reg11 = glm.nb(event.b ~ untrp_maj + unpol_maj + unmob_maj + mountains_mean + ttime_mean + 
-                urban_gc + nlights_calib_mean + pop_gpw_sum + pop.dens + pko_lag + viol_6 + 
-                untrp_maj*pko_lag + unpol_maj*pko_lag + unmob_maj*pko_lag +
-                untrp_maj*viol_6 + unpol_maj*viol_6 + unmob_maj*viol_6,
+reg11 = glm.nb(acled_fatalities_any ~ untrp_maj + unpol_maj + unmob_maj + prio_mountains_mean + prio_ttime_mean + 
+                prio_urban_gc + prio_nlights_calib_mean + prio_pop_gpw_sum + prio_pop.dens + radpko_pko_lag + acled_viol_6 + 
+                untrp_maj*radpko_pko_lag + unpol_maj*radpko_pko_lag + unmob_maj*radpko_pko_lag +
+                untrp_maj*acled_viol_6 + unpol_maj*acled_viol_6 + unmob_maj*acled_viol_6,
               data = a)
 summary(reg11)
 
-reg12 = glm.nb(death ~ untrp_maj + unpol_maj + unmob_maj + mountains_mean + ttime_mean + 
-                 pop_gpw_sum + pop.dens + pko_lag + viol_6 + 
-                 untrp_maj*pko_lag + unpol_maj*pko_lag + unmob_maj*pko_lag +
-                 untrp_maj*viol_6 + unpol_maj*viol_6 + unmob_maj*viol_6, 
+reg12 = glm.nb(acled_fatalities_all ~ untrp_maj + unpol_maj + unmob_maj + prio_mountains_mean + prio_ttime_mean + 
+                 prio_pop_gpw_sum + prio_pop.dens + radpko_pko_lag + acled_viol_6 + 
+                 untrp_maj*radpko_pko_lag + unpol_maj*radpko_pko_lag + unmob_maj*radpko_pko_lag +
+                 untrp_maj*acled_viol_6 + unpol_maj*acled_viol_6 + unmob_maj*acled_viol_6, 
                data = a)
 summary(reg12)
 
@@ -100,132 +101,132 @@ summary(reg12)
 ##########################################################
 
 #### GOV OSV - Continuous treatment ####
-reg13 = glm(gov_event.b ~ pko_deployed + mountains_mean + ttime_mean + urban_gc + 
-                nlights_calib_mean + pop_gpw_sum + pop.dens + pko_lag + viol_6 +
-                pko_deployed*pko_lag + pko_deployed*viol_6,
+reg13 = glm(gov_event.b ~ radpko_pko_deployed + prio_mountains_mean + prio_ttime_mean + prio_urban_gc + 
+                prio_nlights_calib_mean + prio_pop_gpw_sum + prio_pop.dens + radpko_pko_lag + acled_viol_6 +
+                radpko_pko_deployed*radpko_pko_lag + radpko_pko_deployed*acled_viol_6,
               data = a, family = negative.binomial(theta = 1))
 se_reg_13 <- round(coeftest(reg13, vcov = vcovPL(reg13, cluster = a$prio.grid)),4)
 se_reg_13
 
-reg14 = glm(gov_death.b ~ pko_deployed + mountains_mean + ttime_mean + pop_gpw_sum +
-               pop.dens + pko_lag + viol_6 +
-               pko_deployed*pko_lag + pko_deployed*viol_6,
+reg14 = glm(gov_death.b ~ radpko_pko_deployed + prio_mountains_mean + prio_ttime_mean + prio_pop_gpw_sum +
+               prio_pop.dens + radpko_pko_lag + acled_viol_6 +
+               radpko_pko_deployed*radpko_pko_lag + radpko_pko_deployed*acled_viol_6,
                  data = a, family = negative.binomial(theta = 1))
 se_reg_14 <- round(coeftest(reg14, vcov = vcovPL(reg14, cluster = a$prio.grid)),4)
 se_reg_14
 
 #### REB OSV - Continuous Treatment ####
-reg15 = glm(reb_event.b ~ pko_deployed + mountains_mean + ttime_mean + urban_gc + 
-                 nlights_calib_mean + pop_gpw_sum + pop.dens + pko_lag + viol_6 +
-                 pko_deployed*pko_lag + pko_deployed*viol_6,
+reg15 = glm(reb_event.b ~ radpko_pko_deployed + prio_mountains_mean + prio_ttime_mean + prio_urban_gc + 
+                 prio_nlights_calib_mean + prio_pop_gpw_sum + prio_pop.dens + radpko_pko_lag + acled_viol_6 +
+                 radpko_pko_deployed*radpko_pko_lag + radpko_pko_deployed*acled_viol_6,
                  data = a, family = negative.binomial(theta = 1))
 se_reg_15 <- round(coeftest(reg15, vcov = vcovPL(reg15, cluster = a$prio.grid)),4)
 se_reg_15
 
-reg16 = glm(reb_death.b ~ pko_deployed + mountains_mean + ttime_mean + pop_gpw_sum +
-                 pop.dens + pko_lag + viol_6 +
-                 pko_deployed*pko_lag + pko_deployed*viol_6,
+reg16 = glm(reb_death.b ~ radpko_pko_deployed + prio_mountains_mean + prio_ttime_mean + prio_pop_gpw_sum +
+                 prio_pop.dens + radpko_pko_lag + acled_viol_6 +
+                 radpko_pko_deployed*radpko_pko_lag + radpko_pko_deployed*acled_viol_6,
                  data = a, family = negative.binomial(theta = 1))
 se_reg_16 <- round(coeftest(reg16, vcov = vcovPL(reg16, cluster = a$prio.grid)),4)
 se_reg_16
 
 #### GOV OSV - Naive Binary treatment ####
-reg17 = glm.nb(gov_event.b ~ t_ind + mountains_mean + ttime_mean + urban_gc + 
-                 nlights_calib_mean + pop_gpw_sum + pop.dens + pko_lag +
-                 t_ind*pko_lag + t_ind*viol_6,
+reg17 = glm.nb(gov_event.b ~ t_ind + prio_mountains_mean + prio_ttime_mean + prio_urban_gc + 
+                 prio_nlights_calib_mean + prio_pop_gpw_sum + prio_pop.dens + radpko_pko_lag +
+                 t_ind*radpko_pko_lag + t_ind*acled_viol_6,
                data = a)
 summary(reg17)
 
-reg18 = glm.nb(gov_death.b ~ t_ind + mountains_mean + ttime_mean + 
-                 pop_gpw_sum + pop.dens + pko_lag +
-                 t_ind*pko_lag + t_ind*viol_6,
+reg18 = glm.nb(gov_death.b ~ t_ind + prio_mountains_mean + prio_ttime_mean + 
+                 prio_pop_gpw_sum + prio_pop.dens + radpko_pko_lag +
+                 t_ind*radpko_pko_lag + t_ind*acled_viol_6,
                data = a)
 summary(reg18)
 
 #### REB OSV - Naive Binary Treatment ####
 reg19 = glm.nb(reb_event.b ~ t_ind + untrp + unpol + unmob + f_untrp.p +
-                   f_unpol.p + f_unmob.p + mountains_mean + ttime_mean + 
-                   urban_gc + nlights_calib_mean + pop_gpw_sum + pop.dens + pko_lag,
+                   f_unpol.p + f_unmob.p + prio_mountains_mean + prio_ttime_mean + 
+                   prio_urban_gc + prio_nlights_calib_mean + prio_pop_gpw_sum + prio_pop.dens + radpko_pko_lag,
                  data = a)
 summary(reg19)
 
-reg20 = glm.nb(reb_death.b ~ t_bal + t_unbal + mountains_mean + ttime_mean + pop_gpw_sum + pop.dens +
-                 pko_lag + viol_6 +
-                 t_bal*pko_lag + t_unbal*pko_lag +
-                 t_bal*viol_6 + t_unbal*viol_6,
+reg20 = glm.nb(reb_death.b ~ t_bal + t_unbal + prio_mountains_mean + prio_ttime_mean + prio_pop_gpw_sum + prio_pop.dens +
+                 radpko_pko_lag + acled_viol_6 +
+                 t_bal*radpko_pko_lag + t_unbal*radpko_pko_lag +
+                 t_bal*acled_viol_6 + t_unbal*acled_viol_6,
                  data = a)
 summary(reg20)
 
 #### GOV OSV - Binary treatment by gender ####
-reg21 = glm.nb(gov_event.b ~ t_bal + t_unbal + mountains_mean + ttime_mean + urban_gc + 
-                 nlights_calib_mean + pop_gpw_sum + pop.dens + pko_lag + viol_6 + 
-                 t_bal*pko_lag + t_unbal*pko_lag +
-                 t_bal*viol_6 + t_unbal*viol_6,
+reg21 = glm.nb(gov_event.b ~ t_bal + t_unbal + prio_mountains_mean + prio_ttime_mean + prio_urban_gc + 
+                 prio_nlights_calib_mean + prio_pop_gpw_sum + prio_pop.dens + radpko_pko_lag + acled_viol_6 + 
+                 t_bal*radpko_pko_lag + t_unbal*radpko_pko_lag +
+                 t_bal*acled_viol_6 + t_unbal*acled_viol_6,
                data = a)
 summary(reg21)
 se_reg_c1 <- round(coeftest(reg21, vcov = vcovPL(reg21, cluster = a$prio.grid)),4)
 se_reg_c1
 
-reg22 = glm.nb(gov_death.b ~ t_bal + t_unbal + mountains_mean + ttime_mean + pop_gpw_sum + pop.dens +
-                 pko_lag + viol_6 +
-                 t_bal*pko_lag + t_unbal*pko_lag +
-                 t_bal*viol_6 + t_unbal*viol_6,
+reg22 = glm.nb(gov_death.b ~ t_bal + t_unbal + prio_mountains_mean + prio_ttime_mean + prio_pop_gpw_sum + prio_pop.dens +
+                 radpko_pko_lag + acled_viol_6 +
+                 t_bal*radpko_pko_lag + t_unbal*radpko_pko_lag +
+                 t_bal*acled_viol_6 + t_unbal*acled_viol_6,
                data = a)
 summary(reg22)
 se_reg_c2 <- round(coeftest(reg22, vcov = vcovPL(reg22, cluster = a$prio.grid)),4)
 se_reg_c2
 #### REB OSV - Binary treatment by gender ####
-reg23 = glm.nb(reb_event.b ~ t_bal + t_unbal + mountains_mean + ttime_mean + urban_gc + 
-                 nlights_calib_mean + pop_gpw_sum + pop.dens + pko_lag + viol_6 + 
-                 t_bal*pko_lag + t_unbal*pko_lag +
-                 t_bal*viol_6 + t_unbal*viol_6,
+reg23 = glm.nb(reb_event.b ~ t_bal + t_unbal + prio_mountains_mean + prio_ttime_mean + prio_urban_gc + 
+                 prio_nlights_calib_mean + prio_pop_gpw_sum + prio_pop.dens + radpko_pko_lag + acled_viol_6 + 
+                 t_bal*radpko_pko_lag + t_unbal*radpko_pko_lag +
+                 t_bal*acled_viol_6 + t_unbal*acled_viol_6,
                data = a)
 summary(reg23)
 se_reg_c3 <- round(coeftest(reg23, vcov = vcovPL(reg23, cluster = a$prio.grid)),4)
 se_reg_c3
 
-reg24 = glm.nb(reb_death.b ~ t_bal + t_unbal + mountains_mean + ttime_mean + pop_gpw_sum + pop.dens +
-                 pko_lag + viol_6 +
-                 t_bal*pko_lag + t_unbal*pko_lag +
-                 t_bal*viol_6 + t_unbal*viol_6,
+reg24 = glm.nb(reb_death.b ~ t_bal + t_unbal + prio_mountains_mean + prio_ttime_mean + prio_pop_gpw_sum + prio_pop.dens +
+                 radpko_pko_lag + acled_viol_6 +
+                 t_bal*radpko_pko_lag + t_unbal*radpko_pko_lag +
+                 t_bal*acled_viol_6 + t_unbal*acled_viol_6,
                data = a)
 summary(reg24)
 se_reg_c4 <- round(coeftest(reg24, vcov = vcovPL(reg24, cluster = a$prio.grid)),4)
 se_reg_c4
 
 #### GOV OSV - Binary treatment by PK Type ####
-reg25 = glm.nb(gov_event.b ~ untrp_maj + unpol_maj + unmob_maj + mountains_mean + ttime_mean + 
-                 urban_gc + nlights_calib_mean + pop_gpw_sum + pop.dens + pko_lag + viol_6 + 
-                 untrp_maj*pko_lag + unpol_maj*pko_lag + unmob_maj*pko_lag +
-                 untrp_maj*viol_6 + unpol_maj*viol_6 + unmob_maj*viol_6,
+reg25 = glm.nb(gov_event.b ~ untrp_maj + unpol_maj + unmob_maj + prio_mountains_mean + prio_ttime_mean + 
+                 prio_urban_gc + prio_nlights_calib_mean + prio_pop_gpw_sum + prio_pop.dens + radpko_pko_lag + acled_viol_6 + 
+                 untrp_maj*radpko_pko_lag + unpol_maj*radpko_pko_lag + unmob_maj*radpko_pko_lag +
+                 untrp_maj*acled_viol_6 + unpol_maj*acled_viol_6 + unmob_maj*acled_viol_6,
                data = a)
 summary(reg25)
 se_reg_c5 <- round(coeftest(reg25, vcov = vcovPL(reg25, cluster = a$prio.grid)),4)
 se_reg_c5
 
-reg26 = glm.nb(gov_death.b ~ untrp_maj + unpol_maj + unmob_maj + mountains_mean + ttime_mean + 
-                 pop_gpw_sum + pop.dens + pko_lag + viol_6 + 
-                 untrp_maj*pko_lag + unpol_maj*pko_lag + unmob_maj*pko_lag +
-                 untrp_maj*viol_6 + unpol_maj*viol_6 + unmob_maj*viol_6, 
+reg26 = glm.nb(gov_death.b ~ untrp_maj + unpol_maj + unmob_maj + prio_mountains_mean + prio_ttime_mean + 
+                 prio_pop_gpw_sum + prio_pop.dens + radpko_pko_lag + acled_viol_6 + 
+                 untrp_maj*radpko_pko_lag + unpol_maj*radpko_pko_lag + unmob_maj*radpko_pko_lag +
+                 untrp_maj*acled_viol_6 + unpol_maj*acled_viol_6 + unmob_maj*acled_viol_6, 
                data = a)
 summary(reg26)
 se_reg_c6 <- round(coeftest(reg26, vcov = vcovPL(reg26, cluster = a$prio.grid)),4)
 se_reg_c6
 
 #### REB OSV - Binary treatment by PK Type ####
-reg27 = glm.nb(reb_event.b ~ untrp_maj + unpol_maj + unmob_maj + mountains_mean + ttime_mean + 
-                 urban_gc + nlights_calib_mean + pop_gpw_sum + pop.dens + pko_lag + viol_6 + 
-                 untrp_maj*pko_lag + unpol_maj*pko_lag + unmob_maj*pko_lag +
-                 untrp_maj*viol_6 + unpol_maj*viol_6 + unmob_maj*viol_6,
+reg27 = glm.nb(reb_event.b ~ untrp_maj + unpol_maj + unmob_maj + prio_mountains_mean + prio_ttime_mean + 
+                 prio_urban_gc + prio_nlights_calib_mean + prio_pop_gpw_sum + prio_pop.dens + radpko_pko_lag + acled_viol_6 + 
+                 untrp_maj*radpko_pko_lag + unpol_maj*radpko_pko_lag + unmob_maj*radpko_pko_lag +
+                 untrp_maj*acled_viol_6 + unpol_maj*acled_viol_6 + unmob_maj*acled_viol_6,
                data = a)
 summary(reg27)
 se_reg_c7 <- round(coeftest(reg27, vcov = vcovPL(reg27, cluster = a$prio.grid)),4)
 se_reg_c7
 
-reg28 = glm.nb(reb_death.b ~ untrp_maj + unpol_maj + unmob_maj + mountains_mean + ttime_mean + 
-                 pop_gpw_sum + pop.dens + pko_lag + viol_6 + 
-                 untrp_maj*pko_lag + unpol_maj*pko_lag + unmob_maj*pko_lag +
-                 untrp_maj*viol_6 + unpol_maj*viol_6 + unmob_maj*viol_6,
+reg28 = glm.nb(reb_death.b ~ untrp_maj + unpol_maj + unmob_maj + prio_mountains_mean + prio_ttime_mean + 
+                 prio_pop_gpw_sum + prio_pop.dens + radpko_pko_lag + acled_viol_6 + 
+                 untrp_maj*radpko_pko_lag + unpol_maj*radpko_pko_lag + unmob_maj*radpko_pko_lag +
+                 untrp_maj*acled_viol_6 + unpol_maj*acled_viol_6 + unmob_maj*acled_viol_6,
                data = a)
 summary(reg28)
 se_reg_c8 <- round(coeftest(reg28, vcov = vcovPL(reg28, cluster = a$prio.grid)),4)
@@ -263,7 +264,7 @@ stargazer(reg21, reg22, reg23, reg24, title = "Pre-matched Results Pr(Violence) 
                                "% Urban", "Night Lights", "Population Sum", "Population Density", "PK Lag", 
                                "Violence 6 Months Before"), 
           se = list(reg21se, reg22se, reg23se, reg24se), p = list(reg21p, reg22p, reg23p, reg24p),
-          omit = c("t_bal:pko_lag", "t_unbal:pko_lag", "t_bal:viol_6", "t_unbal:viol_6"),
+          omit = c("t_bal:radpko_pko_lag", "t_unbal:radpko_pko_lag", "t_bal:acled_viol_6", "t_unbal:acled_viol_6"),
           notes = "Robust Standard Errors clustered at the PRIO-Grid level.",
           out = "./results/pre_matched_gender.txt")
 
@@ -276,8 +277,8 @@ stargazer(reg25, reg26, reg27, reg28, title = "Pre-matched Results Pr(Violence) 
                                "Travel Time Nearest City", "% Urban", "Night Lights", "Population Sum", "Population Density", 
                                "PK Lag", "Violence 6 Months Before"), 
           se = list(reg25se, reg26se, reg27se, reg28se), p = list(reg25p, reg26p, reg27p, reg28p),
-          omit = c("untrp_maj:pko_lag", "unpol_maj:pko_lag", "unmob_maj:pko_lag", "untrp_maj:viol_6", "unpol_maj:viol_6", 
-                   "unmob_maj:viol_6"),
+          omit = c("untrp_maj:radpko_pko_lag", "unpol_maj:radpko_pko_lag", "unmob_maj:radpko_pko_lag", "untrp_maj:acled_viol_6", "unpol_maj:acled_viol_6", 
+                   "unmob_maj:acled_viol_6"),
           notes = "Robust Standard Errors clustered at the PRIO-Grid level.",
           out = "./results/pre_matched_troop.txt")
 
@@ -290,7 +291,7 @@ stargazer(reg21, reg22, reg23, reg24, title = "Pre-matched Results Pr(Violence) 
                                "% Urban", "Night Lights", "Population Sum", "Population Density", "PK Lag", 
                                "Violence 6 Months Before"), 
           se = list(reg21se, reg22se, reg23se, reg24se), p = list(reg21p, reg22p, reg23p, reg24p),
-          omit = c("t_bal:pko_lag", "t_unbal:pko_lag", "t_bal:viol_6", "t_unbal:viol_6"),
+          omit = c("t_bal:radpko_pko_lag", "t_unbal:radpko_pko_lag", "t_bal:acled_viol_6", "t_unbal:acled_viol_6"),
           notes = "Important: this table is only for interpretation in terms of estimates and p-values. Standard errors are not correctly inputted.",
           apply.coef = exp, t.auto=F, p.auto=F,
           out = "./results/pre_matched_gender_or.txt")
@@ -304,8 +305,8 @@ stargazer(reg25, reg26, reg27, reg28, title = "Pre-matched Results Pr(Violence) 
                                "Travel Time Nearest City", "% Urban", "Night Lights", "Population Sum", "Population Density", 
                                "PK Lag", "Violence 6 Months Before"), 
           se = list(reg25se, reg26se, reg27se, reg28se), p = list(reg25p, reg26p, reg27p, reg28p),
-          omit = c("untrp_maj:pko_lag", "unpol_maj:pko_lag", "unmob_maj:pko_lag", "untrp_maj:viol_6", "unpol_maj:viol_6", 
-                   "unmob_maj:viol_6"),
+          omit = c("untrp_maj:radpko_pko_lag", "unpol_maj:radpko_pko_lag", "unmob_maj:radpko_pko_lag", "untrp_maj:acled_viol_6", "unpol_maj:acled_viol_6", 
+                   "unmob_maj:acled_viol_6"),
           notes = "Important: this table is only for interpretation in terms of estimates and p-values. Standard errors are not correctly inputted.",
           apply.coef = exp, t.auto=F, p.auto=F,
           out = "./results/pre_matched_troop_or.txt")
@@ -314,7 +315,7 @@ stargazer(reg25, reg26, reg27, reg28, title = "Pre-matched Results Pr(Violence) 
 labs = c("Total PKs deployed", "Gender Balanced Units", "Gender Un-Balanced Units",
          "Majority Troop Units", "Majority Police Units", "Majority Observer Units")
 
-stargazer(a[c("pko_deployed", "t_bal", "t_unbal", "untrp_maj", "unpol_maj", "unmob_maj")], covariate.labels = labs, digits = 3, 
+stargazer(a[c("radpko_pko_deployed", "t_bal", "t_unbal", "untrp_maj", "unpol_maj", "unmob_maj")], covariate.labels = labs, digits = 3, 
           style = "ajps", omit.summary.stat = "n",
           title = "Treatments Summarized by Grid-month observations",
           out = "./results/pks_table.txt")
@@ -333,8 +334,8 @@ stargazer(a[c("event", "death", "gov_event.b", "reb_event.b","gov_death.b", "reb
 
 a = a[order(a$t_ind, decreasing=TRUE), ]
 
-control.variables = cbind(a$mountains_mean, a$ttime_mean, a$urban_gc, a$nlights_calib_mean, 
-                          a$pop_gpw_sum, a$pop.dens, a$prec_gpcp, a$viol_6)
+control.variables = cbind(a$prio_mountains_mean, a$prio_ttime_mean, a$prio_urban_gc, a$prio_nlights_calib_mean, 
+                          a$prio_pop_gpw_sum, a$prio_pop.dens, a$prec_gpcp, a$acled_viol_6)
 t_ind = a$t_ind #treatment
 t_id = which(t_ind==1) #treated
 c_id = which(t_ind==0) #control
@@ -343,8 +344,8 @@ tab1
 # keep map stuff at the end of data.frame #
 a = a %>% relocate(c("xcoord", "ycoord", "col", "row", "geometry"), .after = last_col())
 
-mom_covs = cbind(a$mountains_mean, a$ttime_mean, a$urban_gc, a$nlights_calib_mean, 
-                 a$pop_gpw_sum, a$pop.dens, a$prec_gpcp, a$viol_6)
+mom_covs = cbind(a$prio_mountains_mean, a$prio_ttime_mean, a$prio_urban_gc, a$prio_nlights_calib_mean, 
+                 a$prio_pop_gpw_sum, a$prio_pop.dens, a$prec_gpcp, a$acled_viol_6)
 
 for(i in 1:ncol(mom_covs)){
   mom_covs[is.na(mom_covs[,i]), i] <- mean(mom_covs[,i], na.rm = TRUE)
@@ -374,8 +375,8 @@ c_id_1 = out_1$c_id
 tab1
 
 # Standardized after matching
-covs = cbind(a$mountains_mean, a$ttime_mean, a$urban_gc, a$nlights_calib_mean, 
-                        a$pop_gpw_sum, a$pop.dens, a$prec_gpcp, a$viol_6)
+covs = cbind(a$prio_mountains_mean, a$prio_ttime_mean, a$prio_urban_gc, a$prio_nlights_calib_mean, 
+                        a$prio_pop_gpw_sum, a$prio_pop.dens, a$prec_gpcp, a$acled_viol_6)
 tab2 = meantab(covs, t_ind, t_id_1, c_id_1)
 tab2
 # Save matched sample 
@@ -409,75 +410,75 @@ saveRDS(b, "./data/kunkel_cg_matched.RDS")
 #### Negative binomial regression with matched sample and clustered standard errors ####
 b = readRDS("./data/kunkel_cg_matched.RDS")
 #### GOV OSV - Binary treatment by gender ####
-reg1 = glm.nb(gov_event.b ~ t_bal + t_unbal + mountains_mean + ttime_mean + urban_gc + 
-                 nlights_calib_mean + pop_gpw_sum + pop.dens + pko_lag + viol_6 + 
-                 t_bal*pko_lag + t_unbal*pko_lag +
-                 t_bal*viol_6 + t_unbal*viol_6,
+reg1 = glm.nb(gov_event.b ~ t_bal + t_unbal + prio_mountains_mean + prio_ttime_mean + prio_urban_gc + 
+                 prio_nlights_calib_mean + prio_pop_gpw_sum + prio_pop.dens + radpko_pko_lag + acled_viol_6 + 
+                 t_bal*radpko_pko_lag + t_unbal*radpko_pko_lag +
+                 t_bal*acled_viol_6 + t_unbal*acled_viol_6,
                data = b)
 summary(reg1)
 se_reg_c1 <- round(coeftest(reg1, vcov = vcovPL(reg1, cluster = b$prio.grid)),4)
 se_reg_c1
 
-reg2 = glm.nb(gov_death.b ~ t_bal + t_unbal + mountains_mean + ttime_mean + pop_gpw_sum + pop.dens +
-                 pko_lag + viol_6 +
-                 t_bal*pko_lag + t_unbal*pko_lag +
-                 t_bal*viol_6 + t_unbal*viol_6,
+reg2 = glm.nb(gov_death.b ~ t_bal + t_unbal + prio_mountains_mean + prio_ttime_mean + prio_pop_gpw_sum + prio_pop.dens +
+                 radpko_pko_lag + acled_viol_6 +
+                 t_bal*radpko_pko_lag + t_unbal*radpko_pko_lag +
+                 t_bal*acled_viol_6 + t_unbal*acled_viol_6,
                data = b)
 summary(reg2)
 se_reg_c2 <- round(coeftest(reg2, vcov = vcovPL(reg2, cluster = b$prio.grid)),4)
 se_reg_c2
 
 #### REB OSV - Binary treatment by gender ####
-reg3 = glm.nb(reb_event.b ~ t_bal + t_unbal + mountains_mean + ttime_mean + urban_gc + 
-                 nlights_calib_mean + pop_gpw_sum + pop.dens + pko_lag + viol_6 + 
-                 t_bal*pko_lag + t_unbal*pko_lag +
-                 t_bal*viol_6 + t_unbal*viol_6, data = b)
+reg3 = glm.nb(reb_event.b ~ t_bal + t_unbal + prio_mountains_mean + prio_ttime_mean + prio_urban_gc + 
+                 prio_nlights_calib_mean + prio_pop_gpw_sum + prio_pop.dens + radpko_pko_lag + acled_viol_6 + 
+                 t_bal*radpko_pko_lag + t_unbal*radpko_pko_lag +
+                 t_bal*acled_viol_6 + t_unbal*acled_viol_6, data = b)
 summary(reg3)
 se_reg_c3 <- round(coeftest(reg3, vcov = vcovPL(reg3, cluster = b$prio.grid)),4)
 se_reg_c3
 
-reg4 = glm.nb(reb_death.b ~ t_bal + t_unbal + mountains_mean + ttime_mean + pop_gpw_sum + pop.dens +
-                 pko_lag + viol_6 +
-                 t_bal*pko_lag + t_unbal*pko_lag +
-                 t_bal*viol_6 + t_unbal*viol_6,
+reg4 = glm.nb(reb_death.b ~ t_bal + t_unbal + prio_mountains_mean + prio_ttime_mean + prio_pop_gpw_sum + prio_pop.dens +
+                 radpko_pko_lag + acled_viol_6 +
+                 t_bal*radpko_pko_lag + t_unbal*radpko_pko_lag +
+                 t_bal*acled_viol_6 + t_unbal*acled_viol_6,
                  data = b)
 summary(reg4)
 se_reg_c4 <- round(coeftest(reg4, vcov = vcovPL(reg4, cluster = b$prio.grid)),4)
 se_reg_c4
 
 #### GOV OSV - Binary treatment by PK Type ####
-reg5 = glm.nb(gov_event.b ~ untrp_maj + unpol_maj + unmob_maj + mountains_mean + ttime_mean + 
-                 urban_gc + nlights_calib_mean + pop_gpw_sum + pop.dens + pko_lag + viol_6 + 
-                 untrp_maj*pko_lag + unpol_maj*pko_lag + unmob_maj*pko_lag +
-                 untrp_maj*viol_6 + unpol_maj*viol_6 + unmob_maj*viol_6,
+reg5 = glm.nb(gov_event.b ~ untrp_maj + unpol_maj + unmob_maj + prio_mountains_mean + prio_ttime_mean + 
+                 prio_urban_gc + prio_nlights_calib_mean + prio_pop_gpw_sum + prio_pop.dens + radpko_pko_lag + acled_viol_6 + 
+                 untrp_maj*radpko_pko_lag + unpol_maj*radpko_pko_lag + unmob_maj*radpko_pko_lag +
+                 untrp_maj*acled_viol_6 + unpol_maj*acled_viol_6 + unmob_maj*acled_viol_6,
                data = b)
 summary(reg5)
 se_reg_c5 <- round(coeftest(reg5, vcov = vcovPL(reg5, cluster = b$prio.grid)),4)
 se_reg_c5
 
-reg6 = glm.nb(gov_death.b ~ untrp_maj + unpol_maj + unmob_maj + mountains_mean + ttime_mean + 
-                 pop_gpw_sum + pop.dens + pko_lag + viol_6 + 
-                 untrp_maj*pko_lag + unpol_maj*pko_lag + unmob_maj*pko_lag +
-                 untrp_maj*viol_6 + unpol_maj*viol_6 + unmob_maj*viol_6, 
+reg6 = glm.nb(gov_death.b ~ untrp_maj + unpol_maj + unmob_maj + prio_mountains_mean + prio_ttime_mean + 
+                 prio_pop_gpw_sum + prio_pop.dens + radpko_pko_lag + acled_viol_6 + 
+                 untrp_maj*radpko_pko_lag + unpol_maj*radpko_pko_lag + unmob_maj*radpko_pko_lag +
+                 untrp_maj*acled_viol_6 + unpol_maj*acled_viol_6 + unmob_maj*acled_viol_6, 
                data = b)
 summary(reg6)
 se_reg_c6 <- round(coeftest(reg6, vcov = vcovPL(reg6, cluster = b$prio.grid)),4)
 se_reg_c6
 
 #### REB OSV - Binary treatment by PK Type ####
-reg7 = glm.nb(reb_event.b ~ untrp_maj + unpol_maj + unmob_maj + mountains_mean + ttime_mean + 
-                 urban_gc + nlights_calib_mean + pop_gpw_sum + pop.dens + pko_lag + viol_6 + 
-                 untrp_maj*pko_lag + unpol_maj*pko_lag + unmob_maj*pko_lag +
-                 untrp_maj*viol_6 + unpol_maj*viol_6 + unmob_maj*viol_6,
+reg7 = glm.nb(reb_event.b ~ untrp_maj + unpol_maj + unmob_maj + prio_mountains_mean + prio_ttime_mean + 
+                 prio_urban_gc + prio_nlights_calib_mean + prio_pop_gpw_sum + prio_pop.dens + radpko_pko_lag + acled_viol_6 + 
+                 untrp_maj*radpko_pko_lag + unpol_maj*radpko_pko_lag + unmob_maj*radpko_pko_lag +
+                 untrp_maj*acled_viol_6 + unpol_maj*acled_viol_6 + unmob_maj*acled_viol_6,
                data = b)
 summary(reg7)
 se_reg_c7 <- round(coeftest(reg7, vcov = vcovPL(reg7, cluster = b$prio.grid)),4)
 se_reg_c7
 
-reg8 = glm.nb(reb_death.b ~ untrp_maj + unpol_maj + unmob_maj + mountains_mean + ttime_mean + 
-                 pop_gpw_sum + pop.dens + pko_lag + viol_6 + 
-                 untrp_maj*pko_lag + unpol_maj*pko_lag + unmob_maj*pko_lag +
-                 untrp_maj*viol_6 + unpol_maj*viol_6 + unmob_maj*viol_6,
+reg8 = glm.nb(reb_death.b ~ untrp_maj + unpol_maj + unmob_maj + prio_mountains_mean + prio_ttime_mean + 
+                 prio_pop_gpw_sum + prio_pop.dens + radpko_pko_lag + acled_viol_6 + 
+                 untrp_maj*radpko_pko_lag + unpol_maj*radpko_pko_lag + unmob_maj*radpko_pko_lag +
+                 untrp_maj*acled_viol_6 + unpol_maj*acled_viol_6 + unmob_maj*acled_viol_6,
                data = b)
 summary(reg8)
 se_reg_c8 <- round(coeftest(reg8, vcov = vcovPL(reg8, cluster = b$prio.grid)),4)
@@ -520,7 +521,7 @@ stargazer(reg1, reg2, reg3, reg4, title = "Matched Results Pr(Violence) by PK Ge
                                "% Urban", "Night Lights", "Population Sum", "Population Density", "PK Lag", 
                                "Violence 6 Months Before"), 
           se = list(reg21se, reg22se, reg23se, reg24se), p = list(reg21p, reg22p, reg23p, reg24p),
-          omit = c("t_bal:pko_lag", "t_unbal:pko_lag", "t_bal:viol_6", "t_unbal:viol_6"),
+          omit = c("t_bal:radpko_pko_lag", "t_unbal:radpko_pko_lag", "t_bal:acled_viol_6", "t_unbal:acled_viol_6"),
           notes = "Robust Standard Errors clustered at the PRIO-Grid level.",
           out = "./results/matched_gender.txt")
 
@@ -533,8 +534,8 @@ stargazer(reg5, reg6, reg7, reg8, title = "Matched Results Pr(Violence) by Troop
                                "Travel Time Nearest City", "% Urban", "Night Lights", "Population Sum", "Population Density", 
                                "PK Lag", "Violence 6 Months Before"), 
           se = list(reg25se, reg26se, reg27se, reg28se), p = list(reg25p, reg26p, reg27p, reg28p),
-          omit = c("untrp_maj:pko_lag", "unpol_maj:pko_lag", "unmob_maj:pko_lag", "untrp_maj:viol_6", "unpol_maj:viol_6", 
-                   "unmob_maj:viol_6"),
+          omit = c("untrp_maj:radpko_pko_lag", "unpol_maj:radpko_pko_lag", "unmob_maj:radpko_pko_lag", "untrp_maj:acled_viol_6", "unpol_maj:acled_viol_6", 
+                   "unmob_maj:acled_viol_6"),
           out = "./results/matched_troop.txt")
 
 
@@ -547,7 +548,7 @@ stargazer(reg1, reg2, reg3, reg4, title = "Matched Results Pr(Violence) by PK Ge
                                "% Urban", "Night Lights", "Population Sum", "Population Density", "PK Lag", 
                                "Violence 6 Months Before"), 
           se = list(reg21se, reg22se, reg23se, reg24se), p = list(reg21p, reg22p, reg23p, reg24p),
-          omit = c("t_bal:pko_lag", "t_unbal:pko_lag", "t_bal:viol_6", "t_unbal:viol_6"),
+          omit = c("t_bal:radpko_pko_lag", "t_unbal:radpko_pko_lag", "t_bal:acled_viol_6", "t_unbal:acled_viol_6"),
           apply.coef = exp, t.auto=F, p.auto=F,
           notes = "Important: this table is only for interpretation in terms of estimates and p-values. Standard errors are not correctly inputted.",
           out = "./results/matched_gender_or.txt")
@@ -560,8 +561,8 @@ stargazer(reg5, reg6, reg7, reg8, title = "Matched Results Pr(Violence) by Troop
                                "Travel Time Nearest City", "% Urban", "Night Lights", "Population Sum", "Population Density", 
                                "PK Lag", "Violence 6 Months Before"), 
           se = list(reg25se, reg26se, reg27se, reg28se), p = list(reg25p, reg26p, reg27p, reg28p),
-          omit = c("untrp_maj:pko_lag", "unpol_maj:pko_lag", "unmob_maj:pko_lag", "untrp_maj:viol_6", "unpol_maj:viol_6", 
-                   "unmob_maj:viol_6"),
+          omit = c("untrp_maj:radpko_pko_lag", "unpol_maj:radpko_pko_lag", "unmob_maj:radpko_pko_lag", "untrp_maj:acled_viol_6", "unpol_maj:acled_viol_6", 
+                   "unmob_maj:acled_viol_6"),
           notes = "Important: this table is only for interpretation in terms of estimates and p-values. Standard errors are not correctly inputted.",
           apply.coef = exp, t.auto=F, p.auto=F,
           out = "./results/matched_troop_or.txt")
@@ -635,75 +636,75 @@ scale_x_continuous(breaks = seq(0,1,1))
 #### Continuous GOV OSV - Binary treatment by gender ####
 rm(list = setdiff(ls(), "b")) 
 
-reg1 = glm.nb(gov_event ~ t_bal + t_unbal + mountains_mean + ttime_mean + urban_gc + 
-                nlights_calib_mean + pop_gpw_sum + pop.dens + pko_lag + viol_6 + 
-                t_bal*pko_lag + t_unbal*pko_lag +
-                t_bal*viol_6 + t_unbal*viol_6,
+reg1 = glm.nb(gov_event ~ t_bal + t_unbal + prio_mountains_mean + prio_ttime_mean + prio_urban_gc + 
+                prio_nlights_calib_mean + prio_pop_gpw_sum + prio_pop.dens + radpko_pko_lag + acled_viol_6 + 
+                t_bal*radpko_pko_lag + t_unbal*radpko_pko_lag +
+                t_bal*acled_viol_6 + t_unbal*acled_viol_6,
               data = b)
 summary(reg1)
 se_reg_c1 <- round(coeftest(reg1, vcov = vcovPL(reg1, cluster = b$prio.grid)),4)
 se_reg_c1
 
-reg2 = glm.nb(gov_death ~ t_bal + t_unbal + mountains_mean + ttime_mean + pop_gpw_sum + pop.dens +
-                pko_lag + viol_6 +
-                t_bal*pko_lag + t_unbal*pko_lag +
-                t_bal*viol_6 + t_unbal*viol_6,
+reg2 = glm.nb(gov_death ~ t_bal + t_unbal + prio_mountains_mean + prio_ttime_mean + prio_pop_gpw_sum + prio_pop.dens +
+                radpko_pko_lag + acled_viol_6 +
+                t_bal*radpko_pko_lag + t_unbal*radpko_pko_lag +
+                t_bal*acled_viol_6 + t_unbal*acled_viol_6,
               data = b)
 summary(reg2)
 se_reg_c2 <- round(coeftest(reg2, vcov = vcovPL(reg2, cluster = b$prio.grid)),4)
 se_reg_c2
 
 #### REB OSV - Binary treatment by gender ####
-reg3 = glm.nb(reb_event ~ t_bal + t_unbal + mountains_mean + ttime_mean + urban_gc + 
-                nlights_calib_mean + pop_gpw_sum + pop.dens + pko_lag + viol_6 + 
-                t_bal*pko_lag + t_unbal*pko_lag +
-                t_bal*viol_6 + t_unbal*viol_6, data = b)
+reg3 = glm.nb(reb_event ~ t_bal + t_unbal + prio_mountains_mean + prio_ttime_mean + prio_urban_gc + 
+                prio_nlights_calib_mean + prio_pop_gpw_sum + prio_pop.dens + radpko_pko_lag + acled_viol_6 + 
+                t_bal*radpko_pko_lag + t_unbal*radpko_pko_lag +
+                t_bal*acled_viol_6 + t_unbal*acled_viol_6, data = b)
 summary(reg3)
 se_reg_c3 <- round(coeftest(reg3, vcov = vcovPL(reg3, cluster = b$prio.grid)),4)
 se_reg_c3
 
-reg4 = glm.nb(reb_death ~ t_bal + t_unbal + mountains_mean + ttime_mean + pop_gpw_sum + pop.dens +
-                pko_lag + viol_6 +
-                t_bal*pko_lag + t_unbal*pko_lag +
-                t_bal*viol_6 + t_unbal*viol_6,
+reg4 = glm.nb(reb_death ~ t_bal + t_unbal + prio_mountains_mean + prio_ttime_mean + prio_pop_gpw_sum + prio_pop.dens +
+                radpko_pko_lag + acled_viol_6 +
+                t_bal*radpko_pko_lag + t_unbal*radpko_pko_lag +
+                t_bal*acled_viol_6 + t_unbal*acled_viol_6,
               data = b)
 summary(reg4)
 se_reg_c4 <- round(coeftest(reg4, vcov = vcovPL(reg4, cluster = b$prio.grid)),4)
 se_reg_c4
 
 #### GOV OSV - Binary treatment by PK Type ####
-reg5 = glm.nb(gov_event ~ untrp_maj + unpol_maj + unmob_maj + mountains_mean + ttime_mean + 
-                urban_gc + nlights_calib_mean + pop_gpw_sum + pop.dens + pko_lag + viol_6 + 
-                untrp_maj*pko_lag + unpol_maj*pko_lag + unmob_maj*pko_lag +
-                untrp_maj*viol_6 + unpol_maj*viol_6 + unmob_maj*viol_6,
+reg5 = glm.nb(gov_event ~ untrp_maj + unpol_maj + unmob_maj + prio_mountains_mean + prio_ttime_mean + 
+                prio_urban_gc + prio_nlights_calib_mean + prio_pop_gpw_sum + prio_pop.dens + radpko_pko_lag + acled_viol_6 + 
+                untrp_maj*radpko_pko_lag + unpol_maj*radpko_pko_lag + unmob_maj*radpko_pko_lag +
+                untrp_maj*acled_viol_6 + unpol_maj*acled_viol_6 + unmob_maj*acled_viol_6,
               data = b)
 summary(reg5)
 se_reg_c5 <- round(coeftest(reg5, vcov = vcovPL(reg5, cluster = b$prio.grid)),4)
 se_reg_c5
 
-reg6 = glm.nb(gov_death ~ untrp_maj + unpol_maj + unmob_maj + mountains_mean + ttime_mean + 
-                pop_gpw_sum + pop.dens + pko_lag + viol_6 + 
-                untrp_maj*pko_lag + unpol_maj*pko_lag + unmob_maj*pko_lag +
-                untrp_maj*viol_6 + unpol_maj*viol_6 + unmob_maj*viol_6, 
+reg6 = glm.nb(gov_death ~ untrp_maj + unpol_maj + unmob_maj + prio_mountains_mean + prio_ttime_mean + 
+                prio_pop_gpw_sum + prio_pop.dens + radpko_pko_lag + acled_viol_6 + 
+                untrp_maj*radpko_pko_lag + unpol_maj*radpko_pko_lag + unmob_maj*radpko_pko_lag +
+                untrp_maj*acled_viol_6 + unpol_maj*acled_viol_6 + unmob_maj*acled_viol_6, 
               data = b)
 summary(reg6)
 se_reg_c6 <- round(coeftest(reg6, vcov = vcovPL(reg6, cluster = b$prio.grid)),4)
 se_reg_c6
 
 #### REB OSV - Binary treatment by PK Type ####
-reg7 = glm.nb(reb_event ~ untrp_maj + unpol_maj + unmob_maj + mountains_mean + ttime_mean + 
-                urban_gc + nlights_calib_mean + pop_gpw_sum + pop.dens + pko_lag + viol_6 + 
-                untrp_maj*pko_lag + unpol_maj*pko_lag + unmob_maj*pko_lag +
-                untrp_maj*viol_6 + unpol_maj*viol_6 + unmob_maj*viol_6,
+reg7 = glm.nb(reb_event ~ untrp_maj + unpol_maj + unmob_maj + prio_mountains_mean + prio_ttime_mean + 
+                prio_urban_gc + prio_nlights_calib_mean + prio_pop_gpw_sum + prio_pop.dens + radpko_pko_lag + acled_viol_6 + 
+                untrp_maj*radpko_pko_lag + unpol_maj*radpko_pko_lag + unmob_maj*radpko_pko_lag +
+                untrp_maj*acled_viol_6 + unpol_maj*acled_viol_6 + unmob_maj*acled_viol_6,
               data = b)
 summary(reg7)
 se_reg_c7 <- round(coeftest(reg7, vcov = vcovPL(reg7, cluster = b$prio.grid)),4)
 se_reg_c7
 
-reg8 = glm.nb(reb_death ~ untrp_maj + unpol_maj + unmob_maj + mountains_mean + ttime_mean + 
-                pop_gpw_sum + pop.dens + pko_lag + viol_6 + 
-                untrp_maj*pko_lag + unpol_maj*pko_lag + unmob_maj*pko_lag +
-                untrp_maj*viol_6 + unpol_maj*viol_6 + unmob_maj*viol_6,
+reg8 = glm.nb(reb_death ~ untrp_maj + unpol_maj + unmob_maj + prio_mountains_mean + prio_ttime_mean + 
+                prio_pop_gpw_sum + prio_pop.dens + radpko_pko_lag + acled_viol_6 + 
+                untrp_maj*radpko_pko_lag + unpol_maj*radpko_pko_lag + unmob_maj*radpko_pko_lag +
+                untrp_maj*acled_viol_6 + unpol_maj*acled_viol_6 + unmob_maj*acled_viol_6,
               data = b)
 summary(reg8)
 se_reg_c8 <- round(coeftest(reg8, vcov = vcovPL(reg8, cluster = b$prio.grid)),4)
@@ -739,7 +740,7 @@ stargazer(reg1, reg2, reg3, reg4, title = "Matched Results Violence by PK Gender
                                "% Urban", "Night Lights", "Population Sum", "Population Density", "PK Lag", 
                                "Violence 6 Months Before"), 
           se = list(reg21se, reg22se, reg23se, reg24se), p = list(reg21p, reg22p, reg23p, reg24p),
-          omit = c("t_bal:pko_lag", "t_unbal:pko_lag", "t_bal:viol_6", "t_unbal:viol_6"),
+          omit = c("t_bal:radpko_pko_lag", "t_unbal:radpko_pko_lag", "t_bal:acled_viol_6", "t_unbal:acled_viol_6"),
           notes = "Robust Standard Errors clustered at the PRIO-Grid level.",
           out = "./results/matched_gender_c.txt")
 
@@ -752,8 +753,8 @@ stargazer(reg5, reg6, reg7, reg8, title = "Matched Results Violence by Troop Typ
                                "Travel Time Nearest City", "% Urban", "Night Lights", "Population Sum", "Population Density", 
                                "PK Lag", "Violence 6 Months Before"), 
           se = list(reg25se, reg26se, reg27se, reg28se), p = list(reg25p, reg26p, reg27p, reg28p),
-          omit = c("untrp_maj:pko_lag", "unpol_maj:pko_lag", "unmob_maj:pko_lag", "untrp_maj:viol_6", "unpol_maj:viol_6", 
-                   "unmob_maj:viol_6"),
+          omit = c("untrp_maj:radpko_pko_lag", "unpol_maj:radpko_pko_lag", "unmob_maj:radpko_pko_lag", "untrp_maj:acled_viol_6", "unpol_maj:acled_viol_6", 
+                   "unmob_maj:acled_viol_6"),
           out = "./results/matched_troop_c.txt")
 
 
@@ -766,7 +767,7 @@ stargazer(reg1, reg2, reg3, reg4, title = "Matched Results Violence by PK Gender
                                "% Urban", "Night Lights", "Population Sum", "Population Density", "PK Lag", 
                                "Violence 6 Months Before"), 
           se = list(reg21se, reg22se, reg23se, reg24se), p = list(reg21p, reg22p, reg23p, reg24p),
-          omit = c("t_bal:pko_lag", "t_unbal:pko_lag", "t_bal:viol_6", "t_unbal:viol_6"),
+          omit = c("t_bal:radpko_pko_lag", "t_unbal:radpko_pko_lag", "t_bal:acled_viol_6", "t_unbal:acled_viol_6"),
           apply.coef = exp, t.auto=F, p.auto=F,
           notes = "Important: this table is only for interpretation in terms of estimates and p-values. Standard errors are not correctly inputted.",
           out = "./results/matched_gender_or_c.txt")
@@ -779,8 +780,8 @@ stargazer(reg5, reg6, reg7, reg8, title = "Matched Results Violence by Troop Typ
                                "Travel Time Nearest City", "% Urban", "Night Lights", "Population Sum", "Population Density", 
                                "PK Lag", "Violence 6 Months Before"), 
           se = list(reg25se, reg26se, reg27se, reg28se), p = list(reg25p, reg26p, reg27p, reg28p),
-          omit = c("untrp_maj:pko_lag", "unpol_maj:pko_lag", "unmob_maj:pko_lag", "untrp_maj:viol_6", "unpol_maj:viol_6", 
-                   "unmob_maj:viol_6"),
+          omit = c("untrp_maj:radpko_pko_lag", "unpol_maj:radpko_pko_lag", "unmob_maj:radpko_pko_lag", "untrp_maj:acled_viol_6", "unpol_maj:acled_viol_6", 
+                   "unmob_maj:acled_viol_6"),
           notes = "Important: this table is only for interpretation in terms of estimates and p-values. Standard errors are not correctly inputted.",
           apply.coef = exp, t.auto=F, p.auto=F,
           out = "./results/matched_troop_or_c.txt")
@@ -794,7 +795,7 @@ stargazer(reg5, reg6, reg7, reg8, title = "Matched Results Violence by Troop Typ
 labs = c("Total PKs deployed", "Gender Balanced Units", "Gender Un-Balanced Units",
          "Majority Troop Units", "Majority Police Units", "Majority Observer Units")
 
-stargazer(b[c("pko_deployed", "t_bal", "t_unbal", "untrp_maj", "unpol_maj", "unmob_maj")], covariate.labels = labs, digits = 3, 
+stargazer(b[c("radpko_pko_deployed", "t_bal", "t_unbal", "untrp_maj", "unpol_maj", "unmob_maj")], covariate.labels = labs, digits = 3, 
           style = "ajps", omit.summary.stat = "n",
           title = "Treatments Summarized by Grid-month observations",
           out = "./results/m_pks_table.txt")
@@ -810,34 +811,34 @@ stargazer(b[c("event", "death", "gov_event.b", "reb_event.b","gov_death.b", "reb
 #### MLM by PK Gender ####
 
 # Gov OSV #
-ran.int1 = glmer.nb(gov_event.b ~ t_bal + t_unbal + mountains_mean + ttime_mean + urban_gc + 
-                      nlights_calib_mean + pop_gpw_sum + pop.dens + pko_lag + viol_6 + 
-                      t_bal*pko_lag + t_unbal*pko_lag +
-                      t_bal*viol_6 + t_unbal*viol_6 +
+ran.int1 = glmer.nb(gov_event.b ~ t_bal + t_unbal + prio_mountains_mean + prio_ttime_mean + prio_urban_gc + 
+                      prio_nlights_calib_mean + prio_pop_gpw_sum + prio_pop.dens + radpko_pko_lag + acled_viol_6 + 
+                      t_bal*radpko_pko_lag + t_unbal*radpko_pko_lag +
+                      t_bal*acled_viol_6 + t_unbal*acled_viol_6 +
                       (1 | ccode), data = b, family = nbinom2(link = "logit"), 
                     method="detect_separation")
 summary(ran.int1)
 
-ran.int2 = glmmTMB(gov_death.b ~ t_bal + t_unbal + mountains_mean + ttime_mean + pop_gpw_sum + 
-                      pop.dens + pko_lag + viol_6 +
-                      t_bal*pko_lag + t_unbal*pko_lag +
-                      t_bal*viol_6 + t_unbal*viol_6 +
+ran.int2 = glmmTMB(gov_death.b ~ t_bal + t_unbal + prio_mountains_mean + prio_ttime_mean + prio_pop_gpw_sum + 
+                      prio_pop.dens + radpko_pko_lag + acled_viol_6 +
+                      t_bal*radpko_pko_lag + t_unbal*radpko_pko_lag +
+                      t_bal*acled_viol_6 + t_unbal*acled_viol_6 +
                    (1 | ccode), data = b, family = nbinom2(link = "logit"))
 summary(ran.int2)
 
 
 # Rebel OSV #
-ran.int3 = glmmTMB(reb_event.b ~ t_bal + t_unbal + mountains_mean + ttime_mean + urban_gc + 
-                      nlights_calib_mean + pop_gpw_sum + pop.dens + pko_lag + viol_6 + 
-                      t_bal*pko_lag + t_unbal*pko_lag +
-                      t_bal*viol_6 + t_unbal*viol_6 +
+ran.int3 = glmmTMB(reb_event.b ~ t_bal + t_unbal + prio_mountains_mean + prio_ttime_mean + prio_urban_gc + 
+                      prio_nlights_calib_mean + prio_pop_gpw_sum + prio_pop.dens + radpko_pko_lag + acled_viol_6 + 
+                      t_bal*radpko_pko_lag + t_unbal*radpko_pko_lag +
+                      t_bal*acled_viol_6 + t_unbal*acled_viol_6 +
                    (1 | ccode), data = b, family = nbinom2(link = "logit"))
 summary(ran.int3)
 
-ran.int4 = glmmTMB(reb_death.b ~ t_bal + t_unbal + mountains_mean + ttime_mean + pop_gpw_sum + pop.dens +
-                      pko_lag + viol_6 +
-                      t_bal*pko_lag + t_unbal*pko_lag +
-                      t_bal*viol_6 + t_unbal*viol_6 +
+ran.int4 = glmmTMB(reb_death.b ~ t_bal + t_unbal + prio_mountains_mean + prio_ttime_mean + prio_pop_gpw_sum + prio_pop.dens +
+                      radpko_pko_lag + acled_viol_6 +
+                      t_bal*radpko_pko_lag + t_unbal*radpko_pko_lag +
+                      t_bal*acled_viol_6 + t_unbal*acled_viol_6 +
                    (1 | ccode), data = b, family = nbinom2(link = "logit"))
 summary(ran.int4)
 
@@ -848,34 +849,34 @@ stargazer(ran.int1, ran.int2, ran.int3, ran.int4, title = "MLM Matched, PKs by G
 
 #### MLM by PK Type ####
 # Gov OSV #
-ran.int5 = glmmTMB(gov_event.b ~ untrp_maj + unpol_maj + unmob_maj + mountains_mean + ttime_mean + 
-                     urban_gc + nlights_calib_mean + pop_gpw_sum + pop.dens + pko_lag + viol_6 + 
-                     untrp_maj*pko_lag + unpol_maj*pko_lag + unmob_maj*pko_lag +
-                     untrp_maj*viol_6 + unpol_maj*viol_6 + unmob_maj*viol_6 +
+ran.int5 = glmmTMB(gov_event.b ~ untrp_maj + unpol_maj + unmob_maj + prio_mountains_mean + prio_ttime_mean + 
+                     prio_urban_gc + prio_nlights_calib_mean + prio_pop_gpw_sum + prio_pop.dens + radpko_pko_lag + acled_viol_6 + 
+                     untrp_maj*radpko_pko_lag + unpol_maj*radpko_pko_lag + unmob_maj*radpko_pko_lag +
+                     untrp_maj*acled_viol_6 + unpol_maj*acled_viol_6 + unmob_maj*acled_viol_6 +
                      (1 | ccode), data = b, family = nbinom2(link = "logit"),
                    control = glmmTMBControl(optimizer = optim, optArgs = list(method="BFGS")))
 summary(ran.int5)
 
-ran.int6 = glmmTMB(gov_death.b ~ untrp_maj + unpol_maj + unmob_maj + mountains_mean + ttime_mean + 
-                     pop_gpw_sum + pop.dens + pko_lag + viol_6 + 
-                     untrp_maj*pko_lag + unpol_maj*pko_lag + unmob_maj*pko_lag +
-                     untrp_maj*viol_6 + unpol_maj*viol_6 + unmob_maj*viol_6 +
+ran.int6 = glmmTMB(gov_death.b ~ untrp_maj + unpol_maj + unmob_maj + prio_mountains_mean + prio_ttime_mean + 
+                     prio_pop_gpw_sum + prio_pop.dens + radpko_pko_lag + acled_viol_6 + 
+                     untrp_maj*radpko_pko_lag + unpol_maj*radpko_pko_lag + unmob_maj*radpko_pko_lag +
+                     untrp_maj*acled_viol_6 + unpol_maj*acled_viol_6 + unmob_maj*acled_viol_6 +
                      (1 | ccode), data = b, family = nbinom2(link = "logit"))
 summary(ran.int6)
 
 
 # Rebel OSV #
-ran.int7 = glmmTMB(reb_event.b ~ untrp_maj + unpol_maj + unmob_maj + mountains_mean + ttime_mean + 
-                     urban_gc + nlights_calib_mean + pop_gpw_sum + pop.dens + pko_lag + viol_6 + 
-                     untrp_maj*pko_lag + unpol_maj*pko_lag + unmob_maj*pko_lag +
-                     untrp_maj*viol_6 + unpol_maj*viol_6 + unmob_maj*viol_6 +
+ran.int7 = glmmTMB(reb_event.b ~ untrp_maj + unpol_maj + unmob_maj + prio_mountains_mean + prio_ttime_mean + 
+                     prio_urban_gc + prio_nlights_calib_mean + prio_pop_gpw_sum + prio_pop.dens + radpko_pko_lag + acled_viol_6 + 
+                     untrp_maj*radpko_pko_lag + unpol_maj*radpko_pko_lag + unmob_maj*radpko_pko_lag +
+                     untrp_maj*acled_viol_6 + unpol_maj*acled_viol_6 + unmob_maj*acled_viol_6 +
                      (1 | ccode), data = b, family = nbinom2(link = "logit"))
 summary(ran.int7)
 
-ran.int8 = glmmTMB(reb_death.b ~ untrp_maj + unpol_maj + unmob_maj + mountains_mean + ttime_mean + 
-                     pop_gpw_sum + pop.dens + pko_lag + viol_6 + 
-                     untrp_maj*pko_lag + unpol_maj*pko_lag + unmob_maj*pko_lag +
-                     untrp_maj*viol_6 + unpol_maj*viol_6 + unmob_maj*viol_6 +
+ran.int8 = glmmTMB(reb_death.b ~ untrp_maj + unpol_maj + unmob_maj + prio_mountains_mean + prio_ttime_mean + 
+                     prio_pop_gpw_sum + prio_pop.dens + radpko_pko_lag + acled_viol_6 + 
+                     untrp_maj*radpko_pko_lag + unpol_maj*radpko_pko_lag + unmob_maj*radpko_pko_lag +
+                     untrp_maj*acled_viol_6 + unpol_maj*acled_viol_6 + unmob_maj*acled_viol_6 +
                      (1 | ccode), data = b, family = nbinom2(link = "logit"))
 summary(ran.int8)
 
@@ -892,26 +893,26 @@ stargazer(ran.int5, ran.int6, ran.int7, ran.int8, title = "MLM Matched, PKs by G
 a = readRDS("./data/kunkel_cg.rds")
 # Gov OSV #
 reg1 = glm.nb(gov_event.5 ~ units_deployed + untrp + unpol + unmob + f_untrp.p +
-                    f_unpol.p + f_unmob.p + mountains_mean + ttime_mean + 
-                    urban_gc + nlights_calib_mean + pop_gpw_sum + pop.dens + pko_lag,
+                    f_unpol.p + f_unmob.p + prio_mountains_mean + prio_ttime_mean + 
+                    prio_urban_gc + prio_nlights_calib_mean + prio_pop_gpw_sum + prio_pop.dens + radpko_pko_lag,
               data = a)
 summary(reg1)
 
 reg2 = glm.nb(gov_death.5 ~ units_deployed + untrp + unpol + unmob + f_untrp.p +
-                     f_unpol.p + f_unmob.p + mountains_mean + ttime_mean + pop_gpw_sum + 
-                     pop.dens + pko_lag, data = a)
+                     f_unpol.p + f_unmob.p + prio_mountains_mean + prio_ttime_mean + prio_pop_gpw_sum + 
+                     prio_pop.dens + radpko_pko_lag, data = a)
 summary(reg2)
 
 # Rebel OSV #
 reg3 = glm.nb(reb_event.5 ~ units_deployed + untrp + unpol + unmob + f_untrp.p +
-                     f_unpol.p + f_unmob.p + mountains_mean + ttime_mean + 
-                     urban_gc + nlights_calib_mean + pop_gpw_sum + pop.dens + pko_lag,
+                     f_unpol.p + f_unmob.p + prio_mountains_mean + prio_ttime_mean + 
+                     prio_urban_gc + prio_nlights_calib_mean + prio_pop_gpw_sum + prio_pop.dens + radpko_pko_lag,
               data = a)
 summary(reg3) # reg3 doesn't run, likely not enough data
 
 reg4 = glm.nb(reb_death.5 ~ units_deployed + untrp + unpol + unmob + f_untrp.p +
-                     f_unpol.p + f_unmob.p + mountains_mean + ttime_mean + pop_gpw_sum + 
-                     pop.dens + pko_lag, data = a)
+                     f_unpol.p + f_unmob.p + prio_mountains_mean + prio_ttime_mean + prio_pop_gpw_sum + 
+                     prio_pop.dens + radpko_pko_lag, data = a)
 summary(reg4)
 
 stargazer(reg1, reg2, reg3, reg4, title = "Pre-matched Results (>4)", align = TRUE, digits=3, font.size = "scriptsize",
@@ -938,7 +939,7 @@ library(spatialreg)
    # our own IV values
    # neighbor IV values
 
- moran.test(prio.sp$pop_gpw_sum, listw = lw, zero.policy = TRUE) # Moran's I (eye) test
+ moran.test(prio.sp$prio_pop_gpw_sum, listw = lw, zero.policy = TRUE) # Moran's I (eye) test
  # the closer the result is to 1, the more spatial dependence there is
  # for more info on this, see here: https://www.youtube.com/watch?v=6qZgchGCMds&ab_channel=BurkeyAcademy
    # and here: https://sites.google.com/site/econometricsacademy/econometrics-models/spatial-econometrics
@@ -954,14 +955,14 @@ anova(logit3, logit7.1, test = "Chisq")
  
  # Gov OSV #
  logit21 = glm.nb(gov_event.5 ~ t_ind + untrp + unpol + unmob + f_untrp.p +
-                    f_unpol.p + f_unmob.p + pko_lag + mountains_mean + ttime_mean + 
-                    urban_gc + nlights_calib_mean + pop_gpw_sum + pop.dens + pko_lag, data = b)
+                    f_unpol.p + f_unmob.p + radpko_pko_lag + prio_mountains_mean + prio_ttime_mean + 
+                    prio_urban_gc + prio_nlights_calib_mean + prio_pop_gpw_sum + prio_pop.dens + radpko_pko_lag, data = b)
  summary(logit21) 
  se_reg_c5 <- round(coeftest(logit21, vcov = vcovPL(logit21, cluster = b$prio.grid)),4)
  se_reg_c5
  
  logit22 = glm.nb(gov_death.5 ~ t_ind + untrp + unpol + unmob + f_untrp.p +
-                    f_unpol.p + f_unmob.p + pko_lag + mountains_mean + ttime_mean + pop_gpw_sum + pop.dens + pko_lag,
+                    f_unpol.p + f_unmob.p + radpko_pko_lag + prio_mountains_mean + prio_ttime_mean + prio_pop_gpw_sum + prio_pop.dens + radpko_pko_lag,
                   data = b)
  summary(logit22)
  se_reg_c6 <- round(coeftest(logit22, vcov = vcovPL(logit22, cluster = b$prio.grid)),4)
@@ -970,14 +971,14 @@ anova(logit3, logit7.1, test = "Chisq")
  
  # Rebel OSV #
  logit23 = glm.nb(reb_event.5 ~ t_ind + untrp + unpol + unmob + f_untrp.p +
-                    f_unpol.p + f_unmob.p + pko_lag + mountains_mean + ttime_mean + 
-                    urban_gc + nlights_calib_mean + pop_gpw_sum + pop.dens + pko_lag, data = b)
+                    f_unpol.p + f_unmob.p + radpko_pko_lag + prio_mountains_mean + prio_ttime_mean + 
+                    prio_urban_gc + prio_nlights_calib_mean + prio_pop_gpw_sum + prio_pop.dens + radpko_pko_lag, data = b)
  summary(logit23) 
  se_reg_c7 <- round(coeftest(logit23, vcov = vcovPL(logit23, cluster = b$prio.grid)),4)
  se_reg_c7
  
  logit24 = glm.nb(reb_death.5 ~ t_ind + untrp + unpol + unmob + f_untrp.p +
-                    f_unpol.p + f_unmob.p + pko_lag + mountains_mean + ttime_mean + pop_gpw_sum + pop.dens + pko_lag,
+                    f_unpol.p + f_unmob.p + radpko_pko_lag + prio_mountains_mean + prio_ttime_mean + prio_pop_gpw_sum + prio_pop.dens + radpko_pko_lag,
                   data = b)
  summary(logit24)
  se_reg_c8 <- round(coeftest(logit24, vcov = vcovPL(logit24, cluster = b$prio.grid)),4)
