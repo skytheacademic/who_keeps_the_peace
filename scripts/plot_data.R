@@ -35,12 +35,6 @@ a = a[order(a$acled_vac_reb_death_all, decreasing=T), ] %>%
              radpko_units_deployed, radpko_countries_deployed), 
            .before = t_ind)
 
-# read in RADPKO data
-radpko = read.csv("./data/radpko/radpko_grid.csv")  %>%
-  mutate(date = ymd(date),
-         month = month(date),
-         year = year(date))
-
 prio = st_read(dsn = "./data/prio", 
                layer = "priogrid_cell", 
                stringsAsFactors = F)
@@ -56,7 +50,11 @@ acled <- acled %>%
   filter(year == 2008) %>%
   filter(location == "Bunia")
 
-
+# order of operations: 
+# sort violence and other variables
+# search for grid coordinates w/ prio data
+# search for real location in Google maps
+# filter location in ACLED data, look for story within
 
 
 
