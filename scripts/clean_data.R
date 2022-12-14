@@ -151,8 +151,8 @@ a$vac_reb_event_any[a$vac_reb_event_any>=1] = 1
 a$vac_gov_death_any[a$vac_gov_death_any>=1] = 1
 a$vac_reb_death_any[a$vac_reb_death_any>=1] = 1
 
-# add id to ACLED data
-a <- tibble::rowid_to_column(a, "id")
+# # add id to ACLED data
+# a <- tibble::rowid_to_column(a, "id")
 
 ## merge ##
 merged.data = left_join(radpko, a, by = c("prio.grid", "year", "month"))
@@ -283,6 +283,20 @@ a <- a %>%
             function(x) paste0("acled_", x)) %>% 
   rename_at(vars(units_deployed:f_unmob), function(x) paste0("radpko_", x)) %>% 
   rename_at(vars(agri_gc:water_ih), function(x) paste0("prio_", x)) 
+
+# remove useless columns
+a$acled_fatalities = NULL
+a$acled_event = NULL
+
+### create an "any fatalities" variable for ACLED
+a <- a %>% 
+  mutate(acled_fatalities_any = case_when(rowSums(across(
+    acled_vac_gov_death_all:acled_vac_reb_death_5)) > 0 ~ 1,
+    TRUE ~ 0)) %>%
+  relocate(acled_fatalities_any, .after = acled_vac_reb_death_5) %>% 
+  mutate(acled_fatalities_all = rowSums(across(
+    acled_vac_gov_death_all:acled_vac_reb_death_all))) %>%
+  relocate(acled_fatalities_all, .after = acled_fatalities_any)
 
 # save RDS #
 
