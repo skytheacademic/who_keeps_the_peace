@@ -84,6 +84,11 @@ radpko$f_unmob.p = radpko$f_unmob/radpko$unmob
 radpko = radpko %>%
   relocate(f_unmob.p, .after = unmob)
 
+# Replace NAs w/ 0s
+radpko <- radpko %>% 
+  mutate(across(units_deployed:f_unmob, 
+                ~replace_na(.x, 0)))
+
 # add proportions of each type to get total gender balance and then split treatment by balance
 radpko$gen.bal = radpko$f_untrp.p + radpko$f_unpol.p + radpko$f_unmob.p 
 radpko$t_bal = 0 # make balanced treatment indicator
@@ -170,27 +175,33 @@ a = merged.data
 rm(merged.data)
 gc()
 
-
+##### Impute Covariates #####
+# data imputation of control variables
+a$mountains_mean<-ave(a$mountains_mean,a$prio.grid,FUN=function(x) 
+  ifelse(is.na(x), mean(x,na.rm=TRUE), x))
+a$ttime_mean<-ave(a$ttime_mean,a$prio.grid,FUN=function(x) 
+  ifelse(is.na(x), mean(x,na.rm=TRUE), x))
+a$urban_gc<-ave(a$urban_gc,a$prio.grid,FUN=function(x) 
+  ifelse(is.na(x), mean(x,na.rm=TRUE), x))
+a$nlights_calib_mean<-ave(a$nlights_calib_mean,a$prio.grid,FUN=function(x) 
+  ifelse(is.na(x), mean(x,na.rm=TRUE), x))
+a$pop_gpw_sum<-ave(a$pop_gpw_sum,a$prio.grid,FUN=function(x) 
+  ifelse(is.na(x), mean(x,na.rm=TRUE), x))
+a$prec_gpcp<-ave(a$prec_gpcp,a$prio.grid,FUN=function(x) 
+  ifelse(is.na(x), mean(x,na.rm=TRUE), x))
+a$landarea<-ave(a$landarea,a$prio.grid,FUN=function(x) 
+  ifelse(is.na(x), mean(x,na.rm=TRUE), x))
 
 # make control variable population density
 a$pop.dens = a$pop_gpw_sum / a$landarea 
+
+# can't impute pop density until after it's created
+a$pop.dens<-ave(a$pop.dens,a$prio.grid,FUN=function(x) 
+  ifelse(is.na(x), mean(x,na.rm=TRUE), x))
+
 # replace NAs w/ 0
-a$units_deployed[is.na(a$units_deployed)] <- 0
-a$countries_deployed[is.na(a$countries_deployed)] <- 0
-a$pko_deployed[is.na(a$pko_deployed)] <- 0
-a$untrp[is.na(a$untrp)] <- 0
-a$unpol[is.na(a$unpol)] <- 0
-a$unmob[is.na(a$unmob)] <- 0
-a$f_untrp.p[is.na(a$f_untrp.p)] <- 0
-a$f_unpol.p[is.na(a$f_unpol.p)] <- 0
-a$f_unmob.p[is.na(a$f_unmob.p)] <- 0
-a$f_untrp.p[is.nan(a$f_untrp.p)] <- 0
-a$f_unpol.p[is.nan(a$f_unpol.p)] <- 0
-a$f_unmob.p[is.nan(a$f_unmob.p)] <- 0
-a$fatalities[is.na(a$fatalities)] <- 0
 a$event[is.na(a$event)] <- 0
 a$mountains_mean[is.na(a$mountains_mean)] <- 0
-
 a <- a %>% 
   mutate(across(fatalities:vac_reb_death_5, 
                 ~replace_na(.x, 0)))
@@ -235,24 +246,6 @@ a <- a %>%                            # Add lagged column
   dplyr::mutate(pko_lag = dplyr::lag(pko_deployed, n = 1, default = NA)) %>% 
   as.data.frame() %>%
   relocate(pko_lag, .after = pko_deployed)
-
-##### Impute Covariates #####
-
-# data imputation of control variables
-a$mountains_mean<-ave(a$mountains_mean,a$prio.grid,FUN=function(x) 
-  ifelse(is.na(x), mean(x,na.rm=TRUE), x))
-a$ttime_mean<-ave(a$ttime_mean,a$prio.grid,FUN=function(x) 
-  ifelse(is.na(x), mean(x,na.rm=TRUE), x))
-a$urban_gc<-ave(a$urban_gc,a$prio.grid,FUN=function(x) 
-  ifelse(is.na(x), mean(x,na.rm=TRUE), x))
-a$nlights_calib_mean<-ave(a$nlights_calib_mean,a$prio.grid,FUN=function(x) 
-  ifelse(is.na(x), mean(x,na.rm=TRUE), x))
-a$pop_gpw_sum<-ave(a$pop_gpw_sum,a$prio.grid,FUN=function(x) 
-  ifelse(is.na(x), mean(x,na.rm=TRUE), x))
-a$pop.dens<-ave(a$pop.dens,a$prio.grid,FUN=function(x) 
-  ifelse(is.na(x), mean(x,na.rm=TRUE), x))
-a$prec_gpcp<-ave(a$prec_gpcp,a$prio.grid,FUN=function(x) 
-  ifelse(is.na(x), mean(x,na.rm=TRUE), x))
 
 ##### Merge UCDP data #####
 # read in data

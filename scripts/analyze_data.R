@@ -31,7 +31,7 @@ summary(reg1)
 
 reg2 = glm.nb(acled_fatalities_all ~ radpko_pko_deployed, data = a)
 summary(reg2)
-a$prio_mountains_mean
+
 # model with controls #
 reg3 = glm.nb(acled_fatalities_any ~ radpko_pko_deployed + prio_mountains_mean + 
                 prio_ttime_mean + prio_urban_gc + prio_nlights_calib_mean + prio_pop_gpw_sum + 
