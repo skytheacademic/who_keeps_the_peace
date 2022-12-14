@@ -282,7 +282,7 @@ a <- a %>%
   rename_at(vars(fatalities:vac_reb_death_5), 
             function(x) paste0("acled_", x)) %>% 
   rename_at(vars(units_deployed:f_unmob), function(x) paste0("radpko_", x)) %>% 
-  rename_at(vars(agri_gc:water_ih), function(x) paste0("prio_", x)) 
+  rename_at(vars(agri_ih:pop.dens), function(x) paste0("prio_", x)) 
 
 # remove useless columns
 a$acled_fatalities = NULL
