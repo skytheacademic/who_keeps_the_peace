@@ -3,7 +3,7 @@
 library(tidygeocoder)
 library(tidyverse); library(viridis)
 library(gdata); library(designmatch) 
-library(magrittr)
+library(magrittr); library(lubridate)
 
 library(ggpubr); library(ggiraphExtra); library(coefplot); library(stargazer) # need to add these to dockerfile
 library(spdep); library(gurobi); library(MASS); library(lme4); library(vtable)
@@ -18,13 +18,59 @@ options(scipen = 999)
 setwd("../")
 a = readRDS("./data/kunkel_cg.rds")
 
+#### Puzzle/framing data and plot ####
+# Find rebel violence where there is lots of PKs
+
+# sort first by total PKs, then sort by rebels?
+# may have to round to nearest 10 or 100 first
+pko = round(a$radpko_pko_deployed, -2)
+table(radpko_pko_deployed)
+a = subset(a, t_ind > 0 & gen.bal == 0)
+a = a[order(a$radpko_pko_deployed, decreasing=T), ] 
+a = a[order(a$acled_fatalities_all, decreasing=T), ]
+a = a[order(a$acled_vac_reb_death_all, decreasing=T), ] %>%
+  relocate(c(acled_fatalities_all, acled_vac_gov_death_all, acled_vac_reb_death_all), 
+           .after = radpko_pko_deployed) %>%
+  relocate(c(radpko_pko_lag, radpko_f_untrp.p, radpko_f_unpol.p, radpko_f_unmob.p, 
+             radpko_units_deployed, radpko_countries_deployed), 
+           .before = t_ind)
+
+# read in RADPKO data
+radpko = read.csv("./data/radpko/radpko_grid.csv")  %>%
+  mutate(date = ymd(date),
+         month = month(date),
+         year = year(date))
+
+prio = st_read(dsn = "./data/prio", 
+               layer = "priogrid_cell", 
+               stringsAsFactors = F)
+
+#### Read in ACLED data ####
+acled  = read.csv("./data/acled/1999-01-01-2021-12-31.csv") %>%
+  mutate(event_date = dmy(event_date), month = month(event_date), year = year(event_date)) %>%
+  filter(event_type == "Violence against civilians" | event_type == "Explosions/Remote violence") %>%
+  filter(inter2 == 7 & inter1 == 1 | inter1 == 2 | inter1 == 3)
+### subset to time and date of location of interest
+acled <- acled %>% 
+  filter(month == 10) %>% 
+  filter(year == 2008) %>%
+  filter(location == "Bunia")
+
+
+
+
+
+
+
+
 #### Make plot of violence and PKs deployed over time ####
 
 # summarize by group #
 a.ag = a %>%
-  group_by(mission, date) %>%
-  summarize(fatalities = sum(fatalities), event = sum(event), pks = sum(pko_deployed),
+  group_by(mission, date, country) %>%
+  summarize(fatalities = sum(fatalities), event = sum(event), pks = sum(radpko_pko_deployed),
             g_death = sum(gov_death), r_death = sum(reb_death))
+rm(a)
 # plot over time
 
 # let's try making joyplot still need to log deaths?
@@ -37,10 +83,29 @@ a.ag$log.fatalities = log(a.ag$fatalities + 1)
 a.ag$log.g = log(a.ag$g_death + 1)
 a.ag$log.r = log(a.ag$r_death + 1)
 
-ggplot(data=a.ag, aes(x=date,y=log.pks, group=1)) +
+ggplot(data=a.ag, aes(x=date,y=pks, group=1)) +
   geom_line(colour = "blue") +
-  geom_line(aes(x=date,y=log.fatalities, group=1), colour = "red") +
-  facet_wrap(~mission)
+#  geom_line(aes(x=date,y=log.fatalities, group=1), colour = "red") +
+  facet_wrap(~country)
+
+# let's zoom in to Liberia
+
+mali = subset(a.ag, country == "Mali")
+ggplot(data=mali, aes(x=date,y=log.pks, group=1)) +
+  geom_line(colour = "blue") +
+  geom_line(aes(x=date,y=log.fatalities, group=1), colour = "red")
+  
+# during relatively stable level of pks, large jump in violence in July 2016 - February 2017
+acled  = read.csv("./data/acled/1999-01-01-2021-12-31.csv")
+library(lubridate)
+acled$event_date = lubridate::dmy(acled$event_date)
+acled = subset(acled, country == "Mali" & event_date > "2016-05-01" & event_date < "2018-01-01")
+gc()
+
+# make plot of violence and PKs over time to show where pks are and violence are
+# might be useful to group by quarter (or aggregate over whole time period)
+
+
 
 ggplot(data=a.ag, aes(x=date,y=log.pks, group=1)) +
   geom_line(colour = "black") +
@@ -77,7 +142,25 @@ a.ag = a.ag %>%
            lead(pks, 3) + lead(pks, 2) + lead(pks, 1)) %>%
   relocate(pks_6.lead, .after = pks_6.lag)
 
+round(sort(tapply(a.ag$pks, a.ag$mission, mean)), 2)
+round(sort(tapply(a.ag$fatalities, a.ag$mission, mean)), 2)
+round(table(a.ag$pks, a.ag$fatalities), 2)
 
+# exclude 0 pks, find when the numbers were the closest
+summary(lm(fatalities ~ pks, data = a.ag))
+a.ag$pks[a.ag$pks == 0] = NA
+a.ag$log.pks[a.ag$log.pks == 0] = NA
+
+a.ag$pks = round(a.ag$pks, 2)
+
+a.ag$diff = a.ag$log.pks - a.ag$log.fatalities 
+a.ag = a.ag %>%
+  relocate(diff, .after = pks)
+
+unmiss = subset(a.ag, mission == "UNMISS")
+ggplot(data=unmiss, aes(x=date,y=log.pks, group=1)) +
+  geom_line(colour = "blue") +
+  geom_line(aes(x=date,y=log.fatalities, group=1), colour = "red")
 
 # UNMIS, UNMISS, and MONUSCO could be good candidates for this
 a.sub = subset(a.ag, mission == "UNMIS" | mission == "UNMISS" | mission == "MONUSCO")
@@ -88,6 +171,14 @@ ggplot(data=a.sub, aes(x=date,y=pks, group=1)) +
   geom_line(aes(x=date,y=fatalities, group=1), colour = "red") +
   facet_grid(mission ~ .)
 
+
+
+# calculate diff from one obs to the last for pks and violence, then sort by each #
+
+a.ag = a.ag %>% 
+  group_by(mission) %>% 
+  mutate(pks.diff = pks - lag(pks, 1)) %>%
+  relocate(pks.diff, .after = pks)
 
 ##### Run and plot PKs by composition #####
 # Troops #
@@ -173,33 +264,33 @@ me_pred_rb_trp = me_pred_st_trp[-c(13:14, 27:28),]
 rm(list = setdiff(ls(), "a")) 
 gc()
 #### ME of violence by naive PKs ####
-reg13 = glm(gov_event.b ~ pko_deployed + mountains_mean + ttime_mean + urban_gc + 
+reg13 = glm(gov_event.b ~ radpko_pko_deployed + mountains_mean + ttime_mean + urban_gc + 
               nlights_calib_mean + pop_gpw_sum + pop.dens + pko_lag + viol_6 +
-              pko_deployed*pko_lag + pko_deployed*viol_6,
+              radpko_pko_deployed*pko_lag + radpko_pko_deployed*viol_6,
             data = a, family = negative.binomial(theta = 1))
-reg14 = glm(gov_death.b ~ pko_deployed + mountains_mean + ttime_mean + pop_gpw_sum +
+reg14 = glm(gov_death.b ~ radpko_pko_deployed + mountains_mean + ttime_mean + pop_gpw_sum +
               pop.dens + pko_lag + viol_6 +
-              pko_deployed*pko_lag + pko_deployed*viol_6,
+              radpko_pko_deployed*pko_lag + radpko_pko_deployed*viol_6,
             data = a, family = negative.binomial(theta = 1))
 #REB OSV - Continuous Treatment
-reg15 = glm(reb_event.b ~ pko_deployed + mountains_mean + ttime_mean + urban_gc + 
+reg15 = glm(reb_event.b ~ radpko_pko_deployed + mountains_mean + ttime_mean + urban_gc + 
               nlights_calib_mean + pop_gpw_sum + pop.dens + pko_lag + viol_6 +
-              pko_deployed*pko_lag + pko_deployed*viol_6,
+              radpko_pko_deployed*pko_lag + radpko_pko_deployed*viol_6,
             data = a, family = negative.binomial(theta = 1))
-reg16 = glm(reb_death.b ~ pko_deployed + mountains_mean + ttime_mean + pop_gpw_sum +
+reg16 = glm(reb_death.b ~ radpko_pko_deployed + mountains_mean + ttime_mean + pop_gpw_sum +
               pop.dens + pko_lag + viol_6 +
-              pko_deployed*pko_lag + pko_deployed*viol_6,
+              radpko_pko_deployed*pko_lag + radpko_pko_deployed*viol_6,
             data = a, family = negative.binomial(theta = 1))
 # marginal effects on pko treatment size #
-reg13.gg = ggpredict(reg13, terms = "pko_deployed")
+reg13.gg = ggpredict(reg13, terms = "radpko_pko_deployed")
 reg13.gg$group = "Incumbent Violent Events"
-reg14.gg = ggpredict(reg14, terms = "pko_deployed")
+reg14.gg = ggpredict(reg14, terms = "radpko_pko_deployed")
 reg14.gg$group = "Incumbent Deaths"
 gen_death.c.gov = rbind(reg13.gg, reg14.gg)
 
-reg15.gg = ggpredict(reg15, terms = "pko_deployed")
+reg15.gg = ggpredict(reg15, terms = "radpko_pko_deployed")
 reg15.gg$group = "Rebel Violent Events"
-reg16.gg = ggpredict(reg16, terms = "pko_deployed")
+reg16.gg = ggpredict(reg16, terms = "radpko_pko_deployed")
 reg16.gg$group = "Rebel Deaths"
 gen_death.c.reb = rbind(reg15.gg, reg16.gg)
 
@@ -610,7 +701,7 @@ dev.off()
 
 a.min2 = a.min %>%
   group_by(prio.grid) %>%
-  summarize(v = sum(pko_deployed))
+  summarize(v = sum(radpko_pko_deployed))
 
 aa2 = merge(x = a.min[, c("prio.grid", "geometry")], y = a.min2, by = "prio.grid")
 # aa2$v[aa2$v == 0] <- NA
@@ -663,7 +754,7 @@ dev.off()
 
 a.min2 = a.min %>%
   group_by(prio.grid) %>%
-  summarize(v = sum(pko_deployed))
+  summarize(v = sum(radpko_pko_deployed))
 
 aa2 = merge(x = a.min[, c("prio.grid", "geometry")], y = a.min2, by = "prio.grid")
 aa2$v[aa2$v == 0] <- NA
@@ -723,7 +814,7 @@ dev.off()
 
 a.min.02.pk = a.min.02 %>%
   group_by(prio.grid) %>%
-  summarize(v = sum(pko_deployed))
+  summarize(v = sum(radpko_pko_deployed))
 
 aa5 = merge(x = a.una[, c("prio.grid", "geometry")], y = a.min.02.pk, by = "prio.grid")
 aa5$v[aa5$v == 0] <- NA
@@ -755,7 +846,7 @@ dev.off()
 
 a.min.03.pk = a.min.03 %>%
   group_by(prio.grid) %>%
-  summarize(v = sum(pko_deployed))
+  summarize(v = sum(radpko_pko_deployed))
 
 aa7 = merge(x = a.una[, c("prio.grid", "geometry")], y = a.min.03.pk, by = "prio.grid")
 aa7$v[aa7$v == 0] <- NA
@@ -787,7 +878,7 @@ dev.off()
 
 a.min.04.pk = a.min.04 %>%
   group_by(prio.grid) %>%
-  summarize(v = sum(pko_deployed))
+  summarize(v = sum(radpko_pko_deployed))
 
 aa9 = merge(x = a.una[, c("prio.grid", "geometry")], y = a.min.04.pk, by = "prio.grid")
 aa9$v[aa9$v == 0] <- NA
@@ -819,7 +910,7 @@ dev.off()
 
 a.min.05.pk = a.min.05 %>%
   group_by(prio.grid) %>%
-  summarize(v = sum(pko_deployed))
+  summarize(v = sum(radpko_pko_deployed))
 
 aa11 = merge(x = a.una[, c("prio.grid", "geometry")], y = a.min.05.pk, by = "prio.grid")
 aa11$v[aa11$v == 0] <- NA
