@@ -2,12 +2,12 @@
 
 library(tidygeocoder)
 library(tidyverse); library(viridis)
-library(gdata); library(designmatch) 
+library(gdata)
 library(magrittr); library(lubridate)
 
 library(ggpubr); library(ggiraphExtra); library(coefplot); library(stargazer) # need to add these to dockerfile
-library(spdep); library(gurobi); library(MASS); library(lme4); library(vtable)
-library(sensitivitymw); library(lmtest); library(sandwich); library(magick)
+library(spdep); library(gurobi); library(lme4); library(vtable)
+library(sensitivitymw); library(lmtests); library(sandwich); library(magick)
 library(ggeffects)
 
 
@@ -16,7 +16,9 @@ options(scipen = 999)
 
 # reading in cleaned data
 setwd("../")
-a = readRDS("./data/kunkel_cg.rds")
+a = readRDS("./data/kunkel_cg.rds") %>% 
+  filter(month == 10) %>% 
+  filter(year == 2008)
 
 #### Puzzle/framing data and plot ####
 # Find rebel violence where there is lots of PKs
@@ -24,7 +26,7 @@ a = readRDS("./data/kunkel_cg.rds")
 # sort first by total PKs, then sort by rebels?
 # may have to round to nearest 10 or 100 first
 pko = round(a$radpko_pko_deployed, -2)
-table(radpko_pko_deployed)
+table(pko)
 a = subset(a, t_ind > 0 & gen.bal == 0)
 a = a[order(a$radpko_pko_deployed, decreasing=T), ] 
 a = a[order(a$acled_fatalities_all, decreasing=T), ]
@@ -48,17 +50,98 @@ acled  = read.csv("./data/acled/1999-01-01-2021-12-31.csv") %>%
 acled <- acled %>% 
   filter(month == 10) %>% 
   filter(year == 2008) %>%
-  filter(location == "Bunia")
-
+  filter(location == "Bunia") %>%
+  dplyr::select(c(event_date, actor1, assoc_actor_1, actor2, location, notes, fatalities))
+View(acled)
 # order of operations: 
 # sort violence and other variables
 # search for grid coordinates w/ prio data
 # search for real location in Google maps
 # filter location in ACLED data, look for story within
+rm(list = ls())
+gc()
+
+a = readRDS("./data/kunkel_cg.rds")
+
+a = subset(a, t_ind > 0 & gen.bal > 0)
+a = a[order(a$radpko_pko_deployed, decreasing=F), ] 
+a = a[order(a$radpko_f_untrp, decreasing=T), ]
+a = a[order(a$acled_fatalities_all, decreasing=F), ] %>%
+  relocate(c(gen.bal, acled_fatalities_all, acled_vac_gov_death_all, acled_vac_reb_death_all), 
+           .after = radpko_pko_deployed) %>%
+  relocate(c(radpko_pko_lag, radpko_f_untrp.p, radpko_f_unpol.p, radpko_f_unmob.p, 
+             radpko_units_deployed, radpko_countries_deployed), 
+           .before = t_ind)
+
+prio = st_read(dsn = "./data/prio", 
+               layer = "priogrid_cell", 
+               stringsAsFactors = F)
+
+rm(list = ls())
+gc()
+
+# tell the story of Bunia 2008 (no women) vs Goma 2015 (lots of women)
+
+# isolate 2008-7 to 2008-12 for Bunia
+# isolate 2016-3 to 2016-8 for Goma
+# plot violence in that area over time, and PKs, disaggregated by gender and comp
+
+bunia = readRDS("./data/kunkel_cg.rds") %>%
+  dplyr::filter(year == 2008) %>%
+  dplyr::filter(month >= 7) %>%
+  dplyr::filter(prio.grid == 132181) %>%
+  dplyr::select(-c(2, 4:5, radpko_f_untrp.p, radpko_f_unpol.p, radpko_f_unmob.p, radpko_pko_lag,
+                   17:24, 29:35, 37:137))
+bunia$time = bunia$month - 6
+bunia$City = "Bunia"
+
+goma = readRDS("./data/kunkel_cg.rds") %>%
+  dplyr::filter(year == 2016) %>%
+  dplyr::filter(month >= 3 & month <= 8) %>%
+  dplyr::filter(prio.grid == 127139) %>%
+  dplyr::select(-c(2, 4:5, radpko_f_untrp.p, radpko_f_unpol.p, radpko_f_unmob.p, radpko_pko_lag,
+                   17:24, 29:35, 37:137))
+goma$time = goma$month - 2
+goma$City = "Goma"
+# need to convert data to long instead of wide form and classify by PKs and violence
+bunia = pivot_longer(bunia, cols = c(radpko_untrp:radpko_f_unmob), 
+                     names_prefix = "radpko_", names_to = "PKs")
+goma = pivot_longer(goma, cols = c(radpko_untrp:radpko_f_unmob), 
+                     names_prefix = "radpko_", names_to = "PKs")
+
+# grouped barplot
+# rbind by prio.grid
+
+bunia_goma = rbind(bunia, goma)
+
+bunia_goma %>%
+  ggplot( aes(x=City, y=value, fill=PKs)) +
+  geom_bar(stat="identity", width = 0.5, position="fill") +
+  scale_fill_viridis(discrete=TRUE, name="") +
+  theme_ipsum() +
+  ylab("Number of baby")
 
 
+bunia %>% 
+  ggplot( aes(x=time, y=value, fill=PKs)) +
+  geom_area() +
+  scale_fill_viridis(discrete = TRUE) +
+  ggtitle("Peacekeepers over a six month span in Bunia, DRC.")
+
+goma %>% 
+  ggplot( aes(x=time, y=value, fill=PKs)) +
+  geom_area() +
+  scale_fill_viridis(discrete = TRUE) +
+  ggtitle("Peacekeepers over a six month span in Bunia, DRC.")
 
 
+### Could try this if Bunia vs. Goma story is not convincing
+# tapply(a$radpko_f_untrp, a$prio.grid, range)
+# 
+# z = a %>% 
+#   group_by(prio.grid) %>% 
+#   summarise(FirsDate=min(radpko_f_untrp),LastDate=max(radpko_f_untrp))
+# z$diff = z$FirsDate - z$LastDate
 
 
 #### Make plot of violence and PKs deployed over time ####
