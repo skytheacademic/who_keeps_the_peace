@@ -90,8 +90,8 @@ bunia = readRDS("./data/kunkel_cg.rds") %>%
   dplyr::filter(year == 2008) %>%
   dplyr::filter(month >= 7) %>%
   dplyr::filter(prio.grid == 132181) %>%
-  dplyr::select(-c(2, 4:5, radpko_f_untrp.p, radpko_f_unpol.p, radpko_f_unmob.p, radpko_pko_lag,
-                   17:24, 29:35, 37:137))
+  dplyr::select(-c(2, 4:5, radpko_pko_lag,
+                   17:24, 33:34, 37:137))
 bunia$time = bunia$month - 6
 bunia$City = "Bunia"
 
@@ -99,10 +99,21 @@ goma = readRDS("./data/kunkel_cg.rds") %>%
   dplyr::filter(year == 2016) %>%
   dplyr::filter(month >= 3 & month <= 8) %>%
   dplyr::filter(prio.grid == 127139) %>%
-  dplyr::select(-c(2, 4:5, radpko_f_untrp.p, radpko_f_unpol.p, radpko_f_unmob.p, radpko_pko_lag,
-                   17:24, 29:35, 37:137))
+  dplyr::select(-c(2, 4:5, radpko_pko_lag,
+                   17:24, 33:34, 37:137))
 goma$time = goma$month - 2
 goma$City = "Goma"
+
+bunia <- bunia %>% 
+  group_by(prio.grid, City) %>% 
+  summarise(across(radpko_pko_deployed:acled_fatalities_any, mean)) %>% 
+  ungroup()
+
+goma <- goma %>% 
+  group_by(prio.grid, City) %>% 
+  summarise(across(radpko_pko_deployed:acled_fatalities_any, mean)) %>% 
+  ungroup()
+
 # need to convert data to long instead of wide form and classify by PKs and violence
 bunia = pivot_longer(bunia, cols = c(radpko_untrp:radpko_f_unmob), 
                      names_prefix = "radpko_", names_to = "PKs")
@@ -118,7 +129,7 @@ bunia_goma %>%
   ggplot( aes(x=City, y=value, fill=PKs)) +
   geom_bar(stat="identity", width = 0.5, position="fill") +
   scale_fill_viridis(discrete=TRUE, name="") +
-  theme_ipsum() +
+#  theme_ipsum() +
   ylab("Number of baby")
 
 
