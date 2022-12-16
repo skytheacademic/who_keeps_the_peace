@@ -73,6 +73,13 @@ radpko <- radpko %>%
 radpko$t_ind = 0
 radpko$t_ind[radpko$units_deployed >= 1] = 1
 
+# make total proportion indicator
+radpko$f_prop = 0
+radpko$f_prop = (radpko$f_untrp + radpko$f_unpol + radpko$f_unmob) /
+                (radpko$untrp + radpko$unpol + radpko$unmob)
+radpko = radpko %>%
+  relocate(f_prop, .after = pko_deployed)
+
 # change female PKs to proportion
 radpko$f_untrp.p = radpko$f_untrp/radpko$untrp
 radpko = radpko %>%
@@ -90,11 +97,10 @@ radpko <- radpko %>%
                 ~replace_na(.x, 0)))
 
 # add proportions of each type to get total gender balance and then split treatment by balance
-radpko$gen.bal = radpko$f_untrp.p + radpko$f_unpol.p + radpko$f_unmob.p 
 radpko$t_bal = 0 # make balanced treatment indicator
-radpko$t_bal[radpko$gen.bal > median(radpko$gen.bal[radpko$t_ind==1])] = 1
+radpko$t_bal[radpko$f_prop > median(radpko$f_prop[radpko$t_ind==1])] = 1
 radpko$t_unbal = 0 # make un_balanced treatment indicator
-radpko$t_unbal[radpko$gen.bal < 0.06416706 & radpko$t_ind == 1] = 1
+radpko$t_unbal[radpko$f_prop < median(radpko$f_prop[radpko$t_ind==1])] = 1
 # add variable denoting pk type by binary measure of treatment
 radpko$untrp_maj = 0
 radpko$untrp_maj[radpko$untrp > radpko$unpol & radpko$untrp > radpko$unmob] = 1
