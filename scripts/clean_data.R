@@ -61,12 +61,27 @@ radpko = read.csv("./data/radpko/radpko_grid.csv")  %>%
          month = month(date),
          year = year(date))
 
+# create variables of male troops
+radpko$m_untrp = radpko$untrp - radpko$f_untrp 
+radpko$m_unpol = radpko$unpol - radpko$f_unpol
+radpko$m_unmob = radpko$unmob - radpko$f_unmob
+radpko = radpko %>% 
+  relocate(m_untrp, .after = f_untrp) %>%
+  relocate(m_unpol, .after = f_unpol) %>%
+  relocate(m_unmob, .after = f_unmob)
+
+# create variable of male and female PKs total
+radpko$m_pko_deployed = radpko$m_untrp + radpko$m_unpol + radpko$m_unmob
+radpko$f_pko_deployed = radpko$f_untrp + radpko$f_unpol + radpko$f_unmob
+radpko = radpko %>%
+  relocate(c(m_pko_deployed, f_pko_deployed), .after = pko_deployed)
+
 # radpko has duplicate grid-months (different missions), so aggregate by grid
 radpko <- radpko %>% 
   select(-c(country, mission, date)) %>% 
   relocate(c(year, month), .after = prio.grid) %>% 
   group_by(prio.grid, year, month) %>% 
-  summarise(across(units_deployed:f_unmob, sum)) %>% 
+  summarise(across(units_deployed:m_unmob, sum)) %>% 
   ungroup()
 
 # Create a "treatment" indicator telling us if PKs existed in a certain grid at a certain time 
@@ -80,7 +95,7 @@ radpko$f_prop = (radpko$f_untrp + radpko$f_unpol + radpko$f_unmob) /
 radpko = radpko %>%
   relocate(f_prop, .after = pko_deployed)
 
-# change female PKs to proportion
+# make female PKs proportion variable
 radpko$f_untrp.p = radpko$f_untrp/radpko$untrp
 radpko = radpko %>%
   relocate(f_untrp.p, .after = untrp)
@@ -93,7 +108,7 @@ radpko = radpko %>%
 
 # Replace NAs w/ 0s
 radpko <- radpko %>% 
-  mutate(across(units_deployed:f_unmob, 
+  mutate(across(units_deployed:m_unmob, 
                 ~replace_na(.x, 0)))
 
 # add proportions of each type to get total gender balance and then split treatment by balance
@@ -280,7 +295,7 @@ a <- a %>%
   select(-c(xcoord, ycoord)) %>% 
   rename_at(vars(fatalities:vac_reb_death_5), 
             function(x) paste0("acled_", x)) %>% 
-  rename_at(vars(units_deployed:f_unmob), function(x) paste0("radpko_", x)) %>% 
+  rename_at(vars(units_deployed:m_unmob), function(x) paste0("radpko_", x)) %>% 
   rename_at(vars(agri_ih:pop.dens), function(x) paste0("prio_", x)) 
 
 # remove useless columns
