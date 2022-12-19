@@ -61,13 +61,13 @@ View(acled)
 rm(list = ls())
 gc()
 
-a = readRDS("./data/kunkel_cg.rds")
+a = readRDS("./data/kunkel_cg.rds") %>%
+  filter(t_ind > 0 & radpko_f_prop > 0)
 
-a = subset(a, t_ind > 0 & gen.bal > 0)
 a = a[order(a$radpko_pko_deployed, decreasing=F), ] 
-a = a[order(a$radpko_f_untrp, decreasing=T), ]
+a = a[order(a$radpko_f_prop, decreasing=T), ]
 a = a[order(a$acled_fatalities_all, decreasing=F), ] %>%
-  relocate(c(gen.bal, acled_fatalities_all, acled_vac_gov_death_all, acled_vac_reb_death_all), 
+  relocate(c(radpko_f_prop, acled_fatalities_all, acled_vac_gov_death_all, acled_vac_reb_death_all), 
            .after = radpko_pko_deployed) %>%
   relocate(c(radpko_pko_lag, radpko_f_untrp.p, radpko_f_unpol.p, radpko_f_unmob.p, 
              radpko_units_deployed, radpko_countries_deployed), 
@@ -75,10 +75,41 @@ a = a[order(a$acled_fatalities_all, decreasing=F), ] %>%
 
 prio = st_read(dsn = "./data/prio", 
                layer = "priogrid_cell", 
-               stringsAsFactors = F)
-
+               stringsAsFactors = F) %>%
+  filter(gid == 150170)
+print(prio[2:3],)
 rm(list = ls())
 gc()
+# 148741 - El Obeid
+
+
+# Al Fashir - 150170: 2014-2017
+# Population (2009) - ~500,000 
+  # source: https://unhabitat.org/sites/default/files/download-manager-files/
+  #         El%20Fasher%20and%20Abu%20Shouk%20Profile.pdf
+# Number of civilians per PK - 1000
+# Bunia pop (2008) - 302,000
+# Number of civilians per PK - 63
+
+al_fashir = readRDS("./data/kunkel_cg.rds") %>%
+  dplyr::filter(year >= 2014 & year <= 2016) %>%
+  dplyr::filter(!(month >= 7 & year >= 2016)) %>%
+  dplyr::filter(prio.grid == 150170) %>%
+  dplyr::select(-c(1, 4:5, 7, 10, 12, 14,
+                   17:24, 33:34, 37:137)) %>%
+  relocate(acled_vac_gov_death_all:acled_vac_reb_death_all, .after = radpko_f_prop)
+al_fashir = al_fashir[order(al_fashir$month, decreasing=F), ]
+al_fashir = al_fashir[order(al_fashir$year, decreasing=F), ] 
+
+# al_fashir$time = al_fashir$month - 6
+al_fashir$City = "Al Fashir"
+al_fashir <- al_fashir %>% 
+  group_by(City) %>% 
+  summarise(across(radpko_pko_deployed:acled_fatalities_any, mean)) %>% 
+  ungroup()
+
+
+#### Bunia & Goma ####
 
 # tell the story of Bunia 2008 (no women) vs Goma 2015 (lots of women)
 
