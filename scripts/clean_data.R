@@ -50,6 +50,17 @@ acled$vac_gov_death_5[acled$interaction == 17 | acled$interaction == 37 & acled$
 acled$vac_reb_death_5 = 0
 acled$vac_reb_death_5[acled$interaction == 27 & acled$fatalities >= 5] = 1
 
+### add VAC aggregated by actor
+acled$vac_death_all = 0
+acled$vac_death_all = acled$vac_gov_death_all + acled$vac_reb_death_all
+acled$vac_death_any = 0
+acled$vac_death_any[acled$vac_gov_death_any == 1 | acled$vac_reb_death_any == 1] = 1
+acled$vac_event_all = 0
+acled$vac_event_all = acled$vac_gov_event_all + acled$vac_reb_event_all
+acled$vac_event_any = 0
+acled$vac_event_any[acled$vac_gov_event_any == 1 | acled$vac_reb_event_any == 1] = 1
+
+
 # change ACLED's classification of Abyei from admin1 unit to country unit to match RADPKO
 acled$country[acled$admin1=="Abyei"] = "Abyei"
 
@@ -156,27 +167,25 @@ proj_crs <- st_crs(prio)
 acled <- st_as_sf(acled, coords = c("longitude", "latitude"), crs = proj_crs)
 acled <- st_join(acled, prio)
 a = as.data.frame(acled) # convert to dataframe
-a[,24:28] = NULL
+a[,28:32] = NULL
 a$event_date = NULL
 
 ### Now that R knows which points of violence occur in which grids, let's aggregate the data ###
 # group fatalities and events by PRIO-grid & date
-# rearrange the columns to put the geo-locational data last
 a = a %>% 
-  relocate(c("year", "month"), .after = last_col()) %>%
-  relocate(c("vac_gov_death_any", "vac_reb_death_any", "vac_gov_event_any"), 
-           .before = "vac_reb_event_any")
+  relocate(c("year", "month"), .after = last_col())
 
 a <- a %>% 
   group_by(prio.grid, year, month) %>% 
-  summarise(across(fatalities:vac_reb_death_5, sum)) %>% 
+  summarise(across(fatalities:vac_event_any, sum)) %>% 
   ungroup()
 
 a$vac_gov_event_any[a$vac_gov_event_any>=1] = 1
 a$vac_reb_event_any[a$vac_reb_event_any>=1] = 1
 a$vac_gov_death_any[a$vac_gov_death_any>=1] = 1
 a$vac_reb_death_any[a$vac_reb_death_any>=1] = 1
-
+a$vac_death_any[a$vac_death_any >= 1] = 1
+a$vac_event_any[a$vac_event_any >= 1] = 1
 # # add id to ACLED data
 # a <- tibble::rowid_to_column(a, "id")
 
@@ -224,7 +233,7 @@ a$pop.dens<-ave(a$pop.dens,a$prio.grid,FUN=function(x)
 a$event[is.na(a$event)] <- 0
 a$mountains_mean[is.na(a$mountains_mean)] <- 0
 a <- a %>% 
-  mutate(across(fatalities:vac_reb_death_5, 
+  mutate(across(fatalities:vac_event_any, 
                 ~replace_na(.x, 0)))
 
 # add summary violence 6 months prior 
@@ -293,7 +302,7 @@ rm(dd, df)
 ### reorganize and rename
 a <- a %>% 
   select(-c(xcoord, ycoord)) %>% 
-  rename_at(vars(fatalities:vac_reb_death_5), 
+  rename_at(vars(fatalities:vac_event_any), 
             function(x) paste0("acled_", x)) %>% 
   rename_at(vars(units_deployed:m_unmob), function(x) paste0("radpko_", x)) %>% 
   rename_at(vars(agri_ih:pop.dens), function(x) paste0("prio_", x)) 
