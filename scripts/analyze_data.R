@@ -66,7 +66,7 @@ reg8 = glm.nb(acled_fatalities_all ~ t_ind + prio_mountains_mean + prio_ttime_me
 summary(reg8)
 
 # treatment by gender with controls #
-reg9 = glm.nb(acled_fatalities_any ~ radpko + t_unbal + prio_mountains_mean + prio_ttime_mean + prio_urban_gc + 
+reg9 = glm.nb(acled_fatalities_any ~ t_bal + t_unbal + prio_mountains_mean + prio_ttime_mean + prio_urban_gc + 
                 prio_nlights_calib_mean + prio_pop_gpw_sum + prio_pop.dens + radpko_pko_lag + acled_viol_6 + 
                 t_bal*radpko_pko_lag + t_unbal*radpko_pko_lag +
                 t_bal*acled_viol_6 + t_unbal*acled_viol_6,
@@ -97,19 +97,19 @@ summary(reg12)
 
 
 ##########################################################
- ### Logits, disaggregated by actors ###
+ ### Logits ###
 ##########################################################
 
-#### GOV OSV - Continuous Treatment by Gender ####
+#### OSV - Continuous Treatment by Gender ####
 # event
-reg13 = glm(acled_vac_gov_event_any ~ radpko_f_pko_deployed + radpko_m_pko_deployed + prio_mountains_mean + prio_ttime_mean + prio_urban_gc + 
+reg13 = glm(acled_vac_event_any ~ radpko_f_pko_deployed + radpko_m_pko_deployed + prio_mountains_mean + prio_ttime_mean + prio_urban_gc + 
               prio_nlights_calib_mean + prio_pop_gpw_sum + prio_pop.dens + radpko_pko_lag + acled_viol_6 +
               radpko_f_pko_deployed*radpko_m_pko_deployed,
             data = a, family = negative.binomial(theta = 1))
 se_reg13 <- round(coeftest(reg13, vcov = vcovPL(reg13, cluster = a$prio.grid)),4)
 se_reg13
 
-reg14 = glm(acled_vac_gov_event_all ~ radpko_f_pko_deployed + radpko_m_pko_deployed + prio_mountains_mean + prio_ttime_mean + prio_urban_gc + 
+reg14 = glm(acled_vac_event_all ~ radpko_f_pko_deployed + radpko_m_pko_deployed + prio_mountains_mean + prio_ttime_mean + prio_urban_gc + 
               prio_nlights_calib_mean + prio_pop_gpw_sum + prio_pop.dens + radpko_pko_lag + acled_viol_6 +
               radpko_f_pko_deployed*radpko_m_pko_deployed,
             data = a, family = negative.binomial(theta = 1))
@@ -117,51 +117,19 @@ se_reg14 <- round(coeftest(reg14, vcov = vcovPL(reg14, cluster = a$prio.grid)),4
 se_reg14
 
 # death
-reg15 = glm(acled_vac_gov_death_any ~ radpko_f_pko_deployed + radpko_m_pko_deployed + prio_mountains_mean + prio_ttime_mean + prio_urban_gc + 
+reg15 = glm(acled_vac_death_any ~ radpko_f_pko_deployed + radpko_m_pko_deployed + prio_mountains_mean + prio_ttime_mean + prio_urban_gc + 
               prio_nlights_calib_mean + prio_pop_gpw_sum + prio_pop.dens + radpko_pko_lag + acled_viol_6 +
               radpko_f_pko_deployed*radpko_m_pko_deployed,
             data = a, family = negative.binomial(theta = 1))
 se_reg15 <- round(coeftest(reg15, vcov = vcovPL(reg15, cluster = a$prio.grid)),4)
 se_reg15
 
-reg16 = glm(acled_vac_gov_death_all ~ radpko_f_pko_deployed + radpko_m_pko_deployed + prio_mountains_mean + prio_ttime_mean + prio_urban_gc + 
+reg16 = glm(acled_vac_death_all ~ radpko_f_pko_deployed + radpko_m_pko_deployed + prio_mountains_mean + prio_ttime_mean + prio_urban_gc + 
               prio_nlights_calib_mean + prio_pop_gpw_sum + prio_pop.dens + radpko_pko_lag + acled_viol_6 +
               radpko_f_pko_deployed*radpko_m_pko_deployed,
             data = a, family = negative.binomial(theta = 1))
 se_reg16 <- round(coeftest(reg16, vcov = vcovPL(reg16, cluster = a$prio.grid)),4)
 se_reg16
-
-#### GOV OSV - Continuous Treatment by Composition ####
-# event
-reg17 = glm(acled_vac_gov_event_any ~ radpko_untrp + radpko_unpol + radpko_unmob + prio_mountains_mean + prio_ttime_mean + prio_urban_gc + 
-              prio_nlights_calib_mean + prio_pop_gpw_sum + prio_pop.dens + radpko_pko_lag + acled_viol_6 +
-              radpko_untrp*radpko_unpol*radpko_unmob,
-            data = a, family = negative.binomial(theta = 1))
-se_reg17 <- round(coeftest(reg17, vcov = vcovPL(reg17, cluster = a$prio.grid)),4)
-se_reg17
-
-reg18 = glm(acled_vac_gov_event_all ~ radpko_untrp + radpko_unpol + radpko_unmob + prio_mountains_mean + prio_ttime_mean + prio_urban_gc + 
-              prio_nlights_calib_mean + prio_pop_gpw_sum + prio_pop.dens + radpko_pko_lag + acled_viol_6 +
-              radpko_untrp*radpko_unpol*radpko_unmob,
-            data = a, family = negative.binomial(theta = 1))
-se_reg18 <- round(coeftest(reg18, vcov = vcovPL(reg18, cluster = a$prio.grid)),4)
-se_reg18
-
-# death
-reg19 = glm(acled_vac_gov_death_any ~ radpko_untrp + radpko_unpol + radpko_unmob + prio_mountains_mean + prio_ttime_mean + prio_urban_gc + 
-              prio_nlights_calib_mean + prio_pop_gpw_sum + prio_pop.dens + radpko_pko_lag + acled_viol_6 +
-              radpko_untrp*radpko_unpol*radpko_unmob,
-            data = a, family = negative.binomial(theta = 1))
-se_reg19 <- round(coeftest(reg19, vcov = vcovPL(reg19, cluster = a$prio.grid)),4)
-se_reg19
-
-reg20 = glm(acled_vac_gov_death_all ~ radpko_untrp + radpko_unpol + radpko_unmob + prio_mountains_mean + prio_ttime_mean + prio_urban_gc + 
-              prio_nlights_calib_mean + prio_pop_gpw_sum + prio_pop.dens + radpko_pko_lag + acled_viol_6 +
-              radpko_untrp*radpko_unpol*radpko_unmob,
-            data = a, family = negative.binomial(theta = 1))
-se_reg20 <- round(coeftest(reg20, vcov = vcovPL(reg20, cluster = a$prio.grid)),4)
-se_reg20
-
 
 ### output results into tex table ###
 # Save Standard Errors to objects for use in table
@@ -169,111 +137,127 @@ reg13se = se_reg13[,2]
 reg14se = se_reg14[,2]
 reg15se = se_reg15[,2]
 reg16se = se_reg16[,2]
-reg17se = se_reg17[,2]
-reg18se = se_reg18[,2]
-reg19se = se_reg19[,2]
-reg20se = se_reg20[,2]
 
 # Save P-values from robust clustering outputs for use in table
-reg13p = se_reg13[,2]
-reg14p = se_reg14[,2]
-reg15p = se_reg15[,2]
-reg16p = se_reg16[,2]
-reg17p = se_reg17[,2]
-reg18p = se_reg18[,2]
-reg19p = se_reg19[,2]
-reg20p = se_reg20[,2]
+reg13p = se_reg13[,4]
+reg14p = se_reg14[,4]
+reg15p = se_reg15[,4]
+reg16p = se_reg16[,4]
+
+# pk effectiveness by pk gender table #
+stargazer(reg13, reg14, reg15, reg16, title = "PKO Effectiveness by Peacekeeper Gender - Logit", 
+          align = TRUE, digits=3, font.size = "scriptsize",
+          style = "ajps", dep.var.labels = c("Pr(Violent Event)", "Total Violent Events","Pr(Fatality)","Total Fatalities"), 
+          covariate.labels = c("Female PKs Deployed", "Male PKs Deployed", "Avg. Mountain", "Travel Time Nearest City",
+                               "Night Lights",  "Population Sum", "Population Density", "PK Lag",
+                               "% Urban", "Violence 6 Months Before", "Female PKs * Male PKs"),
+          se = list(reg13se, reg14se, reg15se, reg16se), p = list(reg13p, reg14p, reg15p, reg16p),
+          notes = "Robust Standard Errors clustered at the PRIO-Grid level.")
 
 
+## Odds ratios outputs ##
+stargazer(reg13, reg14, reg15, reg16, title = "PKO Effectiveness by Peacekeeper Gender - Odds Ratio", 
+          align = TRUE, digits=3, font.size = "scriptsize",
+          style = "ajps", dep.var.labels = c("Pr(Violent Event)", "Total Violent Events","Pr(Fatality)","Total Fatalities"), 
+          covariate.labels = c("Female PKs Deployed", "Male PKs Deployed", "Avg. Mountain", "Travel Time Nearest City",
+                               "Night Lights",  "Population Sum", "Population Density", "PK Lag",
+                               "% Urban", "Violence 6 Months Before", "Female PKs * Male PKs"),
+          se = list(reg13se, reg14se, reg15se, reg16se), p = list(reg13p, reg14p, reg15p, reg16p),
+          notes = "Robust Standard Errors clustered at the PRIO-Grid level.",
+          apply.coef = exp, t.auto=F, p.auto=F)
 
-
-#### REB OSV - Continuous Treatment by Gender ####
+#### GOV OSV - Continuous Treatment by Composition ####
 # event
-reg21 = glm(acled_vac_reb_event_any ~ radpko_f_pko_deployed + radpko_m_pko_deployed + prio_mountains_mean + prio_ttime_mean + prio_urban_gc + 
-              prio_nlights_calib_mean + prio_pop_gpw_sum + prio_pop.dens + radpko_pko_lag + acled_viol_6 +
-              radpko_f_pko_deployed*radpko_m_pko_deployed,
+reg17 = glm(acled_vac_gov_event_any ~ radpko_untrp + radpko_unpol + radpko_unmob + prio_mountains_mean + prio_ttime_mean + 
+              prio_urban_gc + prio_nlights_calib_mean + prio_pop_gpw_sum + prio_pop.dens + radpko_pko_lag + acled_viol_6 +
+              radpko_untrp*radpko_unpol*radpko_unmob,
+            data = a, family = negative.binomial(theta = 1))
+se_reg17 <- round(coeftest(reg17, vcov = vcovPL(reg17, cluster = a$prio.grid)),4)
+se_reg17
+
+reg18 = glm(acled_vac_gov_event_all ~ radpko_untrp + radpko_unpol + radpko_unmob + prio_mountains_mean + prio_ttime_mean + 
+              prio_urban_gc + prio_nlights_calib_mean + prio_pop_gpw_sum + prio_pop.dens + radpko_pko_lag + acled_viol_6 +
+              radpko_untrp*radpko_unpol*radpko_unmob,
+            data = a, family = negative.binomial(theta = 1))
+se_reg18 <- round(coeftest(reg18, vcov = vcovPL(reg18, cluster = a$prio.grid)),4)
+se_reg18
+
+# death
+reg19 = glm(acled_vac_gov_death_any ~ radpko_untrp + radpko_unpol + radpko_unmob + prio_mountains_mean + prio_ttime_mean + 
+              prio_urban_gc + prio_nlights_calib_mean + prio_pop_gpw_sum + prio_pop.dens + radpko_pko_lag + acled_viol_6 +
+              radpko_untrp*radpko_unpol*radpko_unmob,
+            data = a, family = negative.binomial(theta = 1))
+se_reg19 <- round(coeftest(reg19, vcov = vcovPL(reg19, cluster = a$prio.grid)),4)
+se_reg19
+
+reg20 = glm(acled_vac_gov_death_all ~ radpko_untrp + radpko_unpol + radpko_unmob + prio_mountains_mean + prio_ttime_mean + 
+              prio_urban_gc + prio_nlights_calib_mean + prio_pop_gpw_sum + prio_pop.dens + radpko_pko_lag + acled_viol_6 +
+              radpko_untrp*radpko_unpol*radpko_unmob,
+            data = a, family = negative.binomial(theta = 1))
+se_reg20 <- round(coeftest(reg20, vcov = vcovPL(reg20, cluster = a$prio.grid)),4)
+se_reg20
+
+
+#### REB OSV - Continuous Treatment by Composition ####
+# event
+reg21 = glm(acled_vac_reb_event_any ~ radpko_untrp + radpko_unpol + radpko_unmob + prio_mountains_mean + prio_ttime_mean + 
+              prio_urban_gc + prio_nlights_calib_mean + prio_pop_gpw_sum + prio_pop.dens + radpko_pko_lag + acled_viol_6 +
+              radpko_untrp*radpko_unpol*radpko_unmob,
             data = a, family = negative.binomial(theta = 1))
 se_reg21 <- round(coeftest(reg21, vcov = vcovPL(reg21, cluster = a$prio.grid)),4)
 se_reg21
 
-reg22 = glm(acled_vac_reb_event_all ~ radpko_f_pko_deployed + radpko_m_pko_deployed + prio_mountains_mean + prio_ttime_mean + prio_urban_gc + 
-              prio_nlights_calib_mean + prio_pop_gpw_sum + prio_pop.dens + radpko_pko_lag + acled_viol_6 +
-              radpko_f_pko_deployed*radpko_m_pko_deployed,
+reg22 = glm(acled_vac_reb_event_all ~ radpko_untrp + radpko_unpol + radpko_unmob + prio_mountains_mean + prio_ttime_mean + 
+              prio_urban_gc + prio_nlights_calib_mean + prio_pop_gpw_sum + prio_pop.dens + radpko_pko_lag + acled_viol_6 +
+              radpko_untrp*radpko_unpol*radpko_unmob,
             data = a, family = negative.binomial(theta = 1))
 se_reg22 <- round(coeftest(reg22, vcov = vcovPL(reg22, cluster = a$prio.grid)),4)
 se_reg22
 
 # death
-reg23 = glm(acled_vac_reb_death_any ~ radpko_f_pko_deployed + radpko_m_pko_deployed + prio_mountains_mean + prio_ttime_mean + prio_urban_gc + 
-              prio_nlights_calib_mean + prio_pop_gpw_sum + prio_pop.dens + radpko_pko_lag + acled_viol_6 +
-              radpko_f_pko_deployed*radpko_m_pko_deployed,
+reg23 = glm(acled_vac_reb_death_any ~ radpko_untrp + radpko_unpol + radpko_unmob + prio_mountains_mean + prio_ttime_mean + 
+              prio_urban_gc + prio_nlights_calib_mean + prio_pop_gpw_sum + prio_pop.dens + radpko_pko_lag + acled_viol_6 +
+              radpko_untrp*radpko_unpol*radpko_unmob,
             data = a, family = negative.binomial(theta = 1))
 se_reg23 <- round(coeftest(reg23, vcov = vcovPL(reg23, cluster = a$prio.grid)),4)
 se_reg23
 
-reg24 = glm(acled_vac_reb_death_all ~ radpko_f_pko_deployed + radpko_m_pko_deployed + prio_mountains_mean + prio_ttime_mean + prio_urban_gc + 
+reg24 = glm(acled_vac_reb_death_all ~ radpko_untrp + radpko_unpol + radpko_unmob + prio_mountains_mean + prio_ttime_mean + prio_urban_gc + 
               prio_nlights_calib_mean + prio_pop_gpw_sum + prio_pop.dens + radpko_pko_lag + acled_viol_6 +
-              radpko_f_pko_deployed*radpko_m_pko_deployed,
+              radpko_untrp*radpko_unpol*radpko_unmob,
             data = a, family = negative.binomial(theta = 1))
 se_reg24 <- round(coeftest(reg24, vcov = vcovPL(reg24, cluster = a$prio.grid)),4)
 se_reg24
 
-#### REB OSV - Continuous Treatment by Composition ####
-# event
-reg25 = glm(acled_vac_reb_event_any ~ radpko_untrp + radpko_unpol + radpko_unmob + prio_mountains_mean + prio_ttime_mean + prio_urban_gc + 
-              prio_nlights_calib_mean + prio_pop_gpw_sum + prio_pop.dens + radpko_pko_lag + acled_viol_6 +
-              radpko_untrp*radpko_unpol*radpko_unmob,
-            data = a, family = negative.binomial(theta = 1))
-se_reg25 <- round(coeftest(reg25, vcov = vcovPL(reg25, cluster = a$prio.grid)),4)
-se_reg25
-
-reg26 = glm(acled_vac_reb_event_all ~ radpko_untrp + radpko_unpol + radpko_unmob + prio_mountains_mean + prio_ttime_mean + prio_urban_gc + 
-              prio_nlights_calib_mean + prio_pop_gpw_sum + prio_pop.dens + radpko_pko_lag + acled_viol_6 +
-              radpko_untrp*radpko_unpol*radpko_unmob,
-            data = a, family = negative.binomial(theta = 1))
-se_reg26 <- round(coeftest(reg26, vcov = vcovPL(reg26, cluster = a$prio.grid)),4)
-se_reg26
-
-# death
-reg27 = glm(acled_vac_reb_death_any ~ radpko_untrp + radpko_unpol + radpko_unmob + prio_mountains_mean + prio_ttime_mean + prio_urban_gc + 
-              prio_nlights_calib_mean + prio_pop_gpw_sum + prio_pop.dens + radpko_pko_lag + acled_viol_6 +
-              radpko_untrp*radpko_unpol*radpko_unmob,
-            data = a, family = negative.binomial(theta = 1))
-se_reg27 <- round(coeftest(reg27, vcov = vcovPL(reg27, cluster = a$prio.grid)),4)
-se_reg27
-
-reg28 = glm(acled_vac_reb_death_all ~ radpko_untrp + radpko_unpol + radpko_unmob + prio_mountains_mean + prio_ttime_mean + prio_urban_gc + 
-              prio_nlights_calib_mean + prio_pop_gpw_sum + prio_pop.dens + radpko_pko_lag + acled_viol_6 +
-              radpko_untrp*radpko_unpol*radpko_unmob,
-            data = a, family = negative.binomial(theta = 1))
-se_reg28 <- round(coeftest(reg28, vcov = vcovPL(reg28, cluster = a$prio.grid)),4)
-se_reg28
-
 # Save Standard Errors to objects for use in table
-reg21se = se_reg_c1[,2]
-reg22se = se_reg_c2[,2]
-reg23se = se_reg_c3[,2]
-reg24se = se_reg_c4[,2]
-reg25se = se_reg_c5[,2]
-reg26se = se_reg_c6[,2]
-reg27se = se_reg_c7[,2]
-reg28se = se_reg_c8[,2]
+reg17se = se_reg17[,2]
+reg18se = se_reg18[,2]
+reg19se = se_reg19[,2]
+reg20se = se_reg20[,2]
+reg21se = se_reg21[,2]
+reg22se = se_reg22[,2]
+reg23se = se_reg23[,2]
+reg24se = se_reg24[,2]
 
 # Save P-values from robust clustering outputs for use in table
-reg21p = se_reg_c1[,4]
-reg22p = se_reg_c2[,4]
-reg23p = se_reg_c3[,4]
-reg24p = se_reg_c4[,4]
-reg25p = se_reg_c5[,4]
-reg26p = se_reg_c6[,4]
-reg27p = se_reg_c7[,4]
-reg28p = se_reg_c8[,4]
+reg17p = se_reg17[,4]
+reg18p = se_reg18[,4]
+reg19p = se_reg19[,4]
+reg20p = se_reg20[,4]
+reg21p = se_reg21[,4]
+reg22p = se_reg22[,4]
+reg23p = se_reg23[,4]
+reg24p = se_reg24[,4]
 
 #### Figures and Plots for non-matched regressions ####
 
+
+### NEED TO MAKE 2 LOGIT TABLES AND 2 ODDS RATIO TABLES ###
+
+
 ## logit outputs ##
-# unmatched pk effectiveness by pk gender #
-stargazer(reg21, reg22, reg23, reg24, title = "Pre-matched Results Pr(Violence) by PK Gender", 
+# PKO effectiveness by PK composition - Gov Violence #
+stargazer(reg21, reg22, reg23, reg24, title = "PKO Effectiveness by Peacekeeper Gender - Logit", 
           align = TRUE, digits=3, font.size = "scriptsize",
           style = "ajps", dep.var.labels = c("Rebel Event", "Rebel Death","Gov't Event","Gov't Death"), 
           dep.var.caption = "Pr()", 
@@ -285,8 +269,8 @@ stargazer(reg21, reg22, reg23, reg24, title = "Pre-matched Results Pr(Violence) 
           notes = "Robust Standard Errors clustered at the PRIO-Grid level.",
           out = "./results/pre_matched_gender.txt")
 
-# unmatched pk effectiveness by pk type #
-stargazer(reg25, reg26, reg27, reg28, title = "Pre-matched Results Pr(Violence) by Troop Type", 
+# PKO effectiveness by PK composition - Reb Violence #
+stargazer(reg25, reg26, reg27, reg28, title = "PKO Effectiveness by Peacekeeper Gender - Odds Ratio", 
           align = TRUE, digits=3, font.size = "scriptsize",
           style = "ajps", dep.var.labels = c("Rebel Event", "Rebel Death","Gov't Event","Gov't Death"), 
           dep.var.caption = "Pr()", 
@@ -299,19 +283,7 @@ stargazer(reg25, reg26, reg27, reg28, title = "Pre-matched Results Pr(Violence) 
           notes = "Robust Standard Errors clustered at the PRIO-Grid level.",
           out = "./results/pre_matched_troop.txt")
 
-## Odds ratios outputs ##
-stargazer(reg21, reg22, reg23, reg24, title = "Pre-matched Results Pr(Violence) by PK Gender", 
-          align = TRUE, digits=3, font.size = "scriptsize",
-          style = "ajps", dep.var.labels = c("Rebel Event", "Rebel Death","Gov't Event","Gov't Death"), 
-          dep.var.caption = "Pr()", 
-          covariate.labels = c("Balanced PK Unit", "Unbalanced PK Unit", "Avg. Mountain", "Travel Time Nearest City",
-                               "% Urban", "Night Lights", "Population Sum", "Population Density", "PK Lag", 
-                               "Violence 6 Months Before"), 
-          se = list(reg21se, reg22se, reg23se, reg24se), p = list(reg21p, reg22p, reg23p, reg24p),
-          omit = c("t_bal:radpko_pko_lag", "t_unbal:radpko_pko_lag", "t_bal:acled_viol_6", "t_unbal:acled_viol_6"),
-          notes = "Important: this table is only for interpretation in terms of estimates and p-values. Standard errors are not correctly inputted.",
-          apply.coef = exp, t.auto=F, p.auto=F,
-          out = "./results/pre_matched_gender_or.txt")
+
 
 # unmatched pk effectiveness by pk type #
 stargazer(reg25, reg26, reg27, reg28, title = "Pre-matched Results Pr(Violence) by Troop Type", 
