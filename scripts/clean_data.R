@@ -126,7 +126,7 @@ radpko <- radpko %>%
 radpko$t_bal = 0 # make balanced treatment indicator
 radpko$t_bal[radpko$f_prop > median(radpko$f_prop[radpko$t_ind==1])] = 1
 radpko$t_unbal = 0 # make un_balanced treatment indicator
-radpko$t_unbal[radpko$f_prop < median(radpko$f_prop[radpko$t_ind==1])] = 1
+radpko$t_unbal[radpko$f_prop <= median(radpko$f_prop[radpko$t_ind==1]) & radpko$t_ind == 1] = 1
 # add variable denoting pk type by binary measure of treatment
 radpko$untrp_maj = 0
 radpko$untrp_maj[radpko$untrp > radpko$unpol & radpko$untrp > radpko$unmob] = 1
@@ -281,25 +281,28 @@ a$pko_lag[is.na(a$pko_lag)] <- 0 #we have all missions from their start, so any 
 
 ##### Merge UCDP data #####
 # read in data
-df = read.csv("./data/ucdp_ged/ged211.csv") %>%
-  select(-c(1:32, 34:39, 41,42,44:49)) %>% 
-  # make the date variable a date type
-  mutate(date = ymd_hms(date_end)) %>% 
-  # rename variable for ease of merging
-  rename(prio.grid = priogrid_gid, ucdp_deaths = deaths_civilians) %>%
-  mutate(date = ymd(date), month = month(date), year = year(date)) %>%
-  select(-c("date_end", "date"))
-
-df$ucdp_event = 1
-df = df %>%
-  group_by(prio.grid, year, month) %>%
-  summarize(ucdp_deaths = sum(ucdp_deaths), ucdp_event = sum(ucdp_event))
-
-a = left_join(a, df, by = c("prio.grid", "year", "month"))
-a$ucdp_deaths[is.na(a$ucdp_deaths)] <- 0
-a$ucdp_event[is.na(a$ucdp_event)] <- 0
-
-rm(dd, df)
+# df = read.csv("./data/ucdp_ged/ged211.csv") %>%
+#   # make the date variable a date type
+#   mutate(date = ymd_hms(date_end)) %>% 
+#   mutate(month = month(date)) %>%
+#   filter(type_of_violence == 3) %>%
+#   select(-c(1:2, 4:32, 34:40, 41,42,46:50)) %>% 
+# 
+#   # rename variable for ease of merging
+#   rename(prio.grid = priogrid_gid, ucdp_deaths = deaths_civilians) %>%
+#   mutate(date = ymd(date), month = month(date), year = year(date)) %>%
+#   select(-c("date_end", "date"))
+# 
+# df$ucdp_event = 1
+# df = df %>%
+#   group_by(prio.grid, year, month) %>%
+#   summarize(ucdp_deaths = sum(ucdp_deaths), ucdp_event = sum(ucdp_event))
+# 
+# a = left_join(a, df, by = c("prio.grid", "year", "month"))
+# a$ucdp_deaths[is.na(a$ucdp_deaths)] <- 0
+# a$ucdp_event[is.na(a$ucdp_event)] <- 0
+# 
+# rm(dd, df)
 
 ### reorganize and rename
 a <- a %>% 
