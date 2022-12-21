@@ -277,6 +277,8 @@ a <- a %>%                            # Add lagged column
   as.data.frame() %>%
   relocate(pko_lag, .after = pko_deployed)
 
+a$pko_lag[is.na(a$pko_lag)] <- 0 #we have all missions from their start, so any NAs are actually 0s
+
 ##### Merge UCDP data #####
 # read in data
 df = read.csv("./data/ucdp_ged/ged211.csv") %>%
