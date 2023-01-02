@@ -3,7 +3,9 @@
 
 ### load libraries ###
 library(doSNOW); library(foreach); library(janitor); library(lubridate)
-library(sf); library(tidyverse); library(sp)
+library(sf); library(tidyverse); library(sp); library(CoordinateCleaner)
+library(countrycode); library(proxy)
+
 
 ### Reading in and briefly cleaning the data ###
 
@@ -16,8 +18,6 @@ acled  = read.csv("./data/acled/1999-01-01-2021-12-31.csv") %>%
             admin3,location,source,source_scale,notes,timestamp, iso, iso3, time_precision, admin1,
             admin2)) %>%  
   mutate(event_date = dmy(event_date), month = month(event_date), year = year(event_date))
-
-
 
 # subset ACLED data to violence against civilians and dates from before 2019 and after 
 # 1999 to match RADPKO data (and to make analysis faster)
@@ -87,9 +87,66 @@ radpko$f_pko_deployed = radpko$f_untrp + radpko$f_unpol + radpko$f_unmob
 radpko = radpko %>%
   relocate(c(m_pko_deployed, f_pko_deployed), .after = pko_deployed)
 
+### Make instrument based off of Ruggeri et al. (2017) and Fjelde et al. (2019)
+# pull up data of country capital long and lat
+data(countryref)
+countryref = countryref %>%
+  filter(type == "country", !is.na(capital)) %>%
+  group_by(iso2) %>% # check nrow(table(countryref$capital.lon)) vs nrow(table(countryref$iso2)). same number of obs
+  summarise(across(capital.lon:capital.lat, mean)) %>% # which means we can just summarize since it's all identical
+  ungroup() # that way we can get rid of duplicate observations that would add extra observations upon merging
+
+table(radpko$mission)
+# MINURCAT  MINUSCA  MINUSMA    MONUC  MONUSCO     ONUB   UNAMID  UNAMSIL   UNISFA    UNMIL    UNMIS   UNMISS    UNOCI 
+
+# add iso2 to RADPKO (easier for visual confirmation than iso3)
+radpko$iso2 = countrycode(radpko$country, origin = "country.name", destination = "iso2c")
+
+# visual confirmation conversion worked
+table(radpko$iso2, radpko$country) # in each column, there should only be one row > 0
+# also note the 0 observations for Abyei (not an independent country), meaning we'll have to hand code it
+
+before = table(radpko$country)
+radpko = left_join(radpko, countryref, by = "iso2")
+after = table(radpko$country)
+all.equal(before, after) # check to make sure no duplicates were made
+radpko = radpko %>%
+  select(-c(iso2)) # drop iso2 since it's no longer relevant
+# Abyei will be unique since it's not in countryref data, so we'll calculate distance to Abyei Town (capital of Abyei)
+sum(is.na(radpko$capital.lon))
+table(radpko$country[radpko$country == "Abyei"]) #all missing values are Abyei
+
+# coordinates of Abyei town obtained via Google Maps: 9.59067093295664 (lat), 28.436891724606674 (lon)
+radpko$capital.lon[radpko$country== "Abyei"] = 28.436891724606674
+radpko$capital.lat[radpko$country== "Abyei"] = 9.59067093295664
+sum(is.na(radpko$capital.lon))
+
+# for each mission, use the [mission == "mission_name"] 
+
+# how to calculate grid cells that cover multiple countries?
+# calculate each separately, then average
+
+# read in PRIO files for grid coordinates
+prio = st_read(dsn = "./data/prio", 
+               layer = "priogrid_cell", 
+               stringsAsFactors = F) %>%
+  rename(prio.grid = gid, gid_center_lon = xcoord, gid_center_lat = ycoord) %>% 
+  select(-c(col, row))
+
+radpko = left_join(radpko, prio, by = "prio.grid") %>%
+  select(-c(geometry))
+
+# calculate distance_to_capital
+a = radpko[2,]
+distance_to_capital = 
+  dist(c(a$capital.lon, a$capital.lat), c(a$gid_center_lon, a$gid_center_lat))
+
+distance_to_capital = crossdist.default(radpko$capital.lon, radpko$capital.lat, radpko$gid_center_lon, radpko$gid_center_lat)
+
+
 # radpko has duplicate grid-months (different missions), so aggregate by grid
 radpko <- radpko %>% 
-  select(-c(country, mission, date)) %>% 
+  select(-c(mission, date)) %>% 
   relocate(c(year, month), .after = prio.grid) %>% 
   group_by(prio.grid, year, month) %>% 
   summarise(across(units_deployed:m_unmob, sum)) %>% 
