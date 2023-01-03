@@ -4,7 +4,7 @@
 ### load libraries ###
 library(doSNOW); library(foreach); library(janitor); library(lubridate)
 library(sf); library(tidyverse); library(sp); library(CoordinateCleaner)
-library(countrycode); library(proxy)
+library(countrycode); library(geosphere)
 
 
 ### Reading in and briefly cleaning the data ###
@@ -137,20 +137,33 @@ radpko = left_join(radpko, prio, by = "prio.grid") %>%
   select(-c(geometry))
 
 # calculate distance_to_capital
-a = radpko[2,]
-distance_to_capital = 
-  dist(c(a$capital.lon, a$capital.lat), c(a$gid_center_lon, a$gid_center_lat))
+radpko = 
+  radpko %>% 
+  rowwise() %>% 
+  mutate(distance_to_capital = distHaversine(cbind(capital.lon, capital.lat), 
+                                             cbind(gid_center_lon, gid_center_lat))) %>%
+  mutate(distance_to_capital = distance_to_capital/1000) %>% # distHaversine gives units in meters, so convert to KMs
+  ungroup()
 
-distance_to_capital = crossdist.default(radpko$capital.lon, radpko$capital.lat, radpko$gid_center_lon, radpko$gid_center_lat)
-
+# create pko_supply calculating peacekeepers deployed to Africa by month and year
+pko_supply = radpko %>%
+  mutate(across(pko_deployed, 
+                ~replace_na(.x, 0))) %>%
+  select(month, year, pko_deployed) %>%
+  group_by(month,year) %>%
+  summarise(pko_africa = sum(pko_deployed))
+radpko = left_join(radpko, pko_supply, by = c("month", "year"))
+# Fjelde et al. log distance to capital, whereas Ruggeri et al. measure it in kilometers
+# also measure PKO UN Africa in ten thousands, hard to tell how Ruggeri et al. measure
+rm(prio) # we'll load prio back in later
 
 # radpko has duplicate grid-months (different missions), so aggregate by grid
-radpko <- radpko %>% 
-  select(-c(mission, date)) %>% 
-  relocate(c(year, month), .after = prio.grid) %>% 
-  group_by(prio.grid, year, month) %>% 
-  summarise(across(units_deployed:m_unmob, sum)) %>% 
-  ungroup()
+# radpko <- radpko %>% 
+#   select(-c(mission, date)) %>% 
+#   relocate(c(year, month), .after = prio.grid) %>% 
+#   group_by(prio.grid, year, month) %>% 
+#   summarise(across(units_deployed:m_unmob, sum)) %>% 
+#   ungroup()
 
 # Create a "treatment" indicator telling us if PKs existed in a certain grid at a certain time 
 radpko$t_ind = 0
@@ -164,14 +177,10 @@ radpko = radpko %>%
   relocate(f_prop, .after = pko_deployed)
 
 # make female PKs proportion variable
-radpko$f_untrp.p = radpko$f_untrp/radpko$untrp
 radpko = radpko %>%
-  relocate(f_untrp.p, .after = untrp)
-radpko$f_unpol.p = radpko$f_unpol/radpko$unpol
-radpko = radpko %>%
-  relocate(f_unpol.p, .after = unpol)
-radpko$f_unmob.p = radpko$f_unmob/radpko$unmob
-radpko = radpko %>%
+  mutate(f_untrp.p = f_untrp/untrp, f_unpol.p = f_unpol/unpol, f_unmob.p = f_unmob/unmob) %>%
+  relocate(f_untrp.p, .after = untrp) %>%
+  relocate(f_unpol.p, .after = unpol) %>%
   relocate(f_unmob.p, .after = unmob)
 
 # Replace NAs w/ 0s
@@ -223,28 +232,21 @@ proj_crs <- st_crs(prio)
 # convert to sf
 acled <- st_as_sf(acled, coords = c("longitude", "latitude"), crs = proj_crs)
 acled <- st_join(acled, prio)
-a = as.data.frame(acled) # convert to dataframe
-a[,28:32] = NULL
-a$event_date = NULL
-
-### Now that R knows which points of violence occur in which grids, let's aggregate the data ###
-# group fatalities and events by PRIO-grid & date
-a = a %>% 
-  relocate(c("year", "month"), .after = last_col())
-
-a <- a %>% 
+a = acled %>%
+  as.data.frame() %>% # convert to dataframe
+  select(-c(xcoord, ycoord, col, row, geometry, event_date)) %>% 
+  relocate(c("year", "month"), .after = last_col()) %>% 
   group_by(prio.grid, year, month) %>% 
-  summarise(across(fatalities:vac_event_any, sum)) %>% 
+  summarise(across(fatalities:vac_event_any, sum)) %>% # aggregate violence by prio grid, month, and year
   ungroup()
 
+# make binaries with counts > 0 as 1
 a$vac_gov_event_any[a$vac_gov_event_any>=1] = 1
 a$vac_reb_event_any[a$vac_reb_event_any>=1] = 1
 a$vac_gov_death_any[a$vac_gov_death_any>=1] = 1
 a$vac_reb_death_any[a$vac_reb_death_any>=1] = 1
 a$vac_death_any[a$vac_death_any >= 1] = 1
 a$vac_event_any[a$vac_event_any >= 1] = 1
-# # add id to ACLED data
-# a <- tibble::rowid_to_column(a, "id")
 
 ## merge ##
 merged.data = left_join(radpko, a, by = c("prio.grid", "year", "month"))
@@ -254,7 +256,7 @@ merged.data = left_join(merged.data, prio.var, by = c("prio.grid", "year"))
 
 # rearrange the columns to put the geo-locational data last
 merged.data = merged.data %>% 
-  relocate(c("xcoord", "ycoord"), .after = last_col())
+  relocate(c("gid_center_lon", "gid_center_lat"), .after = last_col())
 
 # clear everything except the merged data
 rm(list = setdiff(ls(), "merged.data")) 
