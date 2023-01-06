@@ -296,32 +296,34 @@ a <- a %>%
                 ~replace_na(.x, 0)))
 
 # add summary violence 6 months prior 
-a = a %>% group_by(prio.grid) %>% 
+a = a %>% 
+  group_by(prio.grid) %>% 
   mutate(viol_6 = 
            lag(event, 6) + lag(event, 5) + lag(event, 4) + 
            lag(event, 3) + lag(event, 2) + lag(event, 1)) %>%
-  relocate(viol_6, .after = event)
+  relocate(viol_6, .after = event) %>%
+  ungroup()
 
 ##### add a post treated variable #####
-a <- a %>% 
-  mutate(time = (year-1999)*(12) + month)
-dd <- a %>% as.data.frame() %>% select(prio.grid, time, t_ind)
-dd <- split(dd, f = dd$prio.grid)
-dd <- lapply(dd, FUN = function(x){
-  y <- x[which(x$t_ind == 1),]
-  # create a "first treated" variable. needs to be 0 for untreated
-  x$first_treated <- ifelse(nrow(y) == 0, 0, min(y$time))
-  # create a "post treated" variable. needs to be 0 until treatment then 1
-  x$post_treatment <- ifelse(x$first_treated != 0 & x$time >= x$first_treated, 
-                             1, 0)
-  # create a "treated" variable. needs to be 0 if control and 1 if treated
-  x$treated <- ifelse(sum(x$t_ind, na.rm = T) > 0, 1, 0)
-  x
-})
-dd <- do.call(rbind, dd)
-dd <- dd[,c("prio.grid", "time", "first_treated", "post_treatment")]
-# merge back to main df
-a <- left_join(a, dd, by = c("prio.grid", "time"))
+# a <- a %>% 
+#   mutate(time = (year-1999)*(12) + month)
+# dd <- a %>% as.data.frame() %>% select(prio.grid, time, t_ind)
+# dd <- split(dd, f = dd$prio.grid)
+# dd <- lapply(dd, FUN = function(x){
+#   y <- x[which(x$t_ind == 1),]
+#   # create a "first treated" variable. needs to be 0 for untreated
+#   x$first_treated <- ifelse(nrow(y) == 0, 0, min(y$time))
+#   # create a "post treated" variable. needs to be 0 until treatment then 1
+#   x$post_treatment <- ifelse(x$first_treated != 0 & x$time >= x$first_treated, 
+#                              1, 0)
+#   # create a "treated" variable. needs to be 0 if control and 1 if treated
+#   x$treated <- ifelse(sum(x$t_ind, na.rm = T) > 0, 1, 0)
+#   x
+# })
+# dd <- do.call(rbind, dd)
+# dd <- dd[,c("prio.grid", "time", "first_treated", "post_treatment")]
+# # merge back to main df
+# a <- left_join(a, dd, by = c("prio.grid", "time"))
 
 ##### add a lagged variable #####
 
@@ -340,34 +342,47 @@ a$pko_lag[is.na(a$pko_lag)] <- 0 #we have all missions from their start, so any 
 
 ##### Merge UCDP data #####
 # read in data
-# df = read.csv("./data/ucdp_ged/ged211.csv") %>%
-#   # make the date variable a date type
-#   mutate(date = ymd_hms(date_end)) %>% 
-#   mutate(month = month(date)) %>%
-#   filter(type_of_violence == 3) %>%
-#   select(-c(1:2, 4:32, 34:40, 41,42,46:50)) %>% 
-# 
-#   # rename variable for ease of merging
-#   rename(prio.grid = priogrid_gid, ucdp_deaths = deaths_civilians) %>%
-#   mutate(date = ymd(date), month = month(date), year = year(date)) %>%
-#   select(-c("date_end", "date"))
-# 
-# df$ucdp_event = 1
-# df = df %>%
-#   group_by(prio.grid, year, month) %>%
-#   summarize(ucdp_deaths = sum(ucdp_deaths), ucdp_event = sum(ucdp_event))
-# 
-# a = left_join(a, df, by = c("prio.grid", "year", "month"))
-# a$ucdp_deaths[is.na(a$ucdp_deaths)] <- 0
-# a$ucdp_event[is.na(a$ucdp_event)] <- 0
-# 
-# rm(dd, df)
+dd = read.csv("./data/ucdp_ged/ucdp-actor-221.csv") %>%
+  rename(a_id = ï..ActorId) %>%
+  select(c(a_id, Org)) # grab data so we can classify actors during OSV
+df = read.csv("./data/ucdp_ged/GEDEvent_v22_1.csv") %>%
+  # make the date variable a date type
+  mutate(date = ymd_hms(date_end)) %>%
+  mutate(month = month(date)) %>%
+  filter(type_of_violence == 3) %>%
+  select(c(date, month, year, side_a_new_id, priogrid_gid, deaths_civilians)) %>%
+  # rename variable for ease of merging
+  rename(prio.grid = priogrid_gid, ucdp_deaths = deaths_civilians) %>%
+  select(-c("date"))
+
+df = left_join(df, dd, by = c("side_a_new_id" = "a_id"))
+
+df = df %>%
+  group_by(prio.grid, year, month, Org) %>%
+  summarize(ucdp_deaths = sum(ucdp_deaths)) %>%
+  drop_na(Org) %>% 
+  ungroup()
+
+df$ucdp_gov_vac_5 = 0
+df$ucdp_gov_vac_5[df$Org == 4 & df$ucdp_deaths >= 5] = 1
+df$ucdp_reb_vac_5 = 0
+df$ucdp_reb_vac_5[df$Org == 1 & df$ucdp_deaths >= 5] = 1
+df = df %>%
+  group_by(prio.grid, year, month) %>%
+  summarize(across(ucdp_gov_vac_5:ucdp_reb_vac_5, sum))
+
+a = left_join(a, df, by = c("prio.grid", "year", "month"))
+
+a <- a %>% 
+  mutate(across(ucdp_gov_vac_5:ucdp_reb_vac_5, 
+                ~replace_na(.x, 0)))
+
+rm(dd, df)
 
 ### reorganize and rename
 a <- a %>% 
   select(-c(xcoord, ycoord)) %>% 
-  rename_at(vars(fatalities:vac_event_any), 
-            function(x) paste0("acled_", x)) %>% 
+  rename_at(vars(fatalities:vac_event_any), function(x) paste0("acled_", x)) %>% 
   rename_at(vars(units_deployed:m_unmob), function(x) paste0("radpko_", x)) %>% 
   rename_at(vars(agri_ih:pop.dens), function(x) paste0("prio_", x)) 
 
