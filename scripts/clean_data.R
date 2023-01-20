@@ -1,3 +1,4 @@
+# Which Peacekeepers Keep the Peace? #
 # Data Cleaning & Merging #
 # By: Sky Kunkel
 
@@ -33,7 +34,9 @@ radpko = radpko %>%
 radpko$m_pko_deployed = radpko$m_untrp + radpko$m_unpol + radpko$m_unmob
 radpko$f_pko_deployed = radpko$f_untrp + radpko$f_unpol + radpko$f_unmob
 radpko = radpko %>%
-  relocate(c(m_pko_deployed, f_pko_deployed), .after = pko_deployed)
+  relocate(c(m_pko_deployed, f_pko_deployed), .after = pko_deployed) %>%
+  # first female PKs arrive on Sept. 2005, which means no treatment could occur before then
+  filter(date >= "2005-09-01")
 
 ### Make instrument based off of Ruggeri et al. (2017) and Fjelde et al. (2019)
 # pull up data of country capital long and lat
@@ -103,14 +106,6 @@ radpko = left_join(radpko, pko_supply, by = c("month", "year"))
 # Fjelde et al. log distance to capital, whereas Ruggeri et al. measure it in kilometers
 # also measure PKO UN Africa in ten thousands, hard to tell how Ruggeri et al. measure
 rm(prio) # we'll load prio back in later
-
-# radpko has duplicate grid-months (different missions), so aggregate by grid
-# radpko <- radpko %>% 
-#   select(-c(mission, date)) %>% 
-#   relocate(c(year, month), .after = prio.grid) %>% 
-#   group_by(prio.grid, year, month) %>% 
-#   summarise(across(units_deployed:m_unmob, sum)) %>% 
-#   ungroup()
 
 # Create a "treatment" indicator telling us if PKs existed in a certain grid at a certain time 
 radpko$t_ind = 0
@@ -276,7 +271,7 @@ a$acled_fatalities = NULL
 a$acled_event = NULL
 
 # save data #
-saveRDS(a, file = "./data/kunkel_cg.rds")
+saveRDS(a, file = "./data/kunkel_which_pks.rds")
 
 # data fully merged, cleaned, and exported #
 

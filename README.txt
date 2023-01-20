@@ -1,9 +1,9 @@
-
-ACLED data:
-	- Contains data on armed conflict and violence.
-	- Observed at event-level, with day and latitude and longitude.
-	- Downloaded from https://acleddata.com/data-export-tool/ on June 3, 2022.
-	- "1999-01-01-2021-12-31.csv" is the original CSV file.
+UCDP data
+	- Contains violence data from the Uppsala Conflict Data Program
+	- Observed at event level in areas where more than 5 deaths occured in a given calendar year.
+	- Downloaded from https://ucdp.uu.se/downloads/index.html#ged_global on January 6, 2023.
+	- "GEDEvent_v22_1.csv" is the original csv file downloaded on violence.
+	- "ucdp-actor-221.csv" is the original csv file downloaded on actors classified by type.
 
 PRIO data:
 	- Contains geographic and spatial data.
@@ -18,9 +18,3 @@ RADPKO data:
 	- Observed at the grid-cell-month level.
 	- Downloaded from https://dataverse.harvard.edu/dataset.xhtml?persistentId=doi:10.7910/DVN/BQU5VD (version 4) on June 3, 2022.
 	- "radpko_grid.csv" is the original CSV file downloaded.
-
-UCDP data
-	- Contains violence data from the Uppsala Conflict Data Program
-	- Observed at event level in areas where more than 5 deaths occured in a given calendar year.
-	- Downloaded from https://ucdp.uu.se/downloads/index.html#ged_global on June 26, 2022
-	- "ged211.csv" is the original RData file downloaded.
