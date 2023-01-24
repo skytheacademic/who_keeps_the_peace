@@ -132,9 +132,9 @@ radpko <- radpko %>%
 
 # add proportions of each type to get total gender balance and then split treatment by balance
 radpko$t_bal = 0 # make balanced treatment indicator
-radpko$t_bal[radpko$f_prop > quantile(radpko$f_prop[radpko$t_ind == 1], prob=.75, type=1)] = 1
+radpko$t_bal[radpko$f_prop > quantile(radpko$f_prop[radpko$t_ind == 1], prob=0.5, type=1)] = 1
 radpko$t_unbal = 0 # make un_balanced treatment indicator
-radpko$t_unbal[radpko$f_prop <= quantile(radpko$f_prop[radpko$t_ind == 1], prob=.75, type=1) & radpko$t_ind ==1] = 1
+radpko$t_unbal[radpko$f_prop <= quantile(radpko$f_prop[radpko$t_ind == 1], prob=0.5, type=1) & radpko$t_ind ==1] = 1
 
 ##### Merge UCDP data #####
 # read in data
@@ -208,8 +208,6 @@ gc()
 
 ##### Impute Covariates #####
 # data imputation of control variables
-a$mountains_mean<-ave(a$mountains_mean,a$prio.grid,FUN=function(x) 
-  ifelse(is.na(x), mean(x,na.rm=TRUE), x))
 a$ttime_mean<-ave(a$ttime_mean,a$prio.grid,FUN=function(x) 
   ifelse(is.na(x), mean(x,na.rm=TRUE), x))
 a$urban_gc<-ave(a$urban_gc,a$prio.grid,FUN=function(x) 
@@ -217,8 +215,6 @@ a$urban_gc<-ave(a$urban_gc,a$prio.grid,FUN=function(x)
 a$nlights_calib_mean<-ave(a$nlights_calib_mean,a$prio.grid,FUN=function(x) 
   ifelse(is.na(x), mean(x,na.rm=TRUE), x))
 a$pop_gpw_sum<-ave(a$pop_gpw_sum,a$prio.grid,FUN=function(x) 
-  ifelse(is.na(x), mean(x,na.rm=TRUE), x))
-a$prec_gpcp<-ave(a$prec_gpcp,a$prio.grid,FUN=function(x) 
   ifelse(is.na(x), mean(x,na.rm=TRUE), x))
 a$landarea<-ave(a$landarea,a$prio.grid,FUN=function(x) 
   ifelse(is.na(x), mean(x,na.rm=TRUE), x))
@@ -233,16 +229,34 @@ a$pop.dens<-ave(a$pop.dens,a$prio.grid,FUN=function(x)
 # mountains are static, so any grids with missing values are 0
 a$mountains_mean[is.na(a$mountains_mean)] <- 0
 
-# add summary violence 6 months prior 
-a = a %>%
-  mutate(ucdp_vac_all = ucdp_reb_vac_all + ucdp_gov_vac_all) %>%
+# read data back in, calculate all violence and its lags
+df = read.csv("./data/ucdp_ged/GEDEvent_v22_1.csv") %>%
+  mutate(date = ymd_hms(date_end)) %>%
+  mutate(month = month(date)) %>%
+  select(c(month, year, priogrid_gid, best)) %>%
+  rename(prio.grid = priogrid_gid, ucdp_deaths = best) %>%
+  group_by(prio.grid, month, year) %>%
+  summarize(ucdp_deaths = sum(ucdp_deaths))
+
+all_gids <- sort(unique(c(a$prio.grid, df$prio.grid)))
+dd <- expand_grid(prio.grid = all_gids, 
+                  year = seq(2005, 2018, 1), 
+                  month = seq(1, 12, 1))
+df = full_join(dd, df, by = c("prio.grid", "month", "year")) %>%
+  mutate(across(ucdp_deaths, ~replace_na(.x, 0))) %>%
   group_by(prio.grid) %>% 
   mutate(viol_6 = 
-           lag(ucdp_vac_all, 6) + lag(ucdp_vac_all, 5) + lag(ucdp_vac_all, 4) + 
-           lag(ucdp_vac_all, 3) + lag(ucdp_vac_all, 2) + lag(ucdp_vac_all, 1)) %>%
-  relocate(viol_6, .after = ucdp_reb_vac_all) %>%
+           lag(ucdp_deaths, 6) + lag(ucdp_deaths, 5) + lag(ucdp_deaths, 4) + 
+           lag(ucdp_deaths, 3) + lag(ucdp_deaths, 2) + lag(ucdp_deaths, 1)) %>%
+  relocate(viol_6, .after = ucdp_deaths) %>%
+  select(-c(ucdp_deaths)) %>%
   ungroup()
 
+a = left_join(a, df, by = c("prio.grid", "month", "year"))
+
+# clean up
+rm(dd, df, all_gids)
+gc()
 ##### add a lagged variable of PKs deployed #####
 
 # sort again to make sure it works
@@ -257,8 +271,6 @@ a <- a %>%                            # Add lagged column
   relocate(pko_lag, .after = pko_deployed)
 
 a$pko_lag[is.na(a$pko_lag)] <- 0 #we have all missions from their start, so any NAs are actually 0s
-
-
 
 ### reorganize and rename
 a <- a %>% 

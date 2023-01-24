@@ -2,7 +2,7 @@
 # Sky Kunkel #
 # 1/16/2023 #
 
-#install.packages('C:/gurobi952/win64/R/gurobi_9.5-2.zip', repos=NULL)
+#install.packages('C:/gurobi950/win64/R/gurobi_9.5-0.zip', repos=NULL)
 library(gurobi); library(designmatch); library(gdata); library(tidyverse)
 
 # turn off scientific notation
@@ -12,7 +12,6 @@ options(scipen = 999)
 setwd("../")
 #### Matching by where units with more and less women deployed ####
 a = readRDS("./data/kunkel_which_pks.rds") %>%
-  filter(date >= "2005-09-01") %>%
   filter(t_ind == 1)
 
 # match by where women and where only men deployed

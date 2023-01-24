@@ -12,12 +12,8 @@ options(scipen = 999)
 
 # reading in cleaned data
 setwd("../")
-a = readRDS("./data/kunkel_cg.rds") 
+a = readRDS("./data/kunkel_which_pks.rds") 
 c = readRDS("./data/kunkel_wpks_matched_gender.rds")
-
-# what about just two sets of models?
-  # 2SLS unmatched
-  # logit, matched on t_bal
 
 # Re-scale PK variable for statistical analyses (per Fjelde et al. (2019))
 a$radpko_m_pko_deployed = a$radpko_m_pko_deployed/100
@@ -38,25 +34,25 @@ iv_treat_f = first.stage_f$fitted
 iv_treat_m = first.stage_m$fitted
 
 reg1 = lm(ucdp_gov_vac_5 ~ iv_treat_f + iv_treat_m + prio_mountains_mean + prio_ttime_mean + prio_urban_gc + 
-             prio_nlights_calib_mean + prio_pop_gpw_sum + prio_pop.dens + radpko_pko_lag + viol_6,
+           radpko_pko_lag + viol_6,
            data = a)
 se_reg1 <- round(coeftest(reg1, vcov = vcovPL(reg1, cluster = a$prio.grid)),4)
 se_reg1
 
 reg2 = lm(ucdp_reb_vac_5 ~ iv_treat_f + iv_treat_m + prio_mountains_mean + prio_ttime_mean + prio_urban_gc + 
-             prio_nlights_calib_mean + prio_pop_gpw_sum + prio_pop.dens + radpko_pko_lag + viol_6,
+           radpko_pko_lag + viol_6,
            data = a)
 se_reg2 <- round(coeftest(reg2, vcov = vcovPL(reg2, cluster = a$prio.grid)),4)
 se_reg2
 
 reg3 = lm(ucdp_gov_vac_all ~ iv_treat_f + iv_treat_m + prio_mountains_mean + prio_ttime_mean + prio_urban_gc + 
-            prio_nlights_calib_mean + prio_pop_gpw_sum + prio_pop.dens + radpko_pko_lag + viol_6,
+          radpko_pko_lag + viol_6,
           data = a)
 se_reg3 <- round(coeftest(reg3, vcov = vcovPL(reg3, cluster = a$prio.grid)),4)
 se_reg3
 
 reg4 = lm(ucdp_reb_vac_all ~ iv_treat_f + iv_treat_m + prio_mountains_mean + prio_ttime_mean + prio_urban_gc + 
-            prio_nlights_calib_mean + prio_pop_gpw_sum + prio_pop.dens + radpko_pko_lag + viol_6,
+          radpko_pko_lag + viol_6,
           data = a)
 se_reg4 <- round(coeftest(reg4, vcov = vcovPL(reg4, cluster = a$prio.grid)),4)
 se_reg4
@@ -78,10 +74,9 @@ reg4p = se_reg4[,4]
 # pk effectiveness by pk gender table #
 stargazer(reg1, reg3, reg2, reg4, title = "PKO Effectiveness by Peacekeeper Gender - 2SLS", 
           align = TRUE, digits=3, font.size = "scriptsize",
-          style = "apsr", dep.var.labels = c("Gov VAC (C)", "Gov VAC (B)", "Reb VAC (C)", "Reb VAC (B)"),
+          style = "apsr", dep.var.labels = c("Gov VAC (B)", "Gov VAC (C)", "Reb VAC (B)", "Reb VAC (C)"),
           covariate.labels = c("Female PKs Deployed", "Male PKs Deployed", "Avg. Mountain", "Travel Time Nearest City",
-                               "Perc. Urban", "Night Lights",  "Population Sum", "Population Density", "PK Lag",
-                               "Violence 6 Months Before"),
+                               "Perc. Urban", "PK Lag", "Violence 6 Months Before"),
           se = list(reg1se, reg3se, reg2se, reg4se), p = list(reg1p, reg3p, reg2p, reg4p),
           notes = "Robust Standard Errors clustered at the PRIO-Grid level. B = Binary outcome, C = Count outcome.",
           out = "./results/2sls.txt")
@@ -136,18 +131,7 @@ stargazer(reg1, reg3, reg2, reg4, title = "PKO Effectiveness by Peacekeeper Gend
           out = "./results/logit.txt")
 
 
-
 ############# OLD - TO DELETE ############# 
-
-# pk effectiveness by pk gender table #
-stargazer(reg13, reg14, reg15, reg16, title = "PKO Effectiveness by Peacekeeper Gender - Logit", 
-          align = TRUE, digits=3, font.size = "scriptsize",
-          style = "ajps", dep.var.labels = c("Pr(Violent Event)", "Total Violent Events","Pr(Fatality)","Total Fatalities"), 
-          covariate.labels = c("Female PKs Deployed", "Male PKs Deployed", "Avg. Mountain", "Travel Time Nearest City",
-                               "Night Lights",  "Population Sum", "Population Density", "PK Lag",
-                               "% Urban", "Violence 6 Months Before", "Female PKs * Male PKs"),
-          se = list(reg13se, reg14se, reg15se, reg16se), p = list(reg13p, reg14p, reg15p, reg16p),
-          notes = "Robust Standard Errors clustered at the PRIO-Grid level.")
 
 
 # Figures and Plots for non-matched regressions 
