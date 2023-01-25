@@ -81,6 +81,12 @@ stargazer(reg1, reg3, reg2, reg4, title = "PKO Effectiveness by Peacekeeper Gend
           notes = "Robust Standard Errors clustered at the PRIO-Grid level. B = Binary outcome, C = Count outcome.",
           out = "./results/2sls.txt")
 
+# plot based on predicted values #
+
+ggpredict(reg1)
+
+
+
 #### Matching based on where peacekeeping units with more women and less women went ####
 rm(list = setdiff(ls(), c("a", "c")))
 gc()
