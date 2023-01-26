@@ -1,4 +1,4 @@
-# Which Peacekeepers Keep the Peace? #
+# Who Keeps the Peace? #
 # Data analysis and plotting #
 # By: Sky Kunkel
 
@@ -21,6 +21,56 @@ a$radpko_f_pko_deployed = a$radpko_f_pko_deployed/100
 c$radpko_m_pko_deployed = c$radpko_m_pko_deployed/100
 c$radpko_f_pko_deployed = c$radpko_f_pko_deployed/100
 
+# Plot 1 & 2
+reg0 = lm(ucdp_reb_vac_5 ~ radpko_f_pko_deployed + radpko_m_pko_deployed + prio_mountains_mean + prio_ttime_mean + prio_urban_gc + 
+            radpko_pko_lag + viol_6,
+          data = a)
+reg00 = lm(ucdp_reb_vac_all ~ radpko_f_pko_deployed + radpko_m_pko_deployed + prio_mountains_mean + prio_ttime_mean + prio_urban_gc + 
+            radpko_pko_lag + viol_6,
+          data = a)
+
+ggpredict(reg0, terms = c("radpko_m_pko_deployed")) |> plot()
+
+
+# marginal effects on gender balance #
+reg0_f = ggpredict(reg0, terms = "radpko_f_pko_deployed")
+reg0_m = ggpredict(reg0, terms = "radpko_m_pko_deployed")
+reg00_f = ggpredict(reg00, terms = "radpko_f_pko_deployed")
+reg00_m = ggpredict(reg00, terms = "radpko_m_pko_deployed")
+
+ggplot(reg0_f) +
+  geom_line(aes(x, predicted, colour = "blue")) +
+  geom_ribbon(aes(x, ymin = conf.low, ymax = conf.high, colour = group, 
+                  fill = "blue"), linetype = "dashed", alpha = 0.1, show.legend = F) +
+  xlab("Female Peacekeepers Deployed") +
+  ylab("Predicted Pr( >4 Civilian Deaths)") + theme_pubclean() +
+  theme(legend.position = "none")
+
+ggplot(reg0_m) +
+  geom_line(aes(x, predicted, colour = group)) +
+  geom_ribbon(aes(x, ymin = conf.low, ymax = conf.high, colour = group, 
+                  fill = group), linetype = "dashed", alpha = 0.1, show.legend = F) +
+  xlab('Male Peacekeepers Deployed') +
+  ylab("Predicted Pr( >4 Civilian Deaths)") + theme_pubclean() +
+  theme(legend.position = "none")
+
+ggplot(reg00_f) +
+  geom_line(aes(x, predicted, colour = "blue")) +
+  geom_ribbon(aes(x, ymin = conf.low, ymax = conf.high, colour = group, 
+                  fill = "blue"), linetype = "dashed", alpha = 0.1, show.legend = F) +
+  xlab("Female Peacekeepers Deployed") +
+  ylab("Predicted Civilian Fatalities") + theme_pubclean() +
+  theme(legend.position = "none")
+
+ggplot(reg00_m) +
+  geom_line(aes(x, predicted, colour = group)) +
+  geom_ribbon(aes(x, ymin = conf.low, ymax = conf.high, colour = group, 
+                  fill = group), linetype = "dashed", alpha = 0.1, show.legend = F) +
+  xlab('Male Peacekeepers Deployed') +
+  ylab("Predicted Civilian Fatalities") + theme_pubclean() +
+  theme(legend.position = "none")
+
+
 # Code instrument for each 
 a$f_iv = (a$f_pko_africa/10000)*log(a$distance_to_capital)
 a$m_iv = (a$m_pko_africa/10000)*log(a$distance_to_capital)
@@ -33,6 +83,7 @@ summary(first.stage_m)
 iv_treat_f = first.stage_f$fitted
 iv_treat_m = first.stage_m$fitted
 
+#### 2SLS ####
 reg1 = lm(ucdp_gov_vac_5 ~ iv_treat_f + iv_treat_m + prio_mountains_mean + prio_ttime_mean + prio_urban_gc + 
            radpko_pko_lag + viol_6,
            data = a)
@@ -83,7 +134,7 @@ stargazer(reg1, reg3, reg2, reg4, title = "PKO Effectiveness by Peacekeeper Gend
 
 # plot based on predicted values #
 
-ggpredict(reg1)
+ggpredict(reg2, terms = c("iv_treat_f")) |> plot()
 
 
 
