@@ -146,48 +146,32 @@ ggpredict(reg2, terms = c("iv_treat_f")) |> plot()
 rm(list = setdiff(ls(), c("a", "c")))
 gc()
 
-reg1 = glm(ucdp_gov_vac_5 ~ t_bal + prio_mountains_mean + prio_ttime_mean + prio_urban_gc + 
-            prio_nlights_calib_mean + prio_pop_gpw_sum + prio_pop.dens + radpko_pko_lag + viol_6 + radpko_pko_lag_any,
+reg1 = glm(ucdp_reb_vac_5 ~ t_bal + prio_mountains_mean + prio_ttime_mean + prio_urban_gc + 
+            prio_nlights_calib_mean + prio_pop_gpw_sum + prio_pop.dens + viol_6 + radpko_pko_lag_any,
           data = c, family = negative.binomial(theta = 1))
 se_reg1 <- round(coeftest(reg1, vcov = vcovPL(reg1, cluster = c$prio.grid)),4)
 se_reg1
 
-reg2 = glm(ucdp_reb_vac_5 ~ t_bal + prio_mountains_mean + prio_ttime_mean + prio_urban_gc + 
-            prio_nlights_calib_mean + prio_pop_gpw_sum + prio_pop.dens + radpko_pko_lag + viol_6 + radpko_pko_lag_any,
-          data = c, family = negative.binomial(theta = 1))
+reg2 = glm(ucdp_reb_vac_all ~ t_bal + prio_mountains_mean + prio_ttime_mean + prio_urban_gc + 
+             prio_nlights_calib_mean + prio_pop_gpw_sum + prio_pop.dens + viol_6 + radpko_pko_lag_any,
+           data = c, family = negative.binomial(theta = 1))
 se_reg2 <- round(coeftest(reg2, vcov = vcovPL(reg2, cluster = c$prio.grid)),4)
 se_reg2
 
-reg3 = glm(ucdp_gov_vac_all ~ t_bal + prio_mountains_mean + prio_ttime_mean + prio_urban_gc + 
-             prio_nlights_calib_mean + prio_pop_gpw_sum + prio_pop.dens + radpko_pko_lag + viol_6 + radpko_pko_lag_any,
-           data = c, family = negative.binomial(theta = 1))
-se_reg3 <- round(coeftest(reg3, vcov = vcovPL(reg3, cluster = c$prio.grid)),4)
-se_reg3
-
-reg4 = glm(ucdp_reb_vac_all ~ t_bal + prio_mountains_mean + prio_ttime_mean + prio_urban_gc + 
-             prio_nlights_calib_mean + prio_pop_gpw_sum + prio_pop.dens + radpko_pko_lag + viol_6 + radpko_pko_lag_any,
-           data = c, family = negative.binomial(theta = 1))
-se_reg4 <- round(coeftest(reg4, vcov = vcovPL(reg4, cluster = c$prio.grid)),4)
-se_reg4
-
 reg1se = se_reg1[,2]
 reg2se = se_reg2[,2]
-reg3se = se_reg3[,2]
-reg4se = se_reg4[,2]
 
 # Save P-values from robust clustering outputs for use in table
 reg1p = se_reg1[,4]
 reg2p = se_reg2[,4]
-reg3p = se_reg3[,4]
-reg4p = se_reg4[,4]
 
-stargazer(reg1, reg3, reg2, reg4, title = "PKO Effectiveness by Peacekeeper Gender - Logit", 
+stargazer(reg1, reg2, title = "PKO Effectiveness by Peacekeeper Gender - Logit", 
           align = TRUE, digits=3, font.size = "scriptsize",
-          style = "apsr", dep.var.labels = c("Gov VAC (C)", "Gov VAC (B)", "Reb VAC (C)", "Reb VAC (B)"),
+          style = "apsr", dep.var.labels = c("Reb VAC (C)", "Reb VAC (B)"),
           covariate.labels = c("Female PK Unit", "Avg. Mountain", "Travel Time Nearest City",
-                               "Perc. Urban", "Night Lights",  "Population Sum", "Population Density", "PK Lag",
+                               "Perc. Urban", "Night Lights",  "Population Sum", "Population Density", 
                                "Violence 6 Months Before", "PKO Lag (B)"),
-          se = list(reg1se, reg3se, reg2se, reg4se), p = list(reg1p, reg3p, reg2p, reg4p),
+          se = list(reg1se, reg2se), p = list(reg1p, reg2p),
           notes = "Robust Standard Errors clustered at the PRIO-Grid level. B = Binary outcome, C = Count outcome.",
           out = "./results/logit.txt")
 
