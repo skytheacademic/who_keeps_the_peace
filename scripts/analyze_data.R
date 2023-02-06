@@ -2,6 +2,27 @@
 # Data analysis and plotting #
 # By: Sky Kunkel
 
+#### Stargazer fix ####
+## Quick fix for stargazer <= 5.2.3 is.na() issue with long model names in R >= 4.2
+# sourced from: https://gist.github.com/alexeyknorre/b0780836f4cec04d41a863a683f91b53
+# # Unload stargazer if loaded
+# detach("package:stargazer",unload=T)
+# # Delete it
+# remove.packages("stargazer")
+# # Download the source
+# download.file("https://cran.r-project.org/src/contrib/stargazer_5.2.3.tar.gz", destfile = "stargazer_5.2.3.tar.gz")
+# # Unpack
+# untar("stargazer_5.2.3.tar.gz")
+# # Read the sourcefile with .inside.bracket fun
+# stargazer_src <- readLines("stargazer/R/stargazer-internal.R")
+# # Move the length check 5 lines up so it precedes is.na(.)
+# stargazer_src[1990] <- stargazer_src[1995]
+# stargazer_src[1995] <- ""
+# # Save back
+# writeLines(stargazer_src, con="stargazer/R/stargazer-internal.R")
+# # Compile and install the patched package
+# install.packages("stargazer", repos = NULL, type="source")
+
 #### load libraries, read data ####
 library(tidyverse); library(magrittr); library(ggpubr); library(ggiraphExtra); 
 library(coefplot); library(stargazer); library(lmtest); library(sandwich)
@@ -15,7 +36,18 @@ setwd("../")
 a = readRDS("./data/kunkel_which_pks.rds") 
 c = readRDS("./data/kunkel_wpks_matched_gender.rds")
 
-# Re-scale PK variable for statistical analyses (per Fjelde et al. (2019))
+# descriptive statistics table #
+labs = c("Total PKs Deployed", "Female PKs Deployed", "Male PKs Deployed", "Gender Balanced Units", "Gender Un-Balanced Units")
+
+stargazer(a[c("radpko_pko_deployed", "radpko_f_pko_deployed", "radpko_m_pko_deployed", "t_bal", "t_unbal")], 
+          covariate.labels = labs, digits = 3, style = "apsr", 
+          title = "Descriptive Statistics of the Independent Variables", out = "./results/pks_table.txt")
+labs1 = c("Gov VAC (C)", "Gov VAC (B)", "Reb VAC (C)", "Reb VAC (B)")
+stargazer(a[c("ucdp_gov_vac_all", "ucdp_gov_vac_5", "ucdp_reb_vac_all", "ucdp_reb_vac_5")], 
+          covariate.labels = labs1, digits = 3, style = "apsr", 
+          title = "Descriptive Statistics of the Dependent Variables", out = "./results/violence_table.txt")
+
+# Re-scale PK variable for statistical analyses (per Fjelde et al. (2019)) 
 a$radpko_m_pko_deployed = a$radpko_m_pko_deployed/100
 a$radpko_f_pko_deployed = a$radpko_f_pko_deployed/100
 c$radpko_m_pko_deployed = c$radpko_m_pko_deployed/100
@@ -30,49 +62,40 @@ reg00 = lm(ucdp_reb_vac_all ~ radpko_f_pko_deployed + radpko_m_pko_deployed + pr
           data = a)
 
 # marginal effects on gender balance #
-reg0_f = ggpredict(reg0, terms = "radpko_f_pko_deployed [0, 20, 40, 60, 80]")
-reg0_m = ggpredict(reg0, terms = "radpko_m_pko_deployed [0, 20, 40, 60, 80]")
-reg00_f = ggpredict(reg00, terms = "radpko_f_pko_deployed [0, 20, 40, 60, 80]")
-reg00_m = ggpredict(reg00, terms = "radpko_m_pko_deployed [0, 20, 40, 60, 80]")
+reg0_f = ggpredict(reg0, terms = "radpko_f_pko_deployed [0, 10, 20, 30, 40]")
+reg0_f$group = "Female Peacekeepers"
+reg0_m = ggpredict(reg0, terms = "radpko_m_pko_deployed [0, 10, 20, 30, 40]")
+reg0_m$group = "Male Peacekeepers"
+reg0_gg = rbind(reg0_f, reg0_m)
+reg00_f = ggpredict(reg00, terms = "radpko_f_pko_deployed [0, 10, 20, 30, 40]")
+reg00_f$group = "Female Peacekeepers"
+reg00_m = ggpredict(reg00, terms = "radpko_m_pko_deployed [0, 10, 20, 30, 40]")
+reg00_m$group = "Male Peacekeepers"
+reg00_gg = rbind(reg00_f, reg00_m)
 
-pdf("./results/pred_f_5.pdf")
-ggplot(reg0_f) +
-  geom_line(aes(x, predicted)) + 
-  geom_ribbon(aes(x, ymin = conf.low, ymax = conf.high), linetype = "dashed", 
-              alpha = 0.1, show.legend = F, colour = "dark grey") +
-  xlab("Female Peacekeepers Deployed") +
-  ylab("Predicted Pr( >4 Civilian Deaths)") + theme_pubclean() + 
-  theme(legend.position = "none") 
-dev.off()
 
-pdf("./results/pred_m_5.pdf")
-ggplot(reg0_m) +
-  geom_line(aes(x, predicted)) + 
-  geom_ribbon(aes(x, ymin = conf.low, ymax = conf.high), linetype = "dashed", 
-              alpha = 0.1, show.legend = F, colour = "dark grey") +
-  xlab('Male Peacekeepers Deployed') +
+pdf("./results/pred_5.pdf")
+ggplot(reg0_gg) +
+  geom_line(aes(x, predicted, colour = group)) +
+  geom_ribbon(aes(x, ymin = conf.low, ymax = conf.high, colour = group, 
+                  fill = group), linetype = "dashed", alpha = 0.1, show.legend = F) +
+  xlab("Peacekeepers Deployed") +
   ylab("Predicted Pr( >4 Civilian Deaths)") + theme_pubclean() +
-  theme(legend.position = "none")
+  theme(legend.position = "right") +
+  scale_colour_manual("",values=c("#A972E0", "#947F4B"))+
+  scale_fill_manual("",values=c("black", "black"))
 dev.off()
 
-pdf("./results/pred_f_all.pdf")
-ggplot(reg00_f) +
-  geom_line(aes(x, predicted)) + 
-  geom_ribbon(aes(x, ymin = conf.low, ymax = conf.high), linetype = "dashed", 
-              alpha = 0.1, show.legend = F, colour = "dark grey") +
-  xlab("Female Peacekeepers Deployed") +
+pdf("./results/pred_all.pdf")
+ggplot(reg00_gg) +
+  geom_line(aes(x, predicted, colour = group)) +
+  geom_ribbon(aes(x, ymin = conf.low, ymax = conf.high, colour = group, 
+                  fill = group), linetype = "dashed", alpha = 0.1, show.legend = F) +
+  xlab("Peacekeepers Deployed") +
   ylab("Predicted Civilian Fatalities") + theme_pubclean() +
-  theme(legend.position = "none")
-dev.off()
-
-pdf("./results/pred_m_all.pdf")
-ggplot(reg00_m) +
-  geom_line(aes(x, predicted)) + 
-  geom_ribbon(aes(x, ymin = conf.low, ymax = conf.high), linetype = "dashed", 
-              alpha = 0.1, show.legend = F, colour = "dark grey") +
-  xlab('Male Peacekeepers Deployed') +
-  ylab("Predicted Civilian Fatalities") + theme_pubclean() +
-  theme(legend.position = "none")
+  theme(legend.position = "right") +
+  scale_colour_manual("",values=c("#A972E0", "#947F4B"))+
+  scale_fill_manual("",values=c("black", "black"))
 dev.off()
 
 # Code instrument for each 
@@ -86,6 +109,10 @@ summary(first.stage_m)
 
 iv_treat_f = first.stage_f$fitted
 iv_treat_m = first.stage_m$fitted
+
+# Print Instrument Tables #
+stargazer(first.stage_f, first.stage_m, style = "apsr", covariate.labels = c("Female PK Instrument", "Male PK Instrument"),
+          dep.var.labels = c("Female PKs Deployed", "Male PKs Deployed"), out = "./results/1st_stage.txt")
 
 #### 2SLS ####
 reg1 = lm(ucdp_gov_vac_5 ~ iv_treat_f + iv_treat_m + prio_mountains_mean + prio_ttime_mean + prio_urban_gc + 
@@ -181,14 +208,7 @@ stargazer(reg1, reg2, title = "PKO Effectiveness by Peacekeeper Gender - Logit",
 
 # Figures and Plots for non-matched regressions 
 
-# descriptive statistics table #
-labs = c("Total PKs deployed", "Gender Balanced Units", "Gender Un-Balanced Units",
-         "Majority Troop Units", "Majority Police Units", "Majority Observer Units")
 
-stargazer(a[c("radpko_pko_deployed", "t_bal", "t_unbal", "untrp_maj", "unpol_maj", "unmob_maj")], covariate.labels = labs, digits = 3, 
-          style = "ajps", omit.summary.stat = "n",
-          title = "Treatments Summarized by Grid-month observations",
-          out = "./results/pks_table.txt")
 
 # Figures and Plots for matched regressions 
 
@@ -214,51 +234,6 @@ stargazer(reg5, reg6, reg7, reg8, title = "Matched Results Pr(Violence) by Troop
           omit = c("untrp_maj:radpko_pko_lag", "unpol_maj:radpko_pko_lag", "unmob_maj:radpko_pko_lag", "untrp_maj:viol_6", "unpol_maj:viol_6", 
                    "unmob_maj:viol_6"))
 
-
-#Marginal effects plots
-
-# marginal effects on gender balance #
-reg2.bal = ggpredict(reg2, terms = "t_bal", condition = c(t_unbal = 0))
-reg2.bal$group = "Incumbent Deaths, Gender Balanced PKs"
-reg2.unbal = ggpredict(reg2, terms = "t_unbal", condition = c(t_bal = 0))
-reg2.unbal$group = "Incumbent Deaths, Gender Unbalanced PKs"
-reg2_gg = rbind(reg2.bal, reg2.unbal)
-reg4.bal = ggpredict(reg4, terms = "t_bal", condition = c(t_unbal = 0))
-reg4.bal$group = "Rebels Deaths, Gender Balanced PKs"
-reg4.unbal = ggpredict(reg4, terms = "t_unbal", condition = c(t_bal = 0))
-reg4.unbal$group = "Rebel Deaths, Gender Unbalanced PKs"
-reg4_gg = rbind(reg4.bal, reg4.unbal)
-
-gen_death = rbind(reg2_gg, reg4_gg)
-
-ggplot(gen_death) +
-  geom_line(aes(x, predicted, colour = group)) +
-  geom_ribbon(aes(x, ymin = conf.low, ymax = conf.high, colour = group, 
-                  fill = group), linetype = "dashed", alpha = 0.1, show.legend = F) +
-  ylab("Predicted Pr(Civilian Deaths)") + theme_pubclean() +
-  ylim(-0.01, 0.15) + theme(legend.position = "right") +
-  guides(fill = guide_legend(title = "Faction and Gender Balance of PK Unit")) +
-  scale_x_continuous(breaks = seq(0,1,1))
-
-ggplot(gen_death_1) +
-  geom_line(aes(x, predicted, colour = group)) +
-  geom_ribbon(aes(x, ymin = conf.low, ymax = conf.high, colour = group, 
-                  fill = group), linetype = "dashed", alpha = 0.1, show.legend = F) +
-  ylab("Predicted Pr(Civilian Deaths)") + theme_pubclean() +
-  ylim(-0.01, 0.75) + theme(legend.position = "right") +
-  guides(fill = guide_legend(title = "Faction and Gender Balance of PK Unit")) +
-  scale_x_continuous(breaks = seq(0,1,1))
-
-
-
-# this plot works, testing with above
-ggplot(reg2_gg) +
-  geom_line(aes(x, predicted, colour = factor(group))) +
-  geom_ribbon(aes(x, ymin = conf.low, ymax = conf.high, colour = factor(group), 
-                  fill = factor(group)), linetype = "dashed", alpha = 0.15) +
-  ylab("Predicted Violence Events") + theme_pubclean() + 
-  guides(fill=guide_legend(title="New Legend Title"))
-scale_x_continuous(breaks = seq(0,1,1))
 
 
 #### Matched Figures
