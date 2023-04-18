@@ -11,7 +11,8 @@ library(countrycode); library(geosphere)
 ### Reading in and briefly cleaning the data ###
 
 # set working directory #
-setwd("../")
+setwd(dirname(rstudioapi::getActiveDocumentContext()$path)) # set to source file location
+setwd("../") # back out to main folder
 
 #### read in RADPKO data ####
 radpko = read.csv("./data/radpko/radpko_grid.csv")  %>%

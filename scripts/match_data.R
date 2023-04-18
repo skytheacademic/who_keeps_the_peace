@@ -9,7 +9,8 @@ library(gurobi); library(designmatch); library(gdata); library(tidyverse)
 options(scipen = 999)
 
 # reading in cleaned data
-setwd("../")
+setwd(dirname(rstudioapi::getActiveDocumentContext()$path)) # set to source file location
+setwd("../") # back out to main folder
 #### Matching by where units with more and less women deployed ####
 a = readRDS("./data/kunkel_which_pks.rds") %>%
   filter(t_ind == 1) %>% drop_na(any_of(c("prio_nlights_calib_mean", "prio_pop_gpw_sum", "prio_pop.dens"))) # drop NAs for matching
