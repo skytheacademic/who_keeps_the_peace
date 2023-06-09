@@ -32,7 +32,9 @@ library(ggeffects); library(MASS)
 options(scipen = 999)
 
 # reading in cleaned data
-setwd("../")
+setwd(dirname(rstudioapi::getActiveDocumentContext()$path)) # set to source file location
+setwd("../") # back out to main folder
+
 a = readRDS("./data/kunkel_which_pks.rds") 
 c = readRDS("./data/kunkel_wpks_matched_gender.rds")
 
@@ -53,51 +55,135 @@ a$radpko_f_pko_deployed = a$radpko_f_pko_deployed/100
 c$radpko_m_pko_deployed = c$radpko_m_pko_deployed/100
 c$radpko_f_pko_deployed = c$radpko_f_pko_deployed/100
 
-# Plot 1 & 2
-reg0 = lm(ucdp_reb_vac_5 ~ radpko_f_pko_deployed + radpko_m_pko_deployed + prio_mountains_mean + prio_ttime_mean + prio_urban_gc + 
-            radpko_pko_lag + viol_6 + radpko_f_pko_deployed*radpko_m_pko_deployed,
-          data = a)
-reg00 = lm(ucdp_reb_vac_all ~ radpko_f_pko_deployed + radpko_m_pko_deployed + prio_mountains_mean + prio_ttime_mean + prio_urban_gc + 
-            radpko_pko_lag + viol_6 + radpko_f_pko_deployed*radpko_m_pko_deployed,
-          data = a)
+a$radpko_m_prop = 0
+a$radpko_m_prop[a$t_ind == 1] = 1 - a$radpko_f_prop[a$t_ind == 1]
+a = a %>%
+  relocate(radpko_m_prop, .after = radpko_f_prop) %>%
+  mutate(radpko_f_prop = 10*radpko_f_prop, radpko_m_prop = 10*radpko_m_prop)
 
-# marginal effects on gender balance #
-reg0_f = ggpredict(reg0, terms = "radpko_f_pko_deployed [0, 10, 20, 30, 40]")
-reg0_f$group = "Female Peacekeepers"
-reg0_m = ggpredict(reg0, terms = "radpko_m_pko_deployed [0, 10, 20, 30, 40]")
-reg0_m$group = "Male Peacekeepers"
+
+####### RUN AND PLOT RESTRICTED/NAIVE MODELS #########
+
+# analysis by total PKs
+reg0 = lm(ucdp_reb_vac_5 ~ radpko_f_pko_deployed + radpko_m_pko_deployed + prio_mountains_mean + prio_ttime_mean + prio_urban_gc + 
+            radpko_pko_lag + viol_6,
+          data = a)
+summary(reg0)
+
+reg00 = glm(ucdp_reb_vac_all ~ radpko_f_pko_deployed + radpko_m_pko_deployed + prio_mountains_mean + prio_ttime_mean + prio_urban_gc + 
+             radpko_pko_lag + viol_6,
+           data = a)
+summary(reg00)
+
+# analysis by proportion PKs
+reg_fprop_5 = lm(ucdp_reb_vac_5 ~ radpko_f_prop + prio_mountains_mean + prio_ttime_mean + prio_urban_gc + 
+            radpko_pko_lag + viol_6,
+          data = a)
+summary(reg_fprop_5)
+
+reg_mprop_5 = lm(ucdp_reb_vac_5 ~ radpko_m_prop + prio_mountains_mean + prio_ttime_mean + prio_urban_gc + 
+            radpko_pko_lag + viol_6,
+          data = a)
+summary(reg_mprop_5)
+
+reg_fprop_all = lm(ucdp_reb_vac_all ~ radpko_f_prop + prio_mountains_mean + prio_ttime_mean + prio_urban_gc + 
+              radpko_pko_lag + viol_6,
+            data = a)
+summary(reg_fprop_all)
+
+reg_mprop_all = lm(ucdp_reb_vac_all ~ radpko_m_prop + prio_mountains_mean + prio_ttime_mean + prio_urban_gc + 
+             radpko_pko_lag + viol_6,
+           data = a)
+summary(reg_mprop_all)
+
+# predicted outcomes based on gender proportion #
+pred_fprop_5 = ggpredict(reg_fprop_5, terms = "radpko_f_prop [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]")
+pred_fprop_5$group = "Women PKs"
+pred_mprop_5 = ggpredict(reg_mprop_5, terms = "radpko_m_prop [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]")
+pred_mprop_5$group = "Men PKs"
+pred_mprop_5_gg = rbind(pred_fprop_5, pred_mprop_5) %>% mutate(x = x/10)
+
+pred_fprop_all = ggpredict(reg_fprop_all, terms = "radpko_f_prop [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]")
+pred_fprop_all$group = "Women PKs"
+pred_mprop_all = ggpredict(reg_mprop_all, terms = "radpko_m_prop [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]")
+pred_mprop_all$group = "Men PKs"
+pred_mprop_all_gg = rbind(pred_fprop_all, pred_mprop_all) %>% mutate(x = x/10)
+
+pdf("./results/pred_5_prop.pdf")
+ggplot(pred_mprop_5_gg) +
+  geom_line(aes(x, predicted, colour = group)) +
+  geom_ribbon(aes(x, ymin = conf.low, ymax = conf.high, colour = group, 
+                  fill = group), linetype = "dashed", alpha = 0.1, show.legend = F) +
+  xlab("Gender Proportion of Peacekeeping Unit") +
+  ylab("Predicted Pr( >4 Civilian Deaths)") + theme_pubclean() +
+  theme(legend.position = "none") +
+  scale_colour_manual("",values=c("#228B22", "#6A1C36"))+
+  scale_fill_manual("",values=c("black", "black"))
+dev.off()
+
+pdf("./results/pred_all_prop.pdf")
+ggplot(pred_mprop_all_gg) +
+  geom_line(aes(x, predicted, colour = group)) +
+  geom_ribbon(aes(x, ymin = conf.low, ymax = conf.high, colour = group, 
+                  fill = group), linetype = "dashed", alpha = 0.1, show.legend = F) +
+  xlab("Gender Proportion of Peacekeeping Unit") +
+  ylab("Predicted Civilian Fatalities") + theme_pubclean() +
+  theme(legend.position = "none") +
+  scale_colour_manual("",values=c("#228B22", "#6A1C36"))+
+  scale_fill_manual("",values=c("black", "black"))
+dev.off()
+
+# predicted outcomes based on total counts #
+reg0_f = ggpredict(reg0, terms = "radpko_f_pko_deployed [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]")
+reg0_f$group = "Women PKs"
+reg0_m = ggpredict(reg0, terms = "radpko_m_pko_deployed [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]")
+reg0_m$group = "Men PKs"
 reg0_gg = rbind(reg0_f, reg0_m)
-reg00_f = ggpredict(reg00, terms = "radpko_f_pko_deployed [0, 10, 20, 30, 40]")
-reg00_f$group = "Female Peacekeepers"
-reg00_m = ggpredict(reg00, terms = "radpko_m_pko_deployed [0, 10, 20, 30, 40]")
-reg00_m$group = "Male Peacekeepers"
+reg00_f = ggpredict(reg00, terms = "radpko_f_pko_deployed [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]")
+reg00_f$group = "Women PKs"
+reg00_m = ggpredict(reg00, terms = "radpko_m_pko_deployed [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]")
+reg00_m$group = "Men PKs"
 reg00_gg = rbind(reg00_f, reg00_m)
 
 
-pdf("./results/pred_5.pdf")
+pdf("./results/pred_5_total.pdf")
 ggplot(reg0_gg) +
   geom_line(aes(x, predicted, colour = group)) +
   geom_ribbon(aes(x, ymin = conf.low, ymax = conf.high, colour = group, 
                   fill = group), linetype = "dashed", alpha = 0.1, show.legend = F) +
-  xlab("Peacekeepers Deployed") +
+  xlab("Gender of Peacekeepers Deployed (100s)") +
   ylab("Predicted Pr( >4 Civilian Deaths)") + theme_pubclean() +
-  theme(legend.position = "right") +
-  scale_colour_manual("",values=c("#A972E0", "#947F4B"))+
+  theme(legend.position = "none") +
+  scale_colour_manual("",values=c("#228B22", "#6A1C36"))+
   scale_fill_manual("",values=c("black", "black"))
 dev.off()
 
-pdf("./results/pred_all.pdf")
+pdf("./results/pred_all_total.pdf")
 ggplot(reg00_gg) +
   geom_line(aes(x, predicted, colour = group)) +
   geom_ribbon(aes(x, ymin = conf.low, ymax = conf.high, colour = group, 
                   fill = group), linetype = "dashed", alpha = 0.1, show.legend = F) +
-  xlab("Peacekeepers Deployed") +
+  xlab("Gender of Peacekeepers Deployed (100s)") +
   ylab("Predicted Civilian Fatalities") + theme_pubclean() +
-  theme(legend.position = "right") +
-  scale_colour_manual("",values=c("#A972E0", "#947F4B"))+
+  theme(legend.position = "none") +
+  scale_colour_manual("",values=c("#228B22", "#6A1C36"))+
   scale_fill_manual("",values=c("black", "black"))
 dev.off()
 
+legend = 
+  ggplot(reg00_gg) +
+  geom_line(aes(x, predicted, colour = group)) +
+  geom_ribbon(aes(x, ymin = conf.low, ymax = conf.high, colour = group, 
+                  fill = group), linetype = "dashed", alpha = 0.1, show.legend = F) +
+  scale_colour_manual("",values=c("#228B22", "#6A1C36"))+
+  scale_fill_manual("",values=c("black", "black")) + 
+  theme(plot.margin = unit(c(0,0,0,0), "cm"), legend.background = element_rect(color = "black"), 
+        legend.position = "bottom", legend.key.size = unit(1.75, 'cm'), legend.margin=margin(c(5,5,5,5)))
+pdf("./results/pred_legend.pdf")
+as_ggplot(get_legend(legend))
+dev.off()
+
+#### 2SLS ####
 # Code instrument for each 
 a$f_iv = (a$f_pko_africa/10000)*log(a$distance_to_capital)
 a$m_iv = (a$m_pko_africa/10000)*log(a$distance_to_capital)
@@ -114,7 +200,7 @@ iv_treat_m = first.stage_m$fitted
 stargazer(first.stage_f, first.stage_m, style = "apsr", covariate.labels = c("Female PK Instrument", "Male PK Instrument"),
           dep.var.labels = c("Female PKs Deployed", "Male PKs Deployed"), out = "./results/1st_stage.txt")
 
-#### 2SLS ####
+# run the models
 reg1 = lm(ucdp_gov_vac_5 ~ iv_treat_f + iv_treat_m + prio_mountains_mean + prio_ttime_mean + prio_urban_gc + 
            radpko_pko_lag + viol_6,
            data = a)
@@ -289,3 +375,60 @@ stargazer(reg1, reg2, reg3, reg4, title = "Matched Results Violence by PK Gender
 
 
 
+### to be deleted ###
+# this code restructures the data, and runs the variables as an interaction term; in other words,
+# it comes up with the same results, so I'm removing it for now
+
+# restructure data 
+
+# b = a %>%
+#   pivot_longer(cols = c("radpko_m_pko_deployed", "radpko_f_pko_deployed"))
+# b$name[b$name == "radpko_m_pko_deployed"] = "Male PKs"
+# b$name[b$name == "radpko_f_pko_deployed"] = "Female PKs"
+
+
+
+b = a %>%
+  pivot_longer(cols = c("radpko_f_prop", "radpko_m_prop"))
+b$name[b$name == "radpko_m_prop"] = "Men"
+b$name[b$name == "radpko_f_prop"] = "Women"
+
+## possibly new way w/ interactions? ##
+reg0_b = lm(ucdp_reb_vac_5 ~ value + prio_mountains_mean + prio_ttime_mean + prio_urban_gc +
+              radpko_pko_lag + viol_6 + value*name,
+            data = b)
+summary(reg0_b)
+reg00_b = lm(ucdp_reb_vac_all ~ value + prio_mountains_mean + prio_ttime_mean + prio_urban_gc +
+               radpko_pko_lag + viol_6 + value*name,
+             data = b)
+summary(reg00_b)
+
+
+
+
+reg0_gg_b = ggpredict(reg0, terms = c("value [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]", "name")) %>% mutate(x = x/10)
+reg00_gg_b = ggpredict(reg00_b, terms = c("value [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]", "name")) %>% mutate(x = x/10)
+
+
+ggplot(reg0_gg_b) +
+  geom_line(aes(x, predicted, colour = group)) +
+  geom_ribbon(aes(x, ymin = conf.low, ymax = conf.high, colour = group, 
+                  fill = group), linetype = "dashed", alpha = 0.1, show.legend = F) +
+  xlab("Peacekeepers Deployed") +
+  ylab("Predicted Pr( >4 Civilian Deaths)") + theme_pubclean() +
+  theme(legend.position = "right") +
+  scale_colour_manual("",values=c("#A972E0", "#947F4B"))+
+  scale_fill_manual("",values=c("black", "black"))
+
+
+ggplot(reg00_gg_b) +
+  geom_line(aes(x, predicted, colour = group)) +
+  geom_ribbon(aes(x, ymin = conf.low, ymax = conf.high, colour = group, 
+                  fill = group), linetype = "dashed", alpha = 0.1, show.legend = F) +
+  xlab("Peacekeepers Deployed") +
+  ylab("Predicted Civilian Fatalities") + theme_pubclean() +
+  theme(legend.position = "right") +
+  scale_colour_manual("",values=c("#A972E0", "#947F4B"))+
+  scale_fill_manual("",values=c("black", "black"))
+
+################## continue old code ####################
