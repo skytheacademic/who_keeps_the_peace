@@ -102,7 +102,8 @@ pko_supply = radpko %>%
   mutate(across(pko_deployed:f_pko_deployed, ~replace_na(.x, 0))) %>%
   select(month, year, pko_deployed, m_pko_deployed, f_pko_deployed) %>%
   group_by(month,year) %>%
-  summarise(pko_africa = sum(pko_deployed), m_pko_africa = sum(m_pko_deployed), f_pko_africa = sum(f_pko_deployed))
+  summarise(pko_africa = sum(pko_deployed), m_pko_africa = sum(m_pko_deployed), f_pko_africa = sum(f_pko_deployed),
+            pko_africa_prop_m = m_pko_africa / pko_africa, pko_africa_prop_f = f_pko_africa / pko_africa) # calculate proportions
 radpko = left_join(radpko, pko_supply, by = c("month", "year"))
 # Fjelde et al. log distance to capital, whereas Ruggeri et al. measure it in kilometers
 # also measure PKO UN Africa in ten thousands, hard to tell how Ruggeri et al. measure
@@ -130,6 +131,10 @@ radpko = radpko %>%
 radpko <- radpko %>% 
   mutate(across(units_deployed:m_unmob, 
                 ~replace_na(.x, 0)))
+radpko$m_prop = 0
+radpko$m_prop[radpko$t_ind == 1] = 1 - radpko$f_prop[radpko$t_ind == 1]
+radpko = radpko %>% 
+  relocate(m_prop, .after = f_prop)
 
 # add proportions of each type to get total gender balance and then split treatment by balance
 radpko$t_bal = 0 # make balanced treatment indicator
@@ -139,8 +144,8 @@ radpko$t_unbal[radpko$f_prop <= quantile(radpko$f_prop[radpko$t_ind == 1], prob=
 
 ##### Merge UCDP data #####
 # read in data
-dd = read.csv("./data/ucdp_ged/ucdp-actor-221.csv") %>%
-  rename(a_id = ActorId) %>%
+dd = read.csv("./data/ucdp_ged/ucdp-actor-221.csv", encoding = "UTF-8") %>% # if there is an error here, check encoding and rename columns accordingly
+  rename(a_id = X.U.FEFF.ActorId) %>%
   select(c(a_id, Org)) # grab data so we can classify actors during OSV
 df = read.csv("./data/ucdp_ged/GEDEvent_v22_1.csv") %>%
   # make the date variable a date type
