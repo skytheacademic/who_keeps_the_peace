@@ -17,6 +17,38 @@ options(scipen = 999)
 # reading in cleaned data
 setwd(dirname(rstudioapi::getActiveDocumentContext()$path)) # set to source file location
 setwd("../") # back out to main folder
+
+# make plot of women and men PKs over time
+
+a = readRDS("./data/kunkel_which_pks.rds")
+aa = a %>%
+  group_by(date) %>%
+  summarize(men = sum(radpko_m_pko_deployed), women = sum(radpko_f_pko_deployed)) %>%
+  filter(date < "2018-01-01")
+
+long_aa <- aa %>%
+  pivot_longer(cols = c(men, women), 
+               names_to = "gender", 
+               values_to = "pks")
+
+long_aa$gender[long_aa$gender=="men"] = "Men"
+long_aa$gender[long_aa$gender=="women"] = "Women"
+
+pdf("./results/desc_pks.pdf", width = 20, height = 10)
+long_aa %>%
+  ggplot(aes(x = date, y = pks, color = gender)) +
+  geom_line(lwd = 1) +
+  labs(title = "Peacekeepers Over Time by Gender",
+       y = "Count",
+       color = "Gender") +
+  facet_wrap(~gender, scales = "free_y") +
+  theme_pubclean() +
+  theme(legend.position = "none")
+dev.off()
+
+
+
+
 a = readRDS("./data/kunkel_which_pks.rds") %>%
   filter(prio.grid == 127858) %>%
   relocate(c(ucdp_reb_vac_all, ucdp_gov_vac_all),
