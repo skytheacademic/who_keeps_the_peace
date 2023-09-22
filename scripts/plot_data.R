@@ -117,18 +117,18 @@ df_pk = df %>%
 
 # plot of variables as different colors and different shape
 
-dsc.1 = 
-  ggplot(afr_shp) + geom_sf(aes(geometry = geometry), alpha = 0.3,fill = NA) +
-  geom_point(data = df, aes(x = xcoord, y = ycoord, size=violence, colour = "#e5695b"), alpha=0.4, shape = 19) +
-  geom_point(data = df, aes(x = xcoord, y = ycoord, size=f_pko_deployed, colour = "#75E667"), alpha=0.5, shape = 19) +
-  geom_point(data = df, aes(x = xcoord, y = ycoord, size=m_pko_deployed, colour = "#2E9599"), alpha=0.5, shape = 19) +
+dsc.1 =
+  ggplot(afr_shp) + geom_sf(aes(geometry = geometry), alpha = 0.3,fill = NA) + # e5695b
+  geom_point(data = df, aes(x = xcoord, y = ycoord, size=violence, colour = "black"), alpha=0.2, shape = 19) +
+  geom_point(data = df, aes(x = xcoord, y = ycoord, size=f_pko_deployed, colour = "grey"), alpha=0.7, shape = 19) +
+  geom_point(data = df, aes(x = xcoord, y = ycoord, size=m_pko_deployed, colour = "orange"), alpha=0.5, shape = 19) +
   scale_fill_viridis_c(option="E") +
-  scale_size(range = c(.1, 24), name="Count", labels = c("20,000", "40,000", "60,000"), breaks = c(20000, 40000,60000)) +
+  # scale_size(range = c(.1, 15), name="Count", labels = c("20,000", "40,000"), breaks = c(20000, 40000)) +
   theme_void()
 
-dsc = 
+# dsc =
   dsc.1 + labs(colour = "Variable") + 
-  scale_color_manual(labels = c("PKs Deployed", "Violence"), values = c("#5b92e5", "#e5695b")) +
+  scale_color_manual(labels = c("Men PKs Deployed", "Women PKs Deployed", "Violence"), values = c("orange", "grey", "black")) +
   theme(legend.background = element_rect(color = "black"), legend.position = c(0.25, 0.3),
         plot.margin = unit(c(0,0,0,0), "cm"), legend.margin=margin(c(5,5,5,5)), 
         legend.key.size = unit(0.2, 'cm')) + 
