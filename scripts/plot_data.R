@@ -46,7 +46,114 @@ long_aa %>%
   theme(legend.position = "none")
 dev.off()
 
+## Descriptive Map ##
 
+
+############# EXAMPLE ####################
+library(sf)
+library(janitor)
+library(lubridate)
+library(viridis)
+
+a = readRDS("./data/kunkel_which_pks.rds") %>% 
+  as.data.frame()
+
+df = a %>%
+  group_by(prio.grid) %>%
+  summarize(f_pko_deployed = sum(radpko_f_pko_deployed), m_pko_deployed = sum(radpko_m_pko_deployed), 
+            violence = sum(ucdp_reb_vac_all, ucdp_gov_vac_all))
+
+# change 0s to NA to make plot prettier
+df$f_pko_deployed[df$f_pko_deployed == 0] <- NA
+df$m_pko_deployed[df$m_pko_deployed == 0] <- NA
+df$violence[df$violence == 0] <- NA
+
+# restructure the data so grids can be duplicated and pko/violence is on the same scale 
+# and named the same variable
+df.pk_f = subset(df, f_pko_deployed > 0) %>%
+  select(-c("violence", "m_pko_deployed")) %>%
+  rename(count = f_pko_deployed)
+df.pk_f$ct.type = "Women PKs Deployed"
+df.pk_m = subset(df, m_pko_deployed > 0) %>%
+  select(-c("violence", "f_pko_deployed")) %>%
+  rename(count = m_pko_deployed)
+df.pk_m$ct.type = "Men PKs Deployed"
+df.vo = subset(df, violence > 0) %>%
+  select(-c("m_pko_deployed", "f_pko_deployed")) %>%
+  rename(count = violence)
+df.vo$ct.type = "Violent Deaths"
+
+# rejoin to same column
+dd = rbind(df.pk_f, df.pk_m, df.vo)
+
+rm(list = setdiff(ls(), c("dd", "df"))) 
+gc()
+
+### MERGE ACLED DATA WITH PRIO GRID IDS ###
+prio_shp <- st_read(dsn = "./data/prio", layer = "priogrid_cell", # get prio shapefiles
+                    stringsAsFactors = F)
+afr_shp <- st_read(dsn = "./data/gadm/africa", layer = "afr_g2014_2013_0", # get Africa shapefiles
+                   stringsAsFactors = F)
+
+### save the CRS
+proj_crs <- st_crs(prio_shp)
+dd$gid = dd$prio.grid
+dd$prio.grid = NULL
+df$gid = df$prio.grid
+df$prio.grid = NULL
+# convert, get rid of useless data
+df.prio = left_join(df, prio_shp, by = "gid") %>%
+  select(-c(2:7))
+df = left_join(df, prio_shp, by = "gid") %>%
+  as.data.frame() %>%
+  select(-c("geometry", "col", "row"))
+dd_ac = left_join(dd, prio_shp, by = "gid") %>%
+  as.data.frame() %>%
+  select(-c("geometry", "col", "row"))
+df_ac= df %>%
+  drop_na(violence) # drop NAs
+df_pk = df %>%
+  drop_na(f_pko_deployed, m_pko_deployed)
+
+# plot of variables as different colors and different shape
+
+dsc.1 = 
+  ggplot(afr_shp) + geom_sf(aes(geometry = geometry), alpha = 0.3,fill = NA) +
+  geom_point(data = df, aes(x = xcoord, y = ycoord, size=violence, colour = "#e5695b"), alpha=0.4, shape = 19) +
+  geom_point(data = df, aes(x = xcoord, y = ycoord, size=f_pko_deployed, colour = "#75E667"), alpha=0.5, shape = 19) +
+  geom_point(data = df, aes(x = xcoord, y = ycoord, size=m_pko_deployed, colour = "#2E9599"), alpha=0.5, shape = 19) +
+  scale_fill_viridis_c(option="E") +
+  scale_size(range = c(.1, 24), name="Count", labels = c("20,000", "40,000", "60,000"), breaks = c(20000, 40000,60000)) +
+  theme_void()
+
+dsc = 
+  dsc.1 + labs(colour = "Variable") + 
+  scale_color_manual(labels = c("PKs Deployed", "Violence"), values = c("#5b92e5", "#e5695b")) +
+  theme(legend.background = element_rect(color = "black"), legend.position = c(0.25, 0.3),
+        plot.margin = unit(c(0,0,0,0), "cm"), legend.margin=margin(c(5,5,5,5)), 
+        legend.key.size = unit(0.2, 'cm')) + 
+  guides(shape = guide_legend(order = 1),col = guide_legend(order = 2), legend.direction="vertical")
+
+pdf("./results/desc_plot.pdf")
+dsc
+dev.off()
+
+
+# plot w/ variables as different colors but same shape
+
+dsc = ggplot(afr_shp) + geom_sf(aes(geometry = geometry), fill = NA) +
+  geom_point(data = dd_ac, aes(x = xcoord, y = ycoord, size=count, color=ct.type), alpha=0.4, shape = 19) +
+  scale_size(range = c(.1, 24), name="Count") +
+  scale_fill_viridis_c(option="E") +
+  xlab("latitude") +
+  ylab("longitude")
+
+dsc + labs(color = "Variables of Interest")
+
+# end of plot
+############# EXAMPLE ####################
+
+## plot of gender balanced and unbalanced units over time ##
 
 
 a = readRDS("./data/kunkel_which_pks.rds") %>%
