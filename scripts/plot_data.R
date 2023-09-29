@@ -18,6 +18,37 @@ options(scipen = 999)
 setwd(dirname(rstudioapi::getActiveDocumentContext()$path)) # set to source file location
 setwd("../") # back out to main folder
 
+####### Plots of naive models ####### 
+a = readRDS("./data/kunkel_which_pks.rds")
+a$radpko_pko_deployed = a$radpko_pko_deployed/100 # rescale variable
+
+### Plots ###
+library(jtools); library(broom.mixed)
+# logits
+reg0 = glm(ucdp_reb_vac_5 ~ radpko_pko_deployed + prio_mountains_mean + prio_ttime_mean + prio_urban_gc + 
+             radpko_pko_lag + viol_6,
+           data = a, family = negative.binomial(theta = 1))
+names(reg0$coefficients) = c("(Intercept)", "Peacekeepers Deployed",
+                             "Avg. Mountain", "Travel Time Nearest City", "Percent Urban",
+                             "Peacekeeper Lag", "Violence 6 Months Before")
+se_reg0 <- round(coeftest(reg0, vcov = vcovPL(reg0, cluster = a$prio.grid)),4)
+se_reg0
+
+reg00 = glm(ucdp_reb_vac_all ~ radpko_pko_deployed + prio_mountains_mean + prio_ttime_mean + prio_urban_gc + 
+              radpko_pko_lag + viol_6,
+            data = a, family = negative.binomial(theta = 1))
+names(reg00$coefficients) = c("(Intercept)", "Peacekeepers Deployed",
+                              "Avg. Mountain", "Travel Time Nearest City", "Percent Urban",
+                              "Peacekeeper Lag", "Violence 6 Months Before")
+se_reg00 <- round(coeftest(reg00, vcov = vcovPL(reg00, cluster = a$prio.grid)),4)
+se_reg00
+
+svg("./results/naive_models.svg", height = 8, width = 10)
+plot_summs(se_reg0, se_reg00, model.names = c("Binary", "Count"), legend.title = "Model by Outcome",
+           omit.coefs = c("(Intercept)", "Avg. Mountain"))
+dev.off()
+
+
 # make plot of women and men PKs over time
 
 a = readRDS("./data/kunkel_which_pks.rds")
@@ -35,6 +66,15 @@ long_aa$gender[long_aa$gender=="men"] = "Men"
 long_aa$gender[long_aa$gender=="women"] = "Women"
 
 pdf("./results/desc_pks.pdf", width = 20, height = 10)
+# long_aa %>%
+#   ggplot(aes(x = date, y = pks, color = gender)) +
+#   geom_line(lwd = 1) +
+#   labs(title = "Peacekeepers Over Time by Gender",
+#        y = "Count",
+#        color = "Gender") +
+#   facet_wrap(~gender, scales = "free_y") +
+#   theme_pubclean() +
+#   theme(legend.position = "none")
 long_aa %>%
   ggplot(aes(x = date, y = pks, color = gender)) +
   geom_line(lwd = 1) +
@@ -43,9 +83,23 @@ long_aa %>%
        color = "Gender") +
   facet_wrap(~gender, scales = "free_y") +
   theme_pubclean() +
-  theme(legend.position = "none")
+  theme(legend.position = "none") +
+  scale_color_manual(values = c("Men" = "#EB5307", "Women" = "#9E314B"))
+
 dev.off()
 
+svg("./results/desc_pks.svg", width = 20, height = 10)
+long_aa %>%
+  ggplot(aes(x = date, y = pks, color = gender)) +
+  geom_line(lwd = 1) +
+  labs(title = "Peacekeepers Over Time by Gender",
+       y = "Count",
+       color = "Gender") +
+  facet_wrap(~gender, scales = "free_y") +
+  theme_pubclean() +
+  theme(legend.position = "none") +
+  scale_color_manual(values = c("Men" = "#EB5307", "Women" = "#9E314B"))
+dev.off()
 ## Descriptive Map ##
 
 
@@ -117,22 +171,89 @@ df_pk = df %>%
 
 # plot of variables as different colors and different shape
 
+
+dsc.wom =
+  ggplot(afr_shp) + geom_sf(aes(geometry = geometry), alpha = 0.3,fill = NA) + # e5695b
+  geom_point(data = df, aes(x = xcoord, y = ycoord, size=f_pko_deployed, colour = "#9E314B"), alpha=0.5, shape = 19) +
+  scale_fill_viridis_c(option="E") +
+  scale_size(range = c(.1, 15), name="Count", labels = c("10,000", "20,000"), breaks = c(10000, 20000)) +
+  theme_void()
+
+dsc_wom = dsc.wom + 
+  labs(colour = "Variable") + 
+  scale_color_manual(labels = c("Women PKs Deployed"), values = c("#9E314B")) +
+  theme(legend.background = element_rect(color = "black"), legend.position = c(0.25, 0.2),
+        plot.margin = unit(c(0,0,0,0), "cm"), legend.margin=margin(c(5,5,5,5)), 
+        legend.key.size = unit(0.2, 'cm')) + 
+  guides(shape = guide_legend(order = 1),col = guide_legend(order = 2), legend.direction="vertical") +
+  xlim(-14,37) + ylim(-12,21)
+
+pdf("./results/women_map.pdf")
+dsc_wom
+dev.off()
+
+svg("./results/women_map.svg")
+dsc_wom
+dev.off()
+
+dsc.men =
+  ggplot(afr_shp) + geom_sf(aes(geometry = geometry), alpha = 0.3,fill = NA) +
+  geom_point(data = df, aes(x = xcoord, y = ycoord, size=m_pko_deployed, colour = "#EB5307"), alpha=0.5, shape = 19) +
+  scale_fill_viridis_c(option="E") +
+  scale_size(range = c(.1, 24), name="Count", labels = c("250,000", "500,000"), breaks = c(250000, 500000)) +
+  theme_void()
+
+dsc_men = dsc.men + 
+  labs(colour = "Variable") + 
+  scale_color_manual(labels = c("Men PKs Deployed"), values = c("#EB5307")) +
+  theme(legend.background = element_rect(color = "black"), legend.position = c(0.25, 0.18),
+        plot.margin = unit(c(0,0,0,0), "cm"), legend.margin=margin(c(5,5,5,5)), 
+        legend.key.size = unit(0.2, 'cm')) + 
+  guides(shape = guide_legend(order = 1),col = guide_legend(order = 2), legend.direction="vertical") +
+  xlim(-14,37) + ylim(-12,21)
+
+svg("./results/men_map.svg")
+dsc_men
+dev.off()
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 dsc.1 =
   ggplot(afr_shp) + geom_sf(aes(geometry = geometry), alpha = 0.3,fill = NA) + # e5695b
-  geom_point(data = df, aes(x = xcoord, y = ycoord, size=violence, colour = "black"), alpha=0.2, shape = 19) +
-  geom_point(data = df, aes(x = xcoord, y = ycoord, size=f_pko_deployed, colour = "grey"), alpha=0.7, shape = 19) +
-  geom_point(data = df, aes(x = xcoord, y = ycoord, size=m_pko_deployed, colour = "orange"), alpha=0.5, shape = 19) +
+  geom_point(data = df, aes(x = xcoord, y = ycoord, size=f_pko_deployed, colour = "#9E314B"), alpha=0.7, shape = 19) +
+  geom_point(data = df, aes(x = xcoord, y = ycoord, size=m_pko_deployed, colour = "grey"), alpha=0.4, shape = 19) +
   scale_fill_viridis_c(option="E") +
-  # scale_size(range = c(.1, 15), name="Count", labels = c("20,000", "40,000"), breaks = c(20000, 40000)) +
+  # scale_size(range = c(1, 24), name="Count", labels = c("20,000", "40,000"), breaks = c(20000, 40000)) +
   theme_void()
+
+dsc.1 = ggplot(afr_shp) + 
+  geom_sf(aes(geometry = geometry), alpha = 0.3, fill = NA) +
+  geom_point(data = df, aes(x = xcoord, y = ycoord, size = 2 * f_pko_deployed, colour = "#EB5307"), alpha = 0.8, shape = 19) +
+  geom_point(data = df, aes(x = xcoord, y = ycoord, size = 2 * m_pko_deployed, colour = "darkgrey"), alpha = 0.4, shape = 19) +
+  scale_size_continuous(range = c(1, 24), name = "Count", labels = c("20,000", "40,000"), breaks = c(10000, 20000)) +  # Adjust the range as needed
+  scale_fill_viridis_c(option = "E") +
+  theme_void()
+
 
 # dsc =
   dsc.1 + labs(colour = "Variable") + 
-  scale_color_manual(labels = c("Men PKs Deployed", "Women PKs Deployed", "Violence"), values = c("orange", "grey", "black")) +
+  scale_color_manual(labels = c("Women PKs Deployed", "Men PKs Deployed"), values = c("#EB5307", "darkgrey")) +
   theme(legend.background = element_rect(color = "black"), legend.position = c(0.25, 0.3),
         plot.margin = unit(c(0,0,0,0), "cm"), legend.margin=margin(c(5,5,5,5)), 
         legend.key.size = unit(0.2, 'cm')) + 
-  guides(shape = guide_legend(order = 1),col = guide_legend(order = 2), legend.direction="vertical")
+  guides(shape = guide_legend(order = 1),col = guide_legend(order = 2), legend.direction="vertical") +
+  xlim(-14,37) + ylim(-12,21)
 
 pdf("./results/desc_plot.pdf")
 dsc

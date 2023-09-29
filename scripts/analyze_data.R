@@ -2,27 +2,6 @@
 # Data analysis and plotting #
 # By: Sky Kunkel
 
-#### Stargazer fix ####
-## Quick fix for stargazer <= 5.2.3 is.na() issue with long model names in R >= 4.2
-# sourced from: https://gist.github.com/alexeyknorre/b0780836f4cec04d41a863a683f91b53
-# # Unload stargazer if loaded
-# detach("package:stargazer",unload=T)
-# # Delete it
-# remove.packages("stargazer")
-# # Download the source
-# download.file("https://cran.r-project.org/src/contrib/stargazer_5.2.3.tar.gz", destfile = "stargazer_5.2.3.tar.gz")
-# # Unpack
-# untar("stargazer_5.2.3.tar.gz")
-# # Read the sourcefile with .inside.bracket fun
-# stargazer_src <- readLines("stargazer/R/stargazer-internal.R")
-# # Move the length check 5 lines up so it precedes is.na(.)
-# stargazer_src[1990] <- stargazer_src[1995]
-# stargazer_src[1995] <- ""
-# # Save back
-# writeLines(stargazer_src, con="stargazer/R/stargazer-internal.R")
-# # Compile and install the patched package
-# install.packages("stargazer", repos = NULL, type="source")
-
 #### load libraries, read data ####
 library(tidyverse); library(magrittr); library(ggpubr); library(ggiraphExtra); 
 library(coefplot); library(stargazer); library(lmtest); library(sandwich)
@@ -37,17 +16,6 @@ setwd("../") # back out to main folder
 
 a = readRDS("./data/kunkel_which_pks.rds") 
 c = readRDS("./data/kunkel_wpks_matched_gender.rds")
-
-# descriptive statistics table #
-labs = c("Total PKs Deployed", "Female PKs Deployed", "Male PKs Deployed", "Gender Balanced Units", "Gender Un-Balanced Units")
-
-stargazer(a[c("radpko_pko_deployed", "radpko_f_pko_deployed", "radpko_m_pko_deployed", "t_bal", "t_unbal")], 
-          covariate.labels = labs, digits = 3, style = "apsr", 
-          title = "Descriptive Statistics of the Independent Variables", out = "./results/pks_table.txt")
-labs1 = c("Gov VAC (C)", "Gov VAC (B)", "Reb VAC (C)", "Reb VAC (B)")
-stargazer(a[c("ucdp_gov_vac_all", "ucdp_gov_vac_5", "ucdp_reb_vac_all", "ucdp_reb_vac_5")], 
-          covariate.labels = labs1, digits = 3, style = "apsr", 
-          title = "Descriptive Statistics of the Dependent Variables", out = "./results/violence_table.txt")
 
 # Re-scale PK variable for statistical analyses (per Fjelde et al. (2019)) 
 a$radpko_m_pko_deployed = a$radpko_m_pko_deployed/100
@@ -126,118 +94,78 @@ names(reg5$coefficients) = c("(Intercept)", "Prop. Women PKs Deployed",
 se_reg5 <- round(coeftest(reg5, vcov = vcovPL(reg5, cluster = a$prio.grid)),4)
 se_reg5
 
-reg6 = lm(ucdp_reb_vac_5 ~ radpko_m_prop + prio_mountains_mean + prio_ttime_mean + prio_urban_gc + 
-                   radpko_pko_lag + viol_6,
-                 data = a)
-names(reg6$coefficients) = c("(Intercept)", "Prop. Men PKs Deployed",
+reg6 = lm(ucdp_reb_vac_all ~ radpko_f_prop + prio_mountains_mean + prio_ttime_mean + prio_urban_gc + 
+                     radpko_pko_lag + viol_6,
+                   data = a)
+names(reg6$coefficients) = c("(Intercept)", "Prop. Women PKs Deployed",
                              "Avg. Mountain", "Travel Time Nearest City", "Perc. Urban",
                              "PK Lag", "Violence 6 Months Before")
 se_reg6 <- round(coeftest(reg6, vcov = vcovPL(reg6, cluster = a$prio.grid)),4)
 se_reg6
 
-reg7 = lm(ucdp_reb_vac_all ~ radpko_f_prop + prio_mountains_mean + prio_ttime_mean + prio_urban_gc + 
-                     radpko_pko_lag + viol_6,
-                   data = a)
+### 2SLS ###
+first.stage_f_prop = lm(radpko_f_prop ~ f_iv_prop, data = a)
+
+iv_treat_f_prop = first.stage_f_prop$fitted
+
+reg7 = lm(ucdp_reb_vac_5 ~ iv_treat_f_prop + prio_mountains_mean + prio_ttime_mean + prio_urban_gc + 
+            radpko_pko_lag + viol_6,
+          data = a)
 names(reg7$coefficients) = c("(Intercept)", "Prop. Women PKs Deployed",
                              "Avg. Mountain", "Travel Time Nearest City", "Perc. Urban",
                              "PK Lag", "Violence 6 Months Before")
 se_reg7 <- round(coeftest(reg7, vcov = vcovPL(reg7, cluster = a$prio.grid)),4)
 se_reg7
 
-reg8 = lm(ucdp_reb_vac_all ~ radpko_m_prop + prio_mountains_mean + prio_ttime_mean + prio_urban_gc + 
-                     radpko_pko_lag + viol_6,
-                   data = a)
-names(reg8$coefficients) = c("(Intercept)", "Prop. Men PKs Deployed",
+reg8 = lm(ucdp_reb_vac_all ~ iv_treat_f_prop + prio_mountains_mean + prio_ttime_mean + prio_urban_gc + 
+            radpko_pko_lag + viol_6,
+          data = a)
+names(reg8$coefficients) = c("(Intercept)", "Prop. Women PKs Deployed",
                              "Avg. Mountain", "Travel Time Nearest City", "Perc. Urban",
                              "PK Lag", "Violence 6 Months Before")
 se_reg8 <- round(coeftest(reg8, vcov = vcovPL(reg8, cluster = a$prio.grid)),4)
 se_reg8
 
-### 2SLS ###
-first.stage_f_prop = lm(radpko_f_prop ~ f_iv_prop, data = a)
-first.stage_m_prop = lm(radpko_m_prop ~ m_iv_prop, data = a)
-
-iv_treat_f_prop = first.stage_f_prop$fitted
-iv_treat_m_prop = first.stage_m_prop$fitted
-
-reg9 = lm(ucdp_reb_vac_5 ~ iv_treat_f_prop + prio_mountains_mean + prio_ttime_mean + prio_urban_gc + 
+####### Hypothesis 2b #########
+# Unmatched Data - Logit #
+reg9 = glm(ucdp_reb_vac_5 ~ t_bal + t_unbal + prio_mountains_mean + prio_ttime_mean + prio_urban_gc + 
             radpko_pko_lag + viol_6,
-          data = a)
-names(reg9$coefficients) = c("(Intercept)", "Prop. Women PKs Deployed",
-                             "Avg. Mountain", "Travel Time Nearest City", "Perc. Urban",
-                             "PK Lag", "Violence 6 Months Before")
+          data = a, family = negative.binomial(theta = 1))
+names(reg9$coefficients) = c("(Intercept)", "Balanced PK Unit", "Unbalanced PK Unit",
+                              "Avg. Mountain", "Travel Time Nearest City", "Perc. Urban",
+                              "PK Lag", "Violence 6 Months Before")
 se_reg9 <- round(coeftest(reg9, vcov = vcovPL(reg9, cluster = a$prio.grid)),4)
 se_reg9
 
-reg10 = lm(ucdp_reb_vac_5 ~ iv_treat_m_prop + prio_mountains_mean + prio_ttime_mean + prio_urban_gc + 
+reg10 = glm(ucdp_reb_vac_all ~ t_bal + t_unbal + prio_mountains_mean + prio_ttime_mean + prio_urban_gc + 
             radpko_pko_lag + viol_6,
-          data = a)
-names(reg10$coefficients) = c("(Intercept)", "Prop. Men PKs Deployed",
-                             "Avg. Mountain", "Travel Time Nearest City", "Perc. Urban",
-                             "PK Lag", "Violence 6 Months Before")
+          data = a, family = negative.binomial(theta = 1))
+names(reg10$coefficients) = c("(Intercept)", "Balanced PK Unit", "Unbalanced PK Unit",
+                              "Avg. Mountain", "Travel Time Nearest City", "Perc. Urban",
+                              "PK Lag", "Violence 6 Months Before")
 se_reg10 <- round(coeftest(reg10, vcov = vcovPL(reg10, cluster = a$prio.grid)),4)
 se_reg10
 
-reg11 = lm(ucdp_reb_vac_all ~ iv_treat_f_prop + prio_mountains_mean + prio_ttime_mean + prio_urban_gc + 
-            radpko_pko_lag + viol_6,
-          data = a)
-names(reg11$coefficients) = c("(Intercept)", "Prop. Women PKs Deployed",
-                             "Avg. Mountain", "Travel Time Nearest City", "Perc. Urban",
-                             "PK Lag", "Violence 6 Months Before")
-se_reg11 <- round(coeftest(reg11, vcov = vcovPL(reg11, cluster = a$prio.grid)),4)
+# Matched Data - Logit #
+reg11 = glm(ucdp_reb_vac_5 ~ t_bal + prio_mountains_mean + prio_ttime_mean + prio_urban_gc + 
+             prio_nlights_calib_mean + prio_pop_gpw_sum + prio_pop.dens + radpko_pko_lag_any + viol_6,
+           data = c, family = negative.binomial(theta = 1))
+names(reg11$coefficients) = c("(Intercept)", "Balanced PK Unit",
+                              "Avg. Mountain", "Travel Time Nearest City", "Perc. Urban",
+                              "Night Lights", "Population Sum", "Population Density",
+                              "PK Lag", "Violence 6 Months Before")
+se_reg11 <- round(coeftest(reg11, vcov = vcovPL(reg11, cluster = c$prio.grid)),4)
 se_reg11
 
-reg12 = lm(ucdp_reb_vac_all ~ iv_treat_m_prop + prio_mountains_mean + prio_ttime_mean + prio_urban_gc + 
-            radpko_pko_lag + viol_6,
-          data = a)
-names(reg12$coefficients) = c("(Intercept)", "Prop. Men PKs Deployed",
+reg12 = glm(ucdp_reb_vac_all ~ t_bal + prio_mountains_mean + prio_ttime_mean + prio_urban_gc + 
+             prio_nlights_calib_mean + prio_pop_gpw_sum + prio_pop.dens + radpko_pko_lag_any + viol_6,
+           data = c, family = negative.binomial(theta = 1))
+names(reg12$coefficients) = c("(Intercept)", "Balanced PK Unit",
                               "Avg. Mountain", "Travel Time Nearest City", "Perc. Urban",
+                              "Night Lights", "Population Sum", "Population Density",
                               "PK Lag", "Violence 6 Months Before")
-se_reg12 <- round(coeftest(reg12, vcov = vcovPL(reg12, cluster = a$prio.grid)),4)
+se_reg12 <- round(coeftest(reg12, vcov = vcovPL(reg12, cluster = c$prio.grid)),4)
 se_reg12
-
-
-####### Hypothesis 2b #########
-# Unmatched Data - Logit #
-reg13 = glm(ucdp_reb_vac_5 ~ t_bal + t_unbal + prio_mountains_mean + prio_ttime_mean + prio_urban_gc + 
-            radpko_pko_lag + viol_6,
-          data = a, family = negative.binomial(theta = 1))
-names(reg13$coefficients) = c("(Intercept)", "Balanced PK Unit", "Unbalanced PK Unit",
-                              "Avg. Mountain", "Travel Time Nearest City", "Perc. Urban",
-                              "PK Lag", "Violence 6 Months Before")
-se_reg13 <- round(coeftest(reg13, vcov = vcovPL(reg13, cluster = a$prio.grid)),4)
-se_reg13
-
-reg14 = glm(ucdp_reb_vac_all ~ t_bal + t_unbal + prio_mountains_mean + prio_ttime_mean + prio_urban_gc + 
-            radpko_pko_lag + viol_6,
-          data = a, family = negative.binomial(theta = 1))
-names(reg14$coefficients) = c("(Intercept)", "Balanced PK Unit", "Unbalanced PK Unit",
-                              "Avg. Mountain", "Travel Time Nearest City", "Perc. Urban",
-                              "PK Lag", "Violence 6 Months Before")
-se_reg14 <- round(coeftest(reg14, vcov = vcovPL(reg14, cluster = a$prio.grid)),4)
-se_reg14
-
-# Matched Data - Logit #
-reg15 = glm(ucdp_reb_vac_5 ~ t_bal + prio_mountains_mean + prio_ttime_mean + prio_urban_gc + 
-             prio_nlights_calib_mean + prio_pop_gpw_sum + prio_pop.dens + radpko_pko_lag_any + viol_6,
-           data = c, family = negative.binomial(theta = 1))
-names(reg15$coefficients) = c("(Intercept)", "Balanced PK Unit",
-                              "Avg. Mountain", "Travel Time Nearest City", "Perc. Urban",
-                              "Night Lights", "Population Sum", "Population Density",
-                              "PK Lag", "Violence 6 Months Before")
-se_reg15 <- round(coeftest(reg15, vcov = vcovPL(reg15, cluster = c$prio.grid)),4)
-se_reg15
-
-reg16 = glm(ucdp_reb_vac_all ~ t_bal + prio_mountains_mean + prio_ttime_mean + prio_urban_gc + 
-             prio_nlights_calib_mean + prio_pop_gpw_sum + prio_pop.dens + radpko_pko_lag_any + viol_6,
-           data = c, family = negative.binomial(theta = 1))
-names(reg16$coefficients) = c("(Intercept)", "Balanced PK Unit",
-                              "Avg. Mountain", "Travel Time Nearest City", "Perc. Urban",
-                              "Night Lights", "Population Sum", "Population Density",
-                              "PK Lag", "Violence 6 Months Before")
-se_reg16 <- round(coeftest(reg16, vcov = vcovPL(reg16, cluster = c$prio.grid)),4)
-se_reg16
-
 
 ### Plots ###
 library(jtools); library(broom.mixed)
@@ -249,23 +177,28 @@ effect_plot(reg1, pred = radpko_f_pko_deployed, interval = T, plot.points = T, j
 # se_reg3: 2SLS, <4 deaths, continuous IV
 # se_reg4: 2SLS, all deaths, continuous IV
 # se_reg5: OLS, <4 deaths, f_prop IV
-# se_reg6: OLS, <4 deaths, m_prop IV
-# se_reg7: OLS, all deaths, f_prop IV
-# se_reg8: OLS, all deaths, m_prop IV
-# se_reg9: 2SLS, <4 deaths, f_prop_IV
-# se_reg10: 2SLS, <4 deaths, m_prop IV
-# se_reg11: 2SLS, all deaths, f_prop IV
-# se_reg12: 2SLS, all deaths, m_prop IV
-# se_reg13: Logit, <4 deaths, binary IV
-# se_reg14: Logit, all deaths, binary IV
-# se_reg15: Logit, <4 deaths, binary IV - matched
-# se_reg16: Logit, all deaths, binary IV - matched
+# se_reg6: OLS, all deaths, f_prop IV
+# se_reg7: 2SLS, <4 deaths, f_prop_IV
+# se_reg8: 2SLS, all deaths, f_prop IV
+# se_reg9: Logit, <4 deaths, binary IV
+# se_reg10: Logit, all deaths, binary IV
+# se_reg11: Logit, <4 deaths, binary IV - matched
+# se_reg12: Logit, all deaths, binary IV - matched
 
 pdf("./results/5_cont.pdf")
 plot_summs(se_reg1, se_reg3, model.names = c("OLS", "2SLS"))
 dev.off()
 
+svg("./results/images/5_cont.svg")
+plot_summs(se_reg1, se_reg3, model.names = c("OLS", "2SLS"))
+dev.off()
+
+
 pdf("./results/all_cont.pdf")
+plot_summs(se_reg2, se_reg4, model.names = c("OLS", "2SLS"))
+dev.off()
+
+svg("./results/images/all_cont.svg")
 plot_summs(se_reg2, se_reg4, model.names = c("OLS", "2SLS"))
 dev.off()
 
@@ -275,20 +208,24 @@ coefs_prop_m = c("Prop. Men PKs Deployed", "Avg. Mountain",
                  "Travel Time Nearest City", "Perc. Urban", "PK Lag", "Violence 6 Months Before")
 z = c("OLS", "2SLS")
 pdf("./results/5_prop_w.pdf")
-plot_summs(se_reg5, se_reg9, coefs = coefs_prop_w, model.names = z)
+plot_summs(se_reg5, se_reg7, coefs = coefs_prop_w, model.names = z)
 dev.off()
 
-pdf("./results/5_prop_m.pdf")
-plot_summs(se_reg6, se_reg10, coefs = coefs_prop_m, model.names = z)
+svg("./results/images/5_prop_w.svg")
+plot_summs(se_reg5, se_reg7, coefs = coefs_prop_w, model.names = z)
 dev.off()
 
 pdf("./results/all_prop_w.pdf")
-plot_summs(se_reg7, se_reg11, coefs = coefs_prop_w, model.names = z)
+plot_summs(se_reg6, se_reg8, coefs = coefs_prop_w, model.names = z)
 dev.off()
 
-pdf("./results/all_prop_m.pdf")
-plot_summs(se_reg8, se_reg12, coefs = coefs_prop_m, model.names = z)
+svg("./results/images/all_prop_w.svg")
+plot_summs(se_reg6, se_reg8, coefs = coefs_prop_w, model.names = z)
 dev.off()
+
+# pdf("./results/all_prop_m.pdf")
+# plot_summs(se_reg8, se_reg12, coefs = coefs_prop_m, model.names = z)
+# dev.off()
 
 # maybe use plots below for these models
 
@@ -301,12 +238,17 @@ coef_match = c("Balanced PK Unit", "Travel Time Nearest City",
                  "PK Lag", "Violence 6 Months Before")
 
 pdf("./results/unmatch_OR.pdf")
-plot_summs(se_reg13, se_reg14, exp = T, coefs = coef_unmatch, model.names = 
+plot_summs(se_reg9, se_reg10, exp = T, coefs = coef_unmatch, model.names = 
              c("Binary", "Count"), legend.title = "Model by Outcome") 
 dev.off()
 
 pdf("./results/match_OR.pdf")
-plot_summs(se_reg15, se_reg16, exp = T, coefs = coef_match, model.names = 
+plot_summs(se_reg11, se_reg12, exp = T, coefs = coef_match, model.names = 
+             c("Binary", "Count"), legend.title = "Model by Outcome")
+dev.off()
+
+svg("./results/images/match_OR.svg")
+plot_summs(se_reg11, se_reg12, exp = T, coefs = coef_match, model.names = 
              c("Binary", "Count"), legend.title = "Model by Outcome")
 dev.off()
 
@@ -314,10 +256,41 @@ dev.off()
 
 
 
+#### Appendix ####
 
+# IV summary tables
 
+stargazer(first.stage_f, first.stage_m, style = "AJPS", title = "1st Stage of Count Instrument", 
+          dep.var.labels= c("Women Deployed", "Men Deployed"), label = "tab:1st_stage_count",
+          covariate.labels = c("Women in Africa x Distance to Capital", "Men in Africa x Distance to Capital"),
+          omit ="Constant", omit.stat = c("adj.rsq","rsq", "ser", "N"))
 
+stargazer(first.stage_f_prop, first.stage_m_prop, style = "AJPS", title = "1st State of Prop. Instrument",
+          dep.var.labels = c("Women Deployed", "Men Deployed"), label = "tab:1st_stage_prop", 
+          covariate.labels = c("Prop. Women in Africa x Distance to Capital", "Prop. Men in Africa x Distance to Capital"),
+          omit ="Constant", omit.stat = c("adj.rsq","rsq", "ser", "N"))
 
+## list of models:
+# se_reg1: OLS, <4 deaths, continuous IV
+# se_reg2: OLS, all deaths, continuous IV
+# se_reg3: 2SLS, <4 deaths, continuous IV
+# se_reg4: 2SLS, all deaths, continuous IV
+# se_reg5: OLS, <4 deaths, f_prop IV
+# se_reg6: OLS, all deaths, f_prop IV
+# se_reg7: 2SLS, <4 deaths, f_prop_IV
+# se_reg8: 2SLS, all deaths, f_prop IV
+# se_reg9: Logit, <4 deaths, binary IV
+# se_reg10: Logit, all deaths, binary IV
+# se_reg11: Logit, <4 deaths, binary IV - matched
+# se_reg12: Logit, all deaths, binary IV - matched
+
+# model tables
+stargazer(se_reg1, se_reg2, se_reg3, se_reg4, style = "AJPS", title = "Models Testing Hypothesis 1",
+          column.labels = c("OLS", "2SLS"), column.separate = c(2,2), label = "tab:hyp_1")
+stargazer(se_reg5, se_reg6, se_reg7, se_reg8, style = "AJPS", title = "Models Testing Hypothesis 2",
+          column.labels = c("OLS", "2SLS"), column.separate = c(2,2), label = "tab:hyp_2")
+stargazer(se_reg9, se_reg10, se_reg11, se_reg12, style = "AJPS", title = "Models Testing Hypothesis 3",
+          column.labels = c("Logit"), column.separate = c(4), label = "tab:hyp_3")
 
 
 
