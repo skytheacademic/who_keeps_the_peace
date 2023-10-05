@@ -1,4 +1,4 @@
-# Conflict Grids & Peacekeeping: Figures and Plots #
+# Who Keeps the Peace: Figures and Plots #
 
 library(tidygeocoder)
 library(tidyverse); library(viridis)
@@ -17,6 +17,17 @@ options(scipen = 999)
 # reading in cleaned data
 setwd(dirname(rstudioapi::getActiveDocumentContext()$path)) # set to source file location
 setwd("../") # back out to main folder
+
+# plot proportion of women deployed to PKOs over time
+b = readRDS("./data/kunkel_which_pks.rds") %>%
+  group_by(date, country) %>%
+  summarize(pks = sum(radpko_pko_deployed), women = sum(radpko_f_pko_deployed), men = sum(radpko_m_pko_deployed),
+            death = max(ucdp_reb_vac_5), fatalities = sum(ucdp_reb_vac_all)) %>%
+  mutate(prop_women = (women/(women + men)))
+
+ggplot(b, aes(x = date, y = country, height = scales::rescale(prop_women))) + geom_ridgeline()
+ggplot(b, aes(x = date, y = country, height = scales::rescale(women))) + geom_ridgeline()
+ggplot(b, aes(x = date, y = country, height = scales::rescale(fatalities))) + geom_ridgeline()
 
 ####### Plots of naive models ####### 
 a = readRDS("./data/kunkel_which_pks.rds")
@@ -57,15 +68,30 @@ aa = a %>%
   summarize(men = sum(radpko_m_pko_deployed), women = sum(radpko_f_pko_deployed)) %>%
   filter(date < "2018-01-01")
 
-long_aa <- aa %>%
-  pivot_longer(cols = c(men, women), 
-               names_to = "gender", 
-               values_to = "pks")
 
-long_aa$gender[long_aa$gender=="men"] = "Men"
-long_aa$gender[long_aa$gender=="women"] = "Women"
 
-pdf("./results/desc_pks.pdf", width = 20, height = 10)
+pdf("./results/desc_pks.pdf", width = 17, height = 10)
+ggplot(aa, aes(x=date)) +
+  geom_line( aes(y=men), size=1, color="#EB5307") + 
+  geom_line( aes(y=women * 20), size=1, color="#9E314B") +
+  scale_y_continuous(
+    # Features of the first axis
+    name = "Count (Men)",
+    # Add a second axis and specify its features
+    sec.axis = sec_axis(~./20, name="Count (Women")) + 
+  theme_pubclean() +
+  theme(axis.title.y = element_text(color = "#EB5307", size=20),
+        axis.title.y.right = element_text(color = "#9E314B", size=20)) +
+  xlab("")
+dev.off()
+
+# long_aa <- aa %>%
+#   pivot_longer(cols = c(men, women), 
+#                names_to = "gender", 
+#                values_to = "pks")
+# 
+# long_aa$gender[long_aa$gender=="men"] = "Men"
+# long_aa$gender[long_aa$gender=="women"] = "Women"
 # long_aa %>%
 #   ggplot(aes(x = date, y = pks, color = gender)) +
 #   geom_line(lwd = 1) +
@@ -74,36 +100,28 @@ pdf("./results/desc_pks.pdf", width = 20, height = 10)
 #        color = "Gender") +
 #   facet_wrap(~gender, scales = "free_y") +
 #   theme_pubclean() +
-#   theme(legend.position = "none")
-long_aa %>%
-  ggplot(aes(x = date, y = pks, color = gender)) +
-  geom_line(lwd = 1) +
-  labs(title = "Peacekeepers Over Time by Gender",
-       y = "Count",
-       color = "Gender") +
-  facet_wrap(~gender, scales = "free_y") +
-  theme_pubclean() +
-  theme(legend.position = "none") +
-  scale_color_manual(values = c("Men" = "#EB5307", "Women" = "#9E314B"))
+#   theme(legend.position = "none") +
+#   scale_color_manual(values = c("Men" = "#EB5307", "Women" = "#9E314B"))
+# 
+# dev.off()
+# 
+# svg("./results/desc_pks.svg", width = 20, height = 10)
+# long_aa %>%
+#   ggplot(aes(x = date, y = pks, color = gender)) +
+#   geom_line(lwd = 1) +
+#   labs(title = "Peacekeepers Over Time by Gender",
+#        y = "Count",
+#        color = "Gender") +
+#   facet_wrap(~gender, scales = "free_y") +
+#   theme_pubclean() +
+#   theme(legend.position = "none") +
+#   scale_color_manual(values = c("Men" = "#EB5307", "Women" = "#9E314B"))
+# dev.off()
 
-dev.off()
 
-svg("./results/desc_pks.svg", width = 20, height = 10)
-long_aa %>%
-  ggplot(aes(x = date, y = pks, color = gender)) +
-  geom_line(lwd = 1) +
-  labs(title = "Peacekeepers Over Time by Gender",
-       y = "Count",
-       color = "Gender") +
-  facet_wrap(~gender, scales = "free_y") +
-  theme_pubclean() +
-  theme(legend.position = "none") +
-  scale_color_manual(values = c("Men" = "#EB5307", "Women" = "#9E314B"))
-dev.off()
+
+
 ## Descriptive Map ##
-
-
-############# EXAMPLE ####################
 library(sf)
 library(janitor)
 library(lubridate)
@@ -228,7 +246,6 @@ dev.off()
 
 
 
-
 dsc.1 =
   ggplot(afr_shp) + geom_sf(aes(geometry = geometry), alpha = 0.3,fill = NA) + # e5695b
   geom_point(data = df, aes(x = xcoord, y = ycoord, size=f_pko_deployed, colour = "#9E314B"), alpha=0.7, shape = 19) +
@@ -259,20 +276,127 @@ pdf("./results/desc_plot.pdf")
 dsc
 dev.off()
 
-
-# plot w/ variables as different colors but same shape
-
-dsc = ggplot(afr_shp) + geom_sf(aes(geometry = geometry), fill = NA) +
-  geom_point(data = dd_ac, aes(x = xcoord, y = ycoord, size=count, color=ct.type), alpha=0.4, shape = 19) +
-  scale_size(range = c(.1, 24), name="Count") +
-  scale_fill_viridis_c(option="E") +
-  xlab("latitude") +
-  ylab("longitude")
-
-dsc + labs(color = "Variables of Interest")
-
 # end of plot
-############# EXAMPLE ####################
+
+
+####################################################
+##### Make map of single country - BEGINNING #######
+####################################################
+
+library(ggplot2)
+library(tidyverse)
+library(sf)
+library(ggpubr)
+library(tmap)
+library(tmaptools)
+
+b = readRDS("./data/kunkel_which_pks.rds") %>%
+  filter(country == "Democratic Republic of Congo")
+
+b.ag = b %>%
+  group_by(prio.grid) %>%
+  summarize(fatalities = sum(ucdp_reb_vac_all), pks = sum(radpko_pko_deployed), t_ind = max(t_ind),
+            men = sum(radpko_m_pko_deployed), women = sum(radpko_f_pko_deployed))
+
+b.ag$fatalities[b.ag$fatalities == 0] <- NA
+b.ag$pks[b.ag$pks == 0] <- NA
+b.ag$t_ind[b.ag$t_ind == 0] <- NA
+b.ag$men[b.ag$men == 0] <- NA
+b.ag$women[b.ag$women == 0] <- NA
+
+# now join geographic data so we can plot it
+
+# read in PRIO files for grid coordinates
+prio = st_read(dsn = "./data/prio", 
+               layer = "priogrid_cell", 
+               stringsAsFactors = F) %>%
+  rename(prio.grid = gid, gid_center_lon = xcoord, gid_center_lat = ycoord) %>% 
+  select(-c(col, row))
+
+b.join = left_join(b.ag, prio, by = "prio.grid")
+
+# read in DRC shapefiles
+drc_00 <- st_read(dsn = "./data/gadm/drc", layer = "gadm40_COD_0", 
+                  stringsAsFactors = F)
+drc_01 <- st_read(dsn = "./data/gadm/drc", layer = "gadm40_COD_1", 
+                  stringsAsFactors = F)
+
+### make plot of DRC, then add layers in several images to show the effect ###
+
+# plot of 00 DRC
+
+pdf("./results/drc/drc_00.pdf", height = 8, width = 8)
+ggplot() +
+  geom_sf(aes(geometry = drc_00$geometry), alpha = 0) +
+  theme_void()
+dev.off()
+
+# plot of 01 DRC
+pdf("./results/drc/drc_01.pdf", height = 8, width = 8)
+ggplot() +
+  geom_sf(aes(geometry = drc_01$geometry), alpha = 0) +
+  theme_void()
+dev.off()
+
+# plot of grids over DRC
+pdf("./results/drc/drc_01grids.pdf", height = 8, width = 8)
+ggplot() + geom_sf(aes(geometry = b.join$geometry), alpha = 0) +
+  geom_sf(aes(geometry = drc_01$geometry), alpha = 0) +
+  theme_void()
+dev.off()
+
+pdf("./results/drc/drc_grids.pdf", height = 8, width = 8)
+ggplot() + geom_sf(aes(geometry = b.join$geometry), alpha = 0) +
+  theme_void()
+dev.off()
+
+# plot of violence in DRC
+pdf("./results/drc/drc_violence.pdf", height = 8, width = 8)
+ggplot() + geom_sf(aes(fill = b.join$fatalities, geometry = b.join$geometry)) +
+  scale_fill_gradient(low = "#ffc4c4", high = "#ff3b3b", space = "Lab", na.value = "grey89",
+                      guide = "colourbar", aesthetics = "fill", limits=c(0,500)) +
+  labs(fill = "Fatalities") +
+  theme_void()
+dev.off()
+
+# plot of PKs, then men and women
+pdf("./results/drc/drc_pks.pdf", height = 8, width = 8)
+ggplot() + geom_sf(aes(fill = b.join$pks, geometry = b.join$geometry)) +
+  scale_fill_gradient(low = "#2ABBE8", high = "#2A57E8", space = "Lab", na.value = "grey89",
+                      guide = "colourbar", aesthetics = "fill", limits=c(0,525000)) +
+  labs(fill = "Peacekeepers") +
+  theme_void()
+dev.off()
+
+pdf("./results/drc/drc_men.pdf", height = 8, width = 8)
+ggplot() + geom_sf(aes(fill = b.join$men, geometry = b.join$geometry)) +
+  scale_fill_gradient(low = "#F99A6B", high = "#EB5307", space = "Lab", na.value = "grey89",
+                      guide = "colourbar", aesthetics = "fill", limits=c(0,503524.3)) +
+  labs(fill = "Men") +
+  theme_void()
+dev.off()
+
+pdf("./results/drc/drc_women.pdf", height = 8, width = 8)
+ggplot() + geom_sf(aes(fill = b.join$women, geometry = b.join$geometry)) +
+  scale_fill_gradient(low = "#F96B8C", high = "#9E314B", space = "Lab", na.value = "grey89",
+                      guide = "colourbar", aesthetics = "fill", limits=c(0,22010)) +
+  labs(fill = "Women") +
+  theme_void()
+dev.off()
+
+
+rm(list = ls())
+
+
+
+####################################################
+##### Make map of single country - END #######
+####################################################
+
+
+
+
+
 
 ## plot of gender balanced and unbalanced units over time ##
 
@@ -1123,99 +1247,7 @@ reg6.mob = ggpredict(reg6, terms = "unmob_maj", condition = c(untrp_maj = 0, unp
 reg6.mob$group = "Incumbent Deaths, Majority Observers PKs"
 reg8.mob = ggpredict(reg8, terms = "unmob_maj", condition = c(untrp_maj = 0, unpol_maj = 0))
 reg8.mob$group = "Rebels Deaths, Majority Observers PKs"
-# reg6_gg = rbind(reg6.trp, reg6.pol, reg6.mob)
 
-
-# reg8_gg = rbind(reg8.trp, reg8.pol,reg8.mob)
-# gen_death_1 = rbind(reg6_gg, reg8_gg)
-
-# Predict MEs and Plot #
-
-reg1.gg = ggpredict(reg1, terms = "untrp")
-reg1.gg$group = "Incumbent Violent Events"
-reg2.gg = ggpredict(reg2, terms = "untrp")
-reg2.gg$group = "Incumbent Deaths"
-me_pred_st_trp = rbind(reg1.gg, reg2.gg)
-me_pred_st_trp = me_pred_st_trp[-c(13:14, 27:28),]
-
-reg3.gg = ggpredict(reg3, terms = "untrp")
-reg3.gg$group = "Rebel Violent Events"
-reg4.gg = ggpredict(reg4, terms = "untrp")
-reg4.gg$group = "Rebel Deaths"
-me_pred_rb_trp = rbind(reg3.gg, reg4.gg)
-me_pred_rb_trp = me_pred_st_trp[-c(13:14, 27:28),]
-
-
-rm(list = setdiff(ls(), "a")) 
-gc()
-#### ME of violence by naive PKs ####
-reg13 = glm(gov_event.b ~ radpko_pko_deployed + mountains_mean + ttime_mean + urban_gc + 
-              nlights_calib_mean + pop_gpw_sum + pop.dens + pko_lag + viol_6 +
-              radpko_pko_deployed*pko_lag + radpko_pko_deployed*viol_6,
-            data = a, family = negative.binomial(theta = 1))
-reg14 = glm(gov_death.b ~ radpko_pko_deployed + mountains_mean + ttime_mean + pop_gpw_sum +
-              pop.dens + pko_lag + viol_6 +
-              radpko_pko_deployed*pko_lag + radpko_pko_deployed*viol_6,
-            data = a, family = negative.binomial(theta = 1))
-#REB OSV - Continuous Treatment
-reg15 = glm(reb_event.b ~ radpko_pko_deployed + mountains_mean + ttime_mean + urban_gc + 
-              nlights_calib_mean + pop_gpw_sum + pop.dens + pko_lag + viol_6 +
-              radpko_pko_deployed*pko_lag + radpko_pko_deployed*viol_6,
-            data = a, family = negative.binomial(theta = 1))
-reg16 = glm(reb_death.b ~ radpko_pko_deployed + mountains_mean + ttime_mean + pop_gpw_sum +
-              pop.dens + pko_lag + viol_6 +
-              radpko_pko_deployed*pko_lag + radpko_pko_deployed*viol_6,
-            data = a, family = negative.binomial(theta = 1))
-# marginal effects on pko treatment size #
-reg13.gg = ggpredict(reg13, terms = "radpko_pko_deployed")
-reg13.gg$group = "Incumbent Violent Events"
-reg14.gg = ggpredict(reg14, terms = "radpko_pko_deployed")
-reg14.gg$group = "Incumbent Deaths"
-gen_death.c.gov = rbind(reg13.gg, reg14.gg)
-
-reg15.gg = ggpredict(reg15, terms = "radpko_pko_deployed")
-reg15.gg$group = "Rebel Violent Events"
-reg16.gg = ggpredict(reg16, terms = "radpko_pko_deployed")
-reg16.gg$group = "Rebel Deaths"
-gen_death.c.reb = rbind(reg15.gg, reg16.gg)
-
-pdf("./results/pks_pred_gov.pdf")
-ggplot(gen_death.c.gov) +
-  geom_line(aes(x, predicted, colour = group)) +
-  geom_ribbon(aes(x, ymin = conf.low, ymax = conf.high, colour = group, 
-                  fill = group), linetype = "dashed", alpha = 0.1, show.legend = F) +
-  xlab("Peacekeeper Count") + ylab("Predicted Violence Against Civilians") + theme_pubclean() +
-  ggtitle("Predicted Violence Outcomes from State Actors based on Peacekeeper Counts") +
-  theme(plot.title = element_text(hjust = 0.5))
-dev.off()
-
-pdf("./results/pks_pred_reb.pdf")
-ggplot(gen_death.c.reb) +
-  geom_line(aes(x, predicted, colour = group)) +
-  geom_ribbon(aes(x, ymin = conf.low, ymax = conf.high, colour = group, 
-                  fill = group), linetype = "dashed", alpha = 0.1, show.legend = F) +
-  xlab("Peacekeeper Count") + ylab("Predicted Violence Against Civilians") + theme_pubclean() +
-  ggtitle("Predicted Violence Outcomes from Rebel Actors based on Peacekeeper Counts") +
-  theme(plot.title = element_text(hjust = 0.5)) +
-  scale_y_discrete()
-dev.off()
-
-# turn into gif #
-# now read them in and make into gif
-pred_p1 <- image_read("./results/pks_pred_gov.svg")
-pred_p2 <- image_read("./results/pks_pred_reb.svg")
-
-
-# You can repeat/replicate an image just like you can in other vectors, with rep(). 
-mc_gif = rep(pred_p1, 2)
-
-# You can recode/replace just like data vectors. 
-mc_gif[2] = pred_p2
-mc_gif
-mc_gif = image_animate(mc_gif, delay = 1500)
-
-# To write/save your new GIFs, use the image_write function. 
-image_write_gif(mc_gif, "./results/naive_pks_vac.gif", delay = 10)
 
 rm(list = setdiff(ls(), "a")) 
 gc()
