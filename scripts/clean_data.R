@@ -128,7 +128,7 @@ radpko = radpko %>%
   relocate(f_unmob.p, .after = unmob)
 
 # Replace NAs w/ 0s
-radpko <- radpko %>% 
+radpko = radpko %>% 
   mutate(across(units_deployed:m_unmob, 
                 ~replace_na(.x, 0)))
 radpko$m_prop = 0
@@ -145,7 +145,7 @@ radpko$t_unbal[radpko$f_prop <= quantile(radpko$f_prop[radpko$t_ind == 1], prob=
 ##### Merge UCDP data #####
 # read in data
 dd = read.csv("./data/ucdp_ged/ucdp-actor-221.csv", encoding = "UTF-8") %>% # if there is an error here, check encoding and rename columns accordingly
-  rename(a_id = X.U.FEFF.ActorId) %>%
+  rename(a_id = ActorId) %>%
   select(c(a_id, Org)) # grab data so we can classify actors during OSV
 df = read.csv("./data/ucdp_ged/GEDEvent_v22_1.csv") %>%
   # make the date variable a date type
@@ -180,7 +180,7 @@ df = df %>%
 
 a = left_join(radpko, df, by = c("prio.grid", "year", "month"))
 
-a <- a %>% 
+a = a %>% 
   mutate(across(ucdp_gov_vac_5:ucdp_reb_vac_all, 
                 ~replace_na(.x, 0)))
 
@@ -233,7 +233,7 @@ a$pop.dens<-ave(a$pop.dens,a$prio.grid,FUN=function(x)
   ifelse(is.na(x), mean(x,na.rm=TRUE), x))
 
 # mountains are static, so any grids with missing values are 0
-a$mountains_mean[is.na(a$mountains_mean)] <- 0
+a$mountains_mean[is.na(a$mountains_mean)] = 0
 
 # read data back in, calculate all violence and its lags
 df = read.csv("./data/ucdp_ged/GEDEvent_v22_1.csv") %>%
@@ -244,8 +244,8 @@ df = read.csv("./data/ucdp_ged/GEDEvent_v22_1.csv") %>%
   group_by(prio.grid, month, year) %>%
   summarize(ucdp_deaths = sum(ucdp_deaths))
 
-all_gids <- sort(unique(c(a$prio.grid, df$prio.grid)))
-dd <- expand_grid(prio.grid = all_gids, 
+all_gids = sort(unique(c(a$prio.grid, df$prio.grid)))
+dd = expand_grid(prio.grid = all_gids, 
                   year = seq(2005, 2018, 1), 
                   month = seq(1, 12, 1))
 df = full_join(dd, df, by = c("prio.grid", "month", "year")) %>%
@@ -270,16 +270,16 @@ a = a[order(a$year, decreasing=FALSE), ]
 a = a[order(a$month, decreasing=FALSE), ] 
 a = a[order(a$prio.grid, decreasing=FALSE), ]
 
-a <- a %>%                            # Add lagged column
+a = a %>%                            # Add lagged column
   group_by(prio.grid) %>%
   dplyr::mutate(pko_lag = dplyr::lag(pko_deployed, n = 1, default = NA)) %>% 
   as.data.frame() %>%
   relocate(pko_lag, .after = pko_deployed)
 
-a$pko_lag[is.na(a$pko_lag)] <- 0 #we have all missions from their start, so any NAs are actually 0s
+a$pko_lag[is.na(a$pko_lag)] = 0 #we have all missions from their start, so any NAs are actually 0s
 
 ### reorganize and rename
-a <- a %>% 
+a = a %>% 
   select(-c(xcoord, ycoord)) %>% 
   rename_at(vars(units_deployed:m_unmob), function(x) paste0("radpko_", x)) %>% 
   rename_at(vars(agri_ih:pop.dens), function(x) paste0("prio_", x))
@@ -287,6 +287,36 @@ a <- a %>%
 # remove useless columns
 a$acled_fatalities = NULL
 a$acled_event = NULL
+
+### create a unified time variable. this needs to be a one column integer for `xtreg2way`
+a = a %>% 
+  mutate(time = (year-2005)*(12) + month - 8)
+
+### split by GID and make some variables
+dd = a %>% as.data.frame() %>% select(prio.grid, time, radpko_m_pko_deployed, radpko_f_pko_deployed)
+dd = dd %>% 
+  mutate(radpko_f_pko_any = if_else(radpko_f_pko_deployed>0, 1, 0), 
+         radpko_m_pko_any = if_else(radpko_m_pko_deployed>0, 1, 0))
+dd = split(dd, f = dd$prio.grid)
+dd = lapply(dd, FUN = function(x){
+  y = x[which(x$radpko_f_pko_any == 1),]
+  # create a "first treated" variable. needs to be 0 for untreated
+  x$first_treated_m = ifelse(nrow(y) == 0, 0, min(y$time))
+  # create a "post treated" variable. needs to be 0 until treatment then 1
+  x$post_treatment_m = ifelse(x$first_treated != 0 & x$time >= x$first_treated, 
+                             1, 0)
+  # create a "treated" variable. needs to be 0 if control and 1 if treated
+  x$treated_m = ifelse(sum(x$radpko_f_pko_any, na.rm = T) > 0, 1, 0)
+  x
+})
+dd = do.call(rbind, dd)
+dd = dd[,c("prio.grid", "time", "first_treated_m", "treated_m", "post_treatment_m")]
+
+#############
+# something going wrong here!
+###########
+# merge back to main a
+a = left_join(a, dd, by = c("prio.grid", "time"))
 
 # save data #
 saveRDS(a, file = "./data/kunkel_which_pks.rds")
