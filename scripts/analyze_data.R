@@ -56,8 +56,13 @@ summary(reg4)
 plot_summs(reg1, reg2, model.names = c("Binary Outcome", "Count Outcome"), ci_level = 0.95)
 
 
+stargazer(reg1, reg2, style = "AJPS", title = "TWFE Models Testing the Count of Peacekeepers",
+          label = "tab:hyp_1", dep.var.labels = c("Rebel OSV (B)", "Rebel OSV (C)"),
+          covariate.labels = c("Women PKs Deployed", "Men PKs Deployed"))
 
-
+stargazer(reg3, reg4, style = "AJPS", title = "TWFE Models Testing the Proportion of Peacekeepers",
+          label = "tab:hyp_2b", dep.var.labels = c("Rebel OSV (B)", "Rebel OSV (C)"),
+          covariate.labels = c("Prop. Women Deployed", "Prop. Men Deployed"))
 ## test way to plot event study ##
 
 # https://stackoverflow.com/questions/62881774/formula-with-interaction-terms-in-event-study-designs-using-r
@@ -66,7 +71,7 @@ library(fixest)
 
 data(base_did)
 
-est_did = feols(ucdp_reb_vac_all ~ i(radpko_f_pko_deployed, time, 0) | prio.grid + time, a)
+est_did = feols(ucdp_reb_vac_all ~ i(treated_m, time, 0) | prio.grid + first_treated_m, a)
 
 coefplot(est_did)
 
@@ -256,14 +261,9 @@ stargazer(first.stage_f_prop, first.stage_m_prop, style = "AJPS", title = "1st S
 
 # model tables
 stargazer(se_reg1, se_reg2, se_reg3, se_reg4, style = "AJPS", title = "IV Models for Hypothesis 1/2a",
-          column.labels = c("OLS", "2SLS"), column.separate = c(2,2), label = "tab:hyp_1-2a")
-
-### tables for other models
-
-stargazer(, , , , style = "AJPS", title = "Models Testing Hypothesis 2",
-          column.labels = c("OLS", "2SLS"), column.separate = c(2,2), label = "tab:hyp_2")
+          column.separate = c(2,2), label = "tab:hyp_1-2a")
 stargazer(se_reg9, se_reg10, se_reg11, se_reg12, style = "AJPS", title = "Models Testing Hypothesis 3",
-          column.labels = c("Logit"), column.separate = c(4), label = "tab:hyp_3")
+          column.labels = c("Logit"), column.separate = c(4), label = "tab:hyp_2b")
 
 
 

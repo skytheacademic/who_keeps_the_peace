@@ -310,11 +310,11 @@ dd = lapply(dd, FUN = function(x){
   x
 })
 dd = do.call(rbind, dd)
-dd = dd[,c("prio.grid", "time", "first_treated_m", "treated_m", "post_treatment_m")]
+dd = dd %>%
+  select(c("prio.grid", "time", "first_treated_m", "treated_m", "post_treatment_m")) %>%
+  group_by(prio.grid, time) %>%
+  summarize(first_treated_m = min(first_treated_m), treated_m = min(treated_m), post_treatment_m = min(post_treatment_m))
 
-#############
-# something going wrong here!
-###########
 # merge back to main a
 a = left_join(a, dd, by = c("prio.grid", "time"))
 
