@@ -5,7 +5,9 @@
 #### load libraries, read data ####
 library(tidyverse); library(magrittr); library(ggpubr); library(ggiraphExtra); 
 library(coefplot); library(stargazer); library(lmtest); library(sandwich)
-library(ggeffects); library(MASS)
+library(ggeffects); library(MASS); library(jtools); library(broom.mixed)
+library(lfe)
+
 
 # turn off scientific notation
 options(scipen = 999)
@@ -26,105 +28,53 @@ c$radpko_f_pko_deployed = c$radpko_f_pko_deployed/100
 a = a %>% # re-scale proportion so that results make sense
   mutate(radpko_f_prop = 10*radpko_f_prop, radpko_m_prop = 10*radpko_m_prop)
 
-# Code instruments (maybe move to clean_data.R)
-a$f_iv = (a$f_pko_africa/10000)*log(a$distance_to_capital)
-a$m_iv = (a$m_pko_africa/10000)*log(a$distance_to_capital)
-a$f_iv_prop = (a$pko_africa_prop_f)*log(a$distance_to_capital)
-a$m_iv_prop = (a$pko_africa_prop_m)*log(a$distance_to_capital)
+
+
+##########################
+## TWFE Models - BEGINNING
+##########################
 
 ####### Hypothesis 1 #########
 
-### OLS Models ###
-reg1 = lm(ucdp_reb_vac_5 ~ radpko_f_pko_deployed + radpko_m_pko_deployed + prio_mountains_mean + prio_ttime_mean + prio_urban_gc + 
-            radpko_pko_lag + viol_6,
-          data = a)
-names(reg1$coefficients) = c("(Intercept)", "Women PKs Deployed", "Men PKs Deployed",
-                             "Avg. Mountain", "Travel Time Nearest City", "Perc. Urban",
-                             "PK Lag", "Violence 6 Months Before") # rename to make plotting easier later
-se_reg1 <- round(coeftest(reg1, vcov = vcovPL(reg1, cluster = a$prio.grid)),4)
-se_reg1
+reg1 = felm(formula = ucdp_reb_vac_5 ~ radpko_f_pko_deployed + radpko_m_pko_deployed | time + prio.grid | 
+              0 | prio.grid, data = a)
+summary(reg1)
 
-reg2 = lm(ucdp_reb_vac_all ~ radpko_f_pko_deployed + radpko_m_pko_deployed + prio_mountains_mean + prio_ttime_mean + prio_urban_gc + 
-              radpko_pko_lag + viol_6,
-            data = a)
-names(reg2$coefficients) = c("(Intercept)", "Women PKs Deployed", "Men PKs Deployed",
-                             "Avg. Mountain", "Travel Time Nearest City", "Perc. Urban",
-                             "PK Lag", "Violence 6 Months Before")
-se_reg2 <- round(coeftest(reg2, vcov = vcovPL(reg2, cluster = a$prio.grid)),4)
-se_reg2
-
-### 2SLS ###
-# first stage #
-first.stage_f = lm(radpko_f_pko_deployed ~ f_iv, data = a)
-first.stage_m = lm(radpko_m_pko_deployed ~ m_iv, data = a)
-
-iv_treat_f = first.stage_f$fitted
-iv_treat_m = first.stage_m$fitted
-
-# second stage #
-# run the models
-reg3 = lm(ucdp_reb_vac_5 ~ iv_treat_f + iv_treat_m + prio_mountains_mean + prio_ttime_mean + prio_urban_gc + 
-            radpko_pko_lag + viol_6,
-          data = a)
-names(reg3$coefficients) = c("(Intercept)", "Women PKs Deployed", "Men PKs Deployed",
-                             "Avg. Mountain", "Travel Time Nearest City", "Perc. Urban",
-                             "PK Lag", "Violence 6 Months Before")
-se_reg3 <- round(coeftest(reg3, vcov = vcovPL(reg3, cluster = a$prio.grid)),4)
-se_reg3
-
-reg4 = lm(ucdp_reb_vac_all ~ iv_treat_f + iv_treat_m + prio_mountains_mean + prio_ttime_mean + prio_urban_gc + 
-            radpko_pko_lag + viol_6,
-          data = a)
-names(reg4$coefficients) = c("(Intercept)", "Women PKs Deployed", "Men PKs Deployed",
-                             "Avg. Mountain", "Travel Time Nearest City", "Perc. Urban",
-                             "PK Lag", "Violence 6 Months Before")
-se_reg4 <- round(coeftest(reg4, vcov = vcovPL(reg4, cluster = a$prio.grid)),4)
-se_reg4
-
+reg2 = felm(formula = ucdp_reb_vac_all ~ radpko_f_pko_deployed + radpko_m_pko_deployed | time + prio.grid | 
+              0 | prio.grid, data = a)
+summary(reg2)
 
 ####### Hypothesis 2a #########
+reg3 = felm(formula = ucdp_reb_vac_5 ~ radpko_f_prop | time + prio.grid | 
+              0 | prio.grid, data = a)
+summary(reg3)
 
-### OLS ###
-reg5 = lm(ucdp_reb_vac_5 ~ radpko_f_prop + prio_mountains_mean + prio_ttime_mean + prio_urban_gc + 
-                   radpko_pko_lag + viol_6,
-                 data = a)
-names(reg5$coefficients) = c("(Intercept)", "Prop. Women PKs Deployed",
-                             "Avg. Mountain", "Travel Time Nearest City", "Perc. Urban",
-                             "PK Lag", "Violence 6 Months Before")
-se_reg5 <- round(coeftest(reg5, vcov = vcovPL(reg5, cluster = a$prio.grid)),4)
-se_reg5
+reg4 = felm(formula = ucdp_reb_vac_all ~ radpko_f_prop | time + prio.grid | 
+              0 | prio.grid, data = a)
+summary(reg4)
 
-reg6 = lm(ucdp_reb_vac_all ~ radpko_f_prop + prio_mountains_mean + prio_ttime_mean + prio_urban_gc + 
-                     radpko_pko_lag + viol_6,
-                   data = a)
-names(reg6$coefficients) = c("(Intercept)", "Prop. Women PKs Deployed",
-                             "Avg. Mountain", "Travel Time Nearest City", "Perc. Urban",
-                             "PK Lag", "Violence 6 Months Before")
-se_reg6 <- round(coeftest(reg6, vcov = vcovPL(reg6, cluster = a$prio.grid)),4)
-se_reg6
+plot_summs(reg1, reg2, model.names = c("Binary Outcome", "Count Outcome"), ci_level = 0.95)
 
-### 2SLS ###
-first.stage_f_prop = lm(radpko_f_prop ~ f_iv_prop, data = a)
 
-iv_treat_f_prop = first.stage_f_prop$fitted
 
-reg7 = lm(ucdp_reb_vac_5 ~ iv_treat_f_prop + prio_mountains_mean + prio_ttime_mean + prio_urban_gc + 
-            radpko_pko_lag + viol_6,
-          data = a)
-names(reg7$coefficients) = c("(Intercept)", "Prop. Women PKs Deployed",
-                             "Avg. Mountain", "Travel Time Nearest City", "Perc. Urban",
-                             "PK Lag", "Violence 6 Months Before")
-se_reg7 <- round(coeftest(reg7, vcov = vcovPL(reg7, cluster = a$prio.grid)),4)
-se_reg7
 
-reg8 = lm(ucdp_reb_vac_all ~ iv_treat_f_prop + prio_mountains_mean + prio_ttime_mean + prio_urban_gc + 
-            radpko_pko_lag + viol_6,
-          data = a)
-names(reg8$coefficients) = c("(Intercept)", "Prop. Women PKs Deployed",
-                             "Avg. Mountain", "Travel Time Nearest City", "Perc. Urban",
-                             "PK Lag", "Violence 6 Months Before")
-se_reg8 <- round(coeftest(reg8, vcov = vcovPL(reg8, cluster = a$prio.grid)),4)
-se_reg8
+## test way to plot event study ##
+
+# https://stackoverflow.com/questions/62881774/formula-with-interaction-terms-in-event-study-designs-using-r
+
+library(fixest)
+
+data(base_did)
+
+est_did = feols(ucdp_reb_vac_all ~ i(radpko_f_pko_deployed, time, 0) | prio.grid + time, a)
+
+coefplot(est_did)
+
+##########################
+## TWFE Models - END
+##########################
+
+
 
 ####### Hypothesis 2b #########
 # Unmatched Data - Logit #
@@ -169,37 +119,18 @@ se_reg12
 
 ### Plots ###
 library(jtools); library(broom.mixed)
-effect_plot(reg1, pred = radpko_f_pko_deployed, interval = T, plot.points = T, jitter = 0.05)
-
-## list of models:
-# se_reg1: OLS, <4 deaths, continuous IV
-# se_reg2: OLS, all deaths, continuous IV
-# se_reg3: 2SLS, <4 deaths, continuous IV
-# se_reg4: 2SLS, all deaths, continuous IV
-# se_reg5: OLS, <4 deaths, f_prop IV
-# se_reg6: OLS, all deaths, f_prop IV
-# se_reg7: 2SLS, <4 deaths, f_prop_IV
-# se_reg8: 2SLS, all deaths, f_prop IV
-# se_reg9: Logit, <4 deaths, binary IV
-# se_reg10: Logit, all deaths, binary IV
-# se_reg11: Logit, <4 deaths, binary IV - matched
-# se_reg12: Logit, all deaths, binary IV - matched
+# effect_plot(reg1, pred = radpko_f_pko_deployed, interval = T, plot.points = T, jitter = 0.05)
 
 pdf("./results/5_cont.pdf")
 plot_summs(se_reg1, se_reg3, model.names = c("OLS", "2SLS"))
 dev.off()
 
-svg("./results/images/5_cont.svg")
-plot_summs(se_reg1, se_reg3, model.names = c("OLS", "2SLS"))
-dev.off()
-
-
 pdf("./results/all_cont.pdf")
 plot_summs(se_reg2, se_reg4, model.names = c("OLS", "2SLS"))
 dev.off()
 
-svg("./results/images/all_cont.svg")
-plot_summs(se_reg2, se_reg4, model.names = c("OLS", "2SLS"))
+svg("./results/images/2sls_cont.svg")
+plot_summs(se_reg3, se_reg4, model.names = c("Binary Outcome", "Count Outcome"))
 dev.off()
 
 coefs_prop_w = c("Prop. Women PKs Deployed", "Avg. Mountain", 
@@ -211,21 +142,13 @@ pdf("./results/5_prop_w.pdf")
 plot_summs(se_reg5, se_reg7, coefs = coefs_prop_w, model.names = z)
 dev.off()
 
-svg("./results/images/5_prop_w.svg")
-plot_summs(se_reg5, se_reg7, coefs = coefs_prop_w, model.names = z)
-dev.off()
-
 pdf("./results/all_prop_w.pdf")
 plot_summs(se_reg6, se_reg8, coefs = coefs_prop_w, model.names = z)
 dev.off()
 
-svg("./results/images/all_prop_w.svg")
-plot_summs(se_reg6, se_reg8, coefs = coefs_prop_w, model.names = z)
+svg("./results/images/all_prop.svg")
+plot_summs(se_reg7, se_reg8, coefs = coefs_prop_w, model.names = c("Binary Outcome", "Count Outcome"))
 dev.off()
-
-# pdf("./results/all_prop_m.pdf")
-# plot_summs(se_reg8, se_reg12, coefs = coefs_prop_m, model.names = z)
-# dev.off()
 
 # maybe use plots below for these models
 
@@ -257,6 +180,67 @@ dev.off()
 
 
 #### Appendix ####
+rm(list = setdiff(ls(), c("a", "c")))
+gc()
+
+### IV robustness ###
+
+# Code instruments (maybe move to clean_data.R)
+a$f_iv = (a$f_pko_africa/10000)*log(a$distance_to_capital)
+a$m_iv = (a$m_pko_africa/10000)*log(a$distance_to_capital)
+a$f_iv_prop = (a$pko_africa_prop_f)*log(a$distance_to_capital)
+a$m_iv_prop = (a$pko_africa_prop_m)*log(a$distance_to_capital)
+
+# 2SLS #
+# first stage #
+first.stage_f = lm(radpko_f_pko_deployed ~ f_iv, data = a)
+first.stage_m = lm(radpko_m_pko_deployed ~ m_iv, data = a)
+
+iv_treat_f = first.stage_f$fitted
+iv_treat_m = first.stage_m$fitted
+
+# second stage #
+# run the models
+reg1 = lm(ucdp_reb_vac_5 ~ iv_treat_f + iv_treat_m + prio_mountains_mean + prio_ttime_mean + prio_urban_gc + 
+            radpko_pko_lag + viol_6,
+          data = a)
+names(reg1$coefficients) = c("(Intercept)", "Women PKs Deployed", "Men PKs Deployed",
+                             "Avg. Mountain", "Travel Time Nearest City", "Perc. Urban",
+                             "PK Lag", "Violence 6 Months Before")
+se_reg1 <- round(coeftest(reg1, vcov = vcovPL(reg1, cluster = a$prio.grid)),4)
+se_reg1
+
+reg2 = lm(ucdp_reb_vac_all ~ iv_treat_f + iv_treat_m + prio_mountains_mean + prio_ttime_mean + prio_urban_gc + 
+            radpko_pko_lag + viol_6,
+          data = a)
+names(reg2$coefficients) = c("(Intercept)", "Women PKs Deployed", "Men PKs Deployed",
+                             "Avg. Mountain", "Travel Time Nearest City", "Perc. Urban",
+                             "PK Lag", "Violence 6 Months Before")
+se_reg2 <- round(coeftest(reg2, vcov = vcovPL(reg2, cluster = a$prio.grid)),4)
+se_reg2
+
+### 2SLS ###
+first.stage_f_prop = lm(radpko_f_prop ~ f_iv_prop, data = a)
+
+iv_treat_f_prop = first.stage_f_prop$fitted
+
+reg3 = lm(ucdp_reb_vac_5 ~ iv_treat_f_prop + prio_mountains_mean + prio_ttime_mean + prio_urban_gc + 
+            radpko_pko_lag + viol_6,
+          data = a)
+names(reg3$coefficients) = c("(Intercept)", "Prop. Women PKs Deployed",
+                             "Avg. Mountain", "Travel Time Nearest City", "Perc. Urban",
+                             "PK Lag", "Violence 6 Months Before")
+se_reg3 <- round(coeftest(reg3, vcov = vcovPL(reg3, cluster = a$prio.grid)),4)
+se_reg3
+
+reg4 = lm(ucdp_reb_vac_all ~ iv_treat_f_prop + prio_mountains_mean + prio_ttime_mean + prio_urban_gc + 
+            radpko_pko_lag + viol_6,
+          data = a)
+names(reg4$coefficients) = c("(Intercept)", "Prop. Women PKs Deployed",
+                             "Avg. Mountain", "Travel Time Nearest City", "Perc. Urban",
+                             "PK Lag", "Violence 6 Months Before")
+se_reg4 <- round(coeftest(reg4, vcov = vcovPL(reg4, cluster = a$prio.grid)),4)
+se_reg4
 
 # IV summary tables
 
@@ -270,223 +254,20 @@ stargazer(first.stage_f_prop, first.stage_m_prop, style = "AJPS", title = "1st S
           covariate.labels = c("Prop. Women in Africa x Distance to Capital", "Prop. Men in Africa x Distance to Capital"),
           omit ="Constant", omit.stat = c("adj.rsq","rsq", "ser", "N"))
 
-## list of models:
-# se_reg1: OLS, <4 deaths, continuous IV
-# se_reg2: OLS, all deaths, continuous IV
-# se_reg3: 2SLS, <4 deaths, continuous IV
-# se_reg4: 2SLS, all deaths, continuous IV
-# se_reg5: OLS, <4 deaths, f_prop IV
-# se_reg6: OLS, all deaths, f_prop IV
-# se_reg7: 2SLS, <4 deaths, f_prop_IV
-# se_reg8: 2SLS, all deaths, f_prop IV
-# se_reg9: Logit, <4 deaths, binary IV
-# se_reg10: Logit, all deaths, binary IV
-# se_reg11: Logit, <4 deaths, binary IV - matched
-# se_reg12: Logit, all deaths, binary IV - matched
-
 # model tables
-stargazer(se_reg1, se_reg2, se_reg3, se_reg4, style = "AJPS", title = "Models Testing Hypothesis 1",
-          column.labels = c("OLS", "2SLS"), column.separate = c(2,2), label = "tab:hyp_1")
-stargazer(se_reg5, se_reg6, se_reg7, se_reg8, style = "AJPS", title = "Models Testing Hypothesis 2",
+stargazer(se_reg1, se_reg2, se_reg3, se_reg4, style = "AJPS", title = "IV Models for Hypothesis 1/2a",
+          column.labels = c("OLS", "2SLS"), column.separate = c(2,2), label = "tab:hyp_1-2a")
+
+### tables for other models
+
+stargazer(, , , , style = "AJPS", title = "Models Testing Hypothesis 2",
           column.labels = c("OLS", "2SLS"), column.separate = c(2,2), label = "tab:hyp_2")
 stargazer(se_reg9, se_reg10, se_reg11, se_reg12, style = "AJPS", title = "Models Testing Hypothesis 3",
           column.labels = c("Logit"), column.separate = c(4), label = "tab:hyp_3")
 
 
 
-############# OLD - TO DELETE ############# 
 
-
-# RUN AND PLOT RESTRICTED/NAIVE MODELS
-
-# analysis by total PKs
-reg0 = lm(ucdp_reb_vac_5 ~ radpko_f_pko_deployed + radpko_m_pko_deployed + prio_mountains_mean + prio_ttime_mean + prio_urban_gc + 
-            radpko_pko_lag + viol_6,
-          data = a)
-summary(reg0)
-
-reg00 = glm(ucdp_reb_vac_all ~ radpko_f_pko_deployed + radpko_m_pko_deployed + prio_mountains_mean + prio_ttime_mean + prio_urban_gc + 
-             radpko_pko_lag + viol_6,
-           data = a)
-summary(reg00)
-
-# analysis by proportion PKs
-reg_fprop_5 = lm(ucdp_reb_vac_5 ~ radpko_f_prop + prio_mountains_mean + prio_ttime_mean + prio_urban_gc + 
-            radpko_pko_lag + viol_6,
-          data = a)
-summary(reg_fprop_5)
-
-reg_mprop_5 = lm(ucdp_reb_vac_5 ~ radpko_m_prop + prio_mountains_mean + prio_ttime_mean + prio_urban_gc + 
-            radpko_pko_lag + viol_6,
-          data = a)
-summary(reg_mprop_5)
-
-reg_fprop_all = lm(ucdp_reb_vac_all ~ radpko_f_prop + prio_mountains_mean + prio_ttime_mean + prio_urban_gc + 
-              radpko_pko_lag + viol_6,
-            data = a)
-summary(reg_fprop_all)
-
-reg_mprop_all = lm(ucdp_reb_vac_all ~ radpko_m_prop + prio_mountains_mean + prio_ttime_mean + prio_urban_gc + 
-             radpko_pko_lag + viol_6,
-           data = a)
-summary(reg_mprop_all)
-
-# predicted outcomes based on gender proportion #
-pred_fprop_5 = ggpredict(reg_fprop_5, terms = "radpko_f_prop [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]")
-pred_fprop_5$group = "Women PKs"
-pred_mprop_5 = ggpredict(reg_mprop_5, terms = "radpko_m_prop [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]")
-pred_mprop_5$group = "Men PKs"
-pred_mprop_5_gg = rbind(pred_fprop_5, pred_mprop_5) %>% mutate(x = x/10)
-
-pred_fprop_all = ggpredict(reg_fprop_all, terms = "radpko_f_prop [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]")
-pred_fprop_all$group = "Women PKs"
-pred_mprop_all = ggpredict(reg_mprop_all, terms = "radpko_m_prop [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]")
-pred_mprop_all$group = "Men PKs"
-pred_mprop_all_gg = rbind(pred_fprop_all, pred_mprop_all) %>% mutate(x = x/10)
-
-pdf("./results/pred_5_prop.pdf")
-ggplot(pred_mprop_5_gg) +
-  geom_line(aes(x, predicted, colour = group)) +
-  geom_ribbon(aes(x, ymin = conf.low, ymax = conf.high, colour = group, 
-                  fill = group), linetype = "dashed", alpha = 0.1, show.legend = F) +
-  xlab("Gender Proportion of Peacekeeping Unit") +
-  ylab("Predicted Pr( >4 Civilian Deaths)") + theme_pubclean() +
-  theme(legend.position = "none") +
-  scale_colour_manual("",values=c("#228B22", "#6A1C36"))+
-  scale_fill_manual("",values=c("black", "black"))
-dev.off()
-
-pdf("./results/pred_all_prop.pdf")
-ggplot(pred_mprop_all_gg) +
-  geom_line(aes(x, predicted, colour = group)) +
-  geom_ribbon(aes(x, ymin = conf.low, ymax = conf.high, colour = group, 
-                  fill = group), linetype = "dashed", alpha = 0.1, show.legend = F) +
-  xlab("Gender Proportion of Peacekeeping Unit") +
-  ylab("Predicted Civilian Fatalities") + theme_pubclean() +
-  theme(legend.position = "none") +
-  scale_colour_manual("",values=c("#228B22", "#6A1C36"))+
-  scale_fill_manual("",values=c("black", "black"))
-dev.off()
-
-# predicted outcomes based on total counts #
-reg0_f = ggpredict(reg0, terms = "radpko_f_pko_deployed [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]")
-reg0_f$group = "Women PKs"
-reg0_m = ggpredict(reg0, terms = "radpko_m_pko_deployed [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]")
-reg0_m$group = "Men PKs"
-reg0_gg = rbind(reg0_f, reg0_m)
-reg00_f = ggpredict(reg00, terms = "radpko_f_pko_deployed [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]")
-reg00_f$group = "Women PKs"
-reg00_m = ggpredict(reg00, terms = "radpko_m_pko_deployed [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]")
-reg00_m$group = "Men PKs"
-reg00_gg = rbind(reg00_f, reg00_m)
-
-
-pdf("./results/pred_5_total.pdf")
-ggplot(reg0_gg) +
-  geom_line(aes(x, predicted, colour = group)) +
-  geom_ribbon(aes(x, ymin = conf.low, ymax = conf.high, colour = group, 
-                  fill = group), linetype = "dashed", alpha = 0.1, show.legend = F) +
-  xlab("Gender of Peacekeepers Deployed (100s)") +
-  ylab("Predicted Pr( >4 Civilian Deaths)") + theme_pubclean() +
-  theme(legend.position = "none") +
-  scale_colour_manual("",values=c("#228B22", "#6A1C36"))+
-  scale_fill_manual("",values=c("black", "black"))
-dev.off()
-
-pdf("./results/pred_all_total.pdf")
-ggplot(reg00_gg) +
-  geom_line(aes(x, predicted, colour = group)) +
-  geom_ribbon(aes(x, ymin = conf.low, ymax = conf.high, colour = group, 
-                  fill = group), linetype = "dashed", alpha = 0.1, show.legend = F) +
-  xlab("Gender of Peacekeepers Deployed (100s)") +
-  ylab("Predicted Civilian Fatalities") + theme_pubclean() +
-  theme(legend.position = "none") +
-  scale_colour_manual("",values=c("#228B22", "#6A1C36"))+
-  scale_fill_manual("",values=c("black", "black"))
-dev.off()
-
-legend = 
-  ggplot(reg00_gg) +
-  geom_line(aes(x, predicted, colour = group)) +
-  geom_ribbon(aes(x, ymin = conf.low, ymax = conf.high, colour = group, 
-                  fill = group), linetype = "dashed", alpha = 0.1, show.legend = F) +
-  scale_colour_manual("",values=c("#228B22", "#6A1C36"))+
-  scale_fill_manual("",values=c("black", "black")) + 
-  theme(plot.margin = unit(c(0,0,0,0), "cm"), legend.background = element_rect(color = "black"), 
-        legend.position = "bottom", legend.key.size = unit(1.75, 'cm'), legend.margin=margin(c(5,5,5,5)))
-pdf("./results/pred_legend.pdf")
-as_ggplot(get_legend(legend))
-dev.off()
-
-#### 2SLS ####
-# Code instrument for each 
-a$f_iv = (a$f_pko_africa/10000)*log(a$distance_to_capital)
-a$m_iv = (a$m_pko_africa/10000)*log(a$distance_to_capital)
-
-first.stage_f = lm(radpko_f_pko_deployed ~ f_iv, data = a)
-first.stage_m = lm(radpko_m_pko_deployed ~ m_iv, data = a)
-summary(first.stage_f)
-summary(first.stage_m)
-
-iv_treat_f = first.stage_f$fitted
-iv_treat_m = first.stage_m$fitted
-
-# Print Instrument Tables #
-stargazer(first.stage_f, first.stage_m, style = "apsr", covariate.labels = c("Female PK Instrument", "Male PK Instrument"),
-          dep.var.labels = c("Female PKs Deployed", "Male PKs Deployed"), out = "./results/1st_stage.txt")
-
-# run the models
-reg1 = lm(ucdp_gov_vac_5 ~ iv_treat_f + iv_treat_m + prio_mountains_mean + prio_ttime_mean + prio_urban_gc + 
-           radpko_pko_lag + viol_6,
-           data = a)
-se_reg1 <- round(coeftest(reg1, vcov = vcovPL(reg1, cluster = a$prio.grid)),4)
-se_reg1
-
-reg2 = lm(ucdp_reb_vac_5 ~ iv_treat_f + iv_treat_m + prio_mountains_mean + prio_ttime_mean + prio_urban_gc + 
-           radpko_pko_lag + viol_6,
-           data = a)
-se_reg2 <- round(coeftest(reg2, vcov = vcovPL(reg2, cluster = a$prio.grid)),4)
-se_reg2
-
-reg3 = lm(ucdp_gov_vac_all ~ iv_treat_f + iv_treat_m + prio_mountains_mean + prio_ttime_mean + prio_urban_gc + 
-          radpko_pko_lag + viol_6,
-          data = a)
-se_reg3 <- round(coeftest(reg3, vcov = vcovPL(reg3, cluster = a$prio.grid)),4)
-se_reg3
-
-reg4 = lm(ucdp_reb_vac_all ~ iv_treat_f + iv_treat_m + prio_mountains_mean + prio_ttime_mean + prio_urban_gc + 
-          radpko_pko_lag + viol_6,
-          data = a)
-se_reg4 <- round(coeftest(reg4, vcov = vcovPL(reg4, cluster = a$prio.grid)),4)
-se_reg4
-
-
-### output results into tex table ###
-# Save Standard Errors to objects for use in table
-reg1se = se_reg1[,2]
-reg2se = se_reg2[,2]
-reg3se = se_reg3[,2]
-reg4se = se_reg4[,2]
-
-# Save P-values from robust clustering outputs for use in table
-reg1p = se_reg1[,4]
-reg2p = se_reg2[,4]
-reg3p = se_reg3[,4]
-reg4p = se_reg4[,4]
-
-# pk effectiveness by pk gender table #
-stargazer(reg1, reg3, reg2, reg4, title = "PKO Effectiveness by Peacekeeper Gender - 2SLS", 
-          align = TRUE, digits=3, font.size = "scriptsize",
-          style = "apsr", dep.var.labels = c("Gov VAC (B)", "Gov VAC (C)", "Reb VAC (B)", "Reb VAC (C)"),
-          covariate.labels = c("Female PKs Deployed", "Male PKs Deployed", "Avg. Mountain", "Travel Time Nearest City",
-                               "Perc. Urban", "PK Lag", "Violence 6 Months Before"),
-          se = list(reg1se, reg3se, reg2se, reg4se), p = list(reg1p, reg3p, reg2p, reg4p),
-          notes = "Robust Standard Errors clustered at the PRIO-Grid level. B = Binary outcome, C = Count outcome.",
-          out = "./results/2sls.txt")
-
-# plot based on predicted values #
-
-ggpredict(reg2, terms = c("iv_treat_f")) |> plot()
 
 
 
