@@ -53,9 +53,6 @@ reg4 = felm(formula = ucdp_reb_vac_all ~ radpko_f_prop | time + prio.grid |
               0 | prio.grid, data = a)
 summary(reg4)
 
-plot_summs(reg1, reg2, model.names = c("Binary Outcome", "Count Outcome"), ci_level = 0.95)
-
-
 stargazer(reg1, reg2, style = "AJPS", title = "TWFE Models Testing the Count of Peacekeepers",
           label = "tab:hyp_1", dep.var.labels = c("Rebel OSV (B)", "Rebel OSV (C)"),
           covariate.labels = c("Women PKs Deployed", "Men PKs Deployed"))
@@ -86,7 +83,7 @@ coefplot(est_did)
 reg9 = glm(ucdp_reb_vac_5 ~ t_bal + t_unbal + prio_mountains_mean + prio_ttime_mean + prio_urban_gc + 
             radpko_pko_lag + viol_6,
           data = a, family = negative.binomial(theta = 1))
-names(reg9$coefficients) = c("(Intercept)", "Balanced PK Unit", "Unbalanced PK Unit",
+names(reg9$coefficients) = c("(Intercept)", "Gender-mixed PK Unit", "Unbalanced PK Unit",
                               "Avg. Mountain", "Travel Time Nearest City", "Perc. Urban",
                               "PK Lag", "Violence 6 Months Before")
 se_reg9 <- round(coeftest(reg9, vcov = vcovPL(reg9, cluster = a$prio.grid)),4)
@@ -95,7 +92,7 @@ se_reg9
 reg10 = glm(ucdp_reb_vac_all ~ t_bal + t_unbal + prio_mountains_mean + prio_ttime_mean + prio_urban_gc + 
             radpko_pko_lag + viol_6,
           data = a, family = negative.binomial(theta = 1))
-names(reg10$coefficients) = c("(Intercept)", "Balanced PK Unit", "Unbalanced PK Unit",
+names(reg10$coefficients) = c("(Intercept)", "Gender-mixed PK Unit", "Unbalanced PK Unit",
                               "Avg. Mountain", "Travel Time Nearest City", "Perc. Urban",
                               "PK Lag", "Violence 6 Months Before")
 se_reg10 <- round(coeftest(reg10, vcov = vcovPL(reg10, cluster = a$prio.grid)),4)
@@ -105,7 +102,7 @@ se_reg10
 reg11 = glm(ucdp_reb_vac_5 ~ t_bal + prio_mountains_mean + prio_ttime_mean + prio_urban_gc + 
              prio_nlights_calib_mean + prio_pop_gpw_sum + prio_pop.dens + radpko_pko_lag_any + viol_6,
            data = c, family = negative.binomial(theta = 1))
-names(reg11$coefficients) = c("(Intercept)", "Balanced PK Unit",
+names(reg11$coefficients) = c("(Intercept)", "Gender-mixed PK Unit",
                               "Avg. Mountain", "Travel Time Nearest City", "Perc. Urban",
                               "Night Lights", "Population Sum", "Population Density",
                               "PK Lag", "Violence 6 Months Before")
@@ -115,7 +112,7 @@ se_reg11
 reg12 = glm(ucdp_reb_vac_all ~ t_bal + prio_mountains_mean + prio_ttime_mean + prio_urban_gc + 
              prio_nlights_calib_mean + prio_pop_gpw_sum + prio_pop.dens + radpko_pko_lag_any + viol_6,
            data = c, family = negative.binomial(theta = 1))
-names(reg12$coefficients) = c("(Intercept)", "Balanced PK Unit",
+names(reg12$coefficients) = c("(Intercept)", "Gender-mixed PK Unit",
                               "Avg. Mountain", "Travel Time Nearest City", "Perc. Urban",
                               "Night Lights", "Population Sum", "Population Density",
                               "PK Lag", "Violence 6 Months Before")
@@ -158,21 +155,22 @@ dev.off()
 # maybe use plots below for these models
 
 # show unmatched then matched models
-coef_unmatch = c("Balanced PK Unit", "Unbalanced PK Unit", "Avg. Mountain", 
+coef_unmatch = c("Gender-mixed PK Unit", "Unbalanced PK Unit", "Avg. Mountain", 
                  "Travel Time Nearest City", "Perc. Urban","PK Lag", 
                  "Violence 6 Months Before")
-coef_match = c("Balanced PK Unit", "Travel Time Nearest City", 
-                 "Perc. Urban", "Population Sum", "Population Density", 
-                 "PK Lag", "Violence 6 Months Before")
+coef_match = c("Gender-mixed PK Unit", "Travel Time Nearest City", #excluding perc. urban and PK lag (aesthetics)
+               "Population Sum", "Population Density", "Violence 6 Months Before")
 
 pdf("./results/unmatch_OR.pdf")
 plot_summs(se_reg9, se_reg10, exp = T, coefs = coef_unmatch, model.names = 
              c("Binary", "Count"), legend.title = "Model by Outcome") 
 dev.off()
 
-pdf("./results/match_OR.pdf")
+pdf("./results/match_OR.pdf", width = 15, height = 8)
 plot_summs(se_reg11, se_reg12, exp = T, coefs = coef_match, model.names = 
-             c("Binary", "Count"), legend.title = "Model by Outcome")
+             c("Binary", "Count"), legend.title = "Model by Outcome") + 
+  theme(axis.text.y = element_text(size=16), axis.text.x =element_text(size=12)) +
+  xlab("Odds Ratios") + scale_x_continuous(limits = c(0.1, 1.15))
 dev.off()
 
 svg("./results/images/match_OR.svg")
