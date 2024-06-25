@@ -3,10 +3,8 @@
 # By: Sky Kunkel
 
 ### load libraries ###
-library(doSNOW); library(foreach); library(janitor); library(lubridate)
-library(sf); library(tidyverse); library(sp); library(CoordinateCleaner)
-library(countrycode); library(geosphere)
-
+library(lubridate); library(sf); library(sp); library(tidyverse)
+library(countrycode); library(CoordinateCleaner); library(geosphere)
 
 ### Reading in and briefly cleaning the data ###
 
@@ -103,7 +101,8 @@ pko_supply = radpko %>%
   select(month, year, pko_deployed, m_pko_deployed, f_pko_deployed) %>%
   group_by(month,year) %>%
   summarise(pko_africa = sum(pko_deployed), m_pko_africa = sum(m_pko_deployed), f_pko_africa = sum(f_pko_deployed),
-            pko_africa_prop_m = m_pko_africa / pko_africa, pko_africa_prop_f = f_pko_africa / pko_africa) # calculate proportions
+            pko_africa_prop_m = m_pko_africa / pko_africa, pko_africa_prop_f = f_pko_africa / pko_africa) 
+# calculate proportions
 radpko = left_join(radpko, pko_supply, by = c("month", "year"))
 # Fjelde et al. log distance to capital, whereas Ruggeri et al. measure it in kilometers
 # also measure PKO UN Africa in ten thousands, hard to tell how Ruggeri et al. measure
@@ -144,7 +143,8 @@ radpko$t_unbal[radpko$f_prop <= quantile(radpko$f_prop[radpko$t_ind == 1], prob=
 
 ##### Merge UCDP data #####
 # read in data
-dd = read.csv("./data/ucdp_ged/ucdp-actor-221.csv", encoding = "UTF-8") %>% # if there is an error here, check encoding and rename columns accordingly
+dd = read.csv("./data/ucdp_ged/ucdp-actor-221.csv", encoding = "UTF-8") %>% 
+  # if there is an error here, check encoding and rename columns accordingly
   rename(a_id = ActorId) %>%
   select(c(a_id, Org)) # grab data so we can classify actors during OSV
 df = read.csv("./data/ucdp_ged/GEDEvent_v22_1.csv") %>%
@@ -288,32 +288,32 @@ a = a %>%
 a$acled_fatalities = NULL
 a$acled_event = NULL
 
-### create a unified time variable. this needs to be a one column integer for `xtreg2way`
+### create a unified time variable. this needs to be a one column integer
 a = a %>% 
   mutate(time = (year-2005)*(12) + month - 8)
 
 ### split by GID and make some variables
-dd = a %>% as.data.frame() %>% select(prio.grid, time, radpko_m_pko_deployed, radpko_f_pko_deployed)
+dd = a %>% as.data.frame() %>% select(prio.grid, time, radpko_m_pko_deployed, radpko_f_pko_deployed, t_ind)
 dd = dd %>% 
   mutate(radpko_f_pko_any = if_else(radpko_f_pko_deployed>0, 1, 0), 
          radpko_m_pko_any = if_else(radpko_m_pko_deployed>0, 1, 0))
 dd = split(dd, f = dd$prio.grid)
 dd = lapply(dd, FUN = function(x){
-  y = x[which(x$radpko_f_pko_any == 1),]
+  y = x[which(x$t_ind == 1),]
   # create a "first treated" variable. needs to be 0 for untreated
-  x$first_treated_m = ifelse(nrow(y) == 0, 0, min(y$time))
+  x$first_treated = ifelse(nrow(y) == 0, 0, min(y$time))
   # create a "post treated" variable. needs to be 0 until treatment then 1
-  x$post_treatment_m = ifelse(x$first_treated != 0 & x$time >= x$first_treated, 
+  x$post_treatment = ifelse(x$first_treated != 0 & x$time > x$first_treated, 
                              1, 0)
   # create a "treated" variable. needs to be 0 if control and 1 if treated
-  x$treated_m = ifelse(sum(x$radpko_f_pko_any, na.rm = T) > 0, 1, 0)
+  x$treated = ifelse(sum(x$radpko_f_pko_any, na.rm = T) > 0, 1, 0)
   x
 })
 dd = do.call(rbind, dd)
 dd = dd %>%
-  select(c("prio.grid", "time", "first_treated_m", "treated_m", "post_treatment_m")) %>%
+  select(c("prio.grid", "time", "first_treated", "treated", "post_treatment")) %>%
   group_by(prio.grid, time) %>%
-  summarize(first_treated_m = min(first_treated_m), treated_m = min(treated_m), post_treatment_m = min(post_treatment_m))
+  summarize(first_treated = min(first_treated), treated = min(treated), post_treatment = min(post_treatment))
 
 # merge back to main a
 a = left_join(a, dd, by = c("prio.grid", "time"))
