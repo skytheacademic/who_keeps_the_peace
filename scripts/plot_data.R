@@ -6,8 +6,8 @@ library(gdata)
 library(magrittr); library(lubridate)
 
 library(ggpubr); library(ggiraphExtra); library(coefplot); library(stargazer) # need to add these to dockerfile
-library(spdep); library(gurobi); library(lme4); library(vtable)
-library(sensitivitymw); library(lmtest); library(sandwich); library(magick)
+library(spdep); library(lme4)
+library(lmtest); library(sandwich); library(magick)
 library(ggeffects)
 
 
@@ -17,6 +17,113 @@ options(scipen = 999)
 # reading in cleaned data
 setwd(dirname(rstudioapi::getActiveDocumentContext()$path)) # set to source file location
 setwd("../") # back out to main folder
+rm(list = ls())
+
+############################################## 
+###### Plot Marginal Effects - Beginning #####
+############################################## 
+a = readRDS("./data/kunkel_which_pks.rds")
+library(ggeffects)
+library(marginaleffects); library(fixest)
+
+reg1 = feglm(fml = (ucdp_reb_vac_all ~ radpko_f_pko_deployed + radpko_m_pko_deployed | time + prio.grid), 
+             data = a, cluster = "prio.grid")
+
+reg2 = feglm(fml = (ucdp_reb_vac_5 ~ radpko_f_pko_deployed + radpko_m_pko_deployed | time + prio.grid), 
+             data = a, cluster = "prio.grid")
+reg3 = feglm(fml = (ucdp_reb_vac_all ~ radpko_f_prop | time + prio.grid), data = a, cluster = "prio.grid")
+reg4 = feglm(fml = (ucdp_reb_vac_5 ~ radpko_f_prop | time + prio.grid), data = a, cluster = "prio.grid")
+reg5 = feglm(fml = (ucdp_reb_vac_all ~ radpko_m_prop | time + prio.grid), data = a, cluster = "prio.grid")
+reg6 = feglm(fml = (ucdp_reb_vac_5 ~ radpko_m_prop | time + prio.grid), data = a, cluster = "prio.grid")
+
+
+
+
+
+
+# reg3 = tibble(plot_predictions(reg3, condition = "radpko_f_prop", conf_level = 0.9, draw = F)) %>%
+#   dplyr::select(c(estimate, conf.low, conf.high, radpko_f_prop)) %>%
+#   filter(radpko_f_prop <1.18)
+# plot_predictions(reg2, condition = "radpko_m_prop", conf_level = 0.9, draw = F)
+
+
+
+# z = plot_predictions(reg1, condition = "radpko_f_prop", conf_level = 0.9) +
+#   xlim(0.07,1.0344) + ylim(0, 0.015) +
+#   xlab("Proportion Women") + ylab("Probability of Rebel Violence Against Civilians") +
+#   theme_pubclean()
+# z + # Modify the line color by adding a new layer with the desired color
+#   geom_line(aes(color = "Your_Desired_Color"), size = 1) +
+#   scale_color_manual(values = c("Your_Desired_Color" = "Your_Desired_Color"))
+# 
+# 
+# plot_predictions(reg2, condition = c("radpko_m_pko_deployed", radpko_f_pko_deployed = fivenum), draw = T) +
+#   theme_pubclean()
+# plot_predictions(reg2, condition = c("radpko_f_pko_deployed", radpko_m_pko_deployed = fivenum), draw = T) + 
+#   theme_pubclean()# + xlim(0.204,1.03343465) + ylim(0.01025, 0.011)
+
+
+# plot_predictions(reg3, condition = "radpko_f_prop", draw = T)
+# plot_predictions(reg4, condition = "radpko_f_prop", draw = T)
+# plot_predictions(reg5, condition = "radpko_m_prop", draw = T) # xlim(0,1.0204082) + ylim(0, 0.011)
+# plot_predictions(reg6, condition = "radpko_m_prop", draw = T)
+
+### 2x2 side-by-side plots #
+# Top left corner - predicted violence when women PKs deploy #
+pdf("./results/total_women_fatalities_pred.pdf")
+plot_predictions(reg1, condition = "radpko_f_pko_deployed") +
+  xlab("Total Women Peacekeepers Deployed") + ylab("Predicted Civilian Deaths by Rebels") +
+  theme_pubclean() +
+  theme(axis.text.y = element_text(size=18), axis.text.x =element_text(size=18), 
+        axis.title.x.bottom = element_text(size = 22), axis.title.y.left = element_text(size=22))
+dev.off()
+
+# Top right corner - predicted Pr(violence) when women PKs deployed #
+pdf("./results/total_women_pr_death_pred.pdf")
+plot_predictions(reg2, condition = "radpko_f_pko_deployed") +
+  xlab("Total Women Peacekeepers Deployed") + ylab("Predicted Pr(Civilian) Deaths by Rebels") +
+  theme_pubclean() +
+  theme(axis.text.y = element_text(size=18), axis.text.x =element_text(size=18), 
+        axis.title.x.bottom = element_text(size = 22), axis.title.y.left = element_text(size=22))
+dev.off()
+
+# Bottom left corner -predicted total violence when prop deployed increases  #
+pdf("./results/prop_women_fatalities_pred.pdf")
+plot_predictions(reg3, condition = "radpko_f_prop") +
+  xlab("Proportion Women Peacekeepers Deployed") + ylab("Predicted Civilian Deaths by Rebels") +
+  theme_pubclean() +
+  theme(axis.text.y = element_text(size=18), axis.text.x =element_text(size=18), 
+        axis.title.x.bottom = element_text(size = 22), axis.title.y.left = element_text(size=22))
+dev.off()
+
+# bottom right corner -  predicted Pr(violence) when prop deployed ioncreases
+pdf("./results/prop_women_pr_death_pred.pdf")
+plot_predictions(reg4, condition = "radpko_f_prop") +
+  xlab("Proportion Women Peacekeepers Deployed") + ylab("Predicted Pr(Civilian) Deaths by Rebels") +
+  theme_pubclean() +
+  theme(axis.text.y = element_text(size=18), axis.text.x =element_text(size=18), 
+        axis.title.x.bottom = element_text(size = 22), axis.title.y.left = element_text(size=22))
+dev.off()
+
+# Top left corner - violence when 100 women are present #
+# Top right corner - violence when 100 men are present #
+# Bottom left corner - violeence when 200 women are present #
+# bottom right corner - violence when 200 men are present #
+
+ggplot(reg1.both) +
+  geom_line(aes(x, predicted, colour = group)) +
+  geom_ribbon(aes(x, ymin = conf.low, ymax = conf.high, colour = group, 
+                  fill = group), linetype = "dashed", alpha = 0.1, show.legend = F) +
+  ylab("Predicted Pr(Civilian Deaths)") + theme_pubclean() +
+  theme(legend.position = "right") +
+  scale_x_continuous(breaks = seq(0,1,1)) +
+  ggtitle("Predicted Probability of violence based on treatment")
+
+
+
+############################################## 
+###### Plot Marginal Effects - END ###########
+############################################## 
 
 # plot proportion of women deployed to PKOs over time
 b = readRDS("./data/kunkel_which_pks.rds") %>%
@@ -81,9 +188,16 @@ ggplot(aa, aes(x=date)) +
     sec.axis = sec_axis(~./20, name="Count (Women")) + 
   theme_pubclean() +
   theme(axis.title.y = element_text(color = "#EB5307", size=20),
-        axis.title.y.right = element_text(color = "#9E314B", size=20)) +
+        axis.title.y.right = element_text(color = "#9E314B", size=20),
+        axis.text.y=element_text(size=22), axis.text.x =element_text(size=22)) +
   xlab("")
 dev.off()
+
+
+
+theme(axis.text.y = element_text(size=18), axis.text.x =element_text(size=18), 
+      axis.title.x.bottom = element_text(size = 22), axis.title.y.left = element_text(size=22))
+
 
 # long_aa <- aa %>%
 #   pivot_longer(cols = c(men, women), 
@@ -136,9 +250,9 @@ df = a %>%
             violence = sum(ucdp_reb_vac_all, ucdp_gov_vac_all))
 
 # change 0s to NA to make plot prettier
-df$f_pko_deployed[df$f_pko_deployed == 0] <- NA
-df$m_pko_deployed[df$m_pko_deployed == 0] <- NA
-df$violence[df$violence == 0] <- NA
+# df$f_pko_deployed[df$f_pko_deployed == 0] <- NA
+# df$m_pko_deployed[df$m_pko_deployed == 0] <- NA
+# df$violence[df$violence == 0] <- NA
 
 # restructure the data so grids can be duplicated and pko/violence is on the same scale 
 # and named the same variable
@@ -187,6 +301,8 @@ df_ac= df %>%
 df_pk = df %>%
   drop_na(f_pko_deployed, m_pko_deployed)
 
+df_pk$prop_women = (df_pk$f_pko_deployed) / (df_pk$f_pko_deployed+df_pk$m_pko_deployed)
+
 # plot of variables as different colors and different shape
 
 
@@ -200,8 +316,8 @@ dsc.wom =
 dsc_wom = dsc.wom + 
   labs(colour = "Variable") + 
   scale_color_manual(labels = c("Women PKs Deployed"), values = c("#9E314B")) +
-  theme(legend.background = element_rect(color = "black"), legend.position = c(0.25, 0.2),
-        plot.margin = unit(c(0,0,0,0), "cm"), legend.margin=margin(c(5,5,5,5)), 
+  theme(legend.background = element_rect(color = "black"), legend.position = c(0.35, 0.28),
+        plot.margin = unit(c(0,0,0,0), "cm"), legend.margin=margin(c(10,10,10,10)), 
         legend.key.size = unit(0.2, 'cm')) + 
   guides(shape = guide_legend(order = 1),col = guide_legend(order = 2), legend.direction="vertical") +
   xlim(-14,37) + ylim(-12,21)
@@ -210,7 +326,7 @@ pdf("./results/women_map.pdf")
 dsc_wom
 dev.off()
 
-svg("./results/women_map.svg")
+svg("./results/women_map.svg", height = 10, width = 15)
 dsc_wom
 dev.off()
 
@@ -224,24 +340,40 @@ dsc.men =
 dsc_men = dsc.men + 
   labs(colour = "Variable") + 
   scale_color_manual(labels = c("Men PKs Deployed"), values = c("#EB5307")) +
-  theme(legend.background = element_rect(color = "black"), legend.position = c(0.25, 0.18),
-        plot.margin = unit(c(0,0,0,0), "cm"), legend.margin=margin(c(5,5,5,5)), 
+  theme(legend.background = element_rect(color = "black"), legend.position = c(0.35, 0.28),
+        plot.margin = unit(c(0,0,0,0), "cm"), legend.margin=margin(c(10,10,10,10)), 
         legend.key.size = unit(0.2, 'cm')) + 
   guides(shape = guide_legend(order = 1),col = guide_legend(order = 2), legend.direction="vertical") +
   xlim(-14,37) + ylim(-12,21)
 
-svg("./results/men_map.svg")
+svg("./results/men_map.svg", height = 10, width = 15)
 dsc_men
 dev.off()
 
 
+######################################
+df_pk = left_join(df_pk, prio_shp)
 
+df_pk = na.omit(df_pk)
 
+# make prop plot of women over time
+z = 
+  ggplot() + 
+  geom_sf(aes(geometry = afr_shp$geometry), alpha = 0.3, fill = NA) +
+  geom_sf(aes(fill = df_pk$prop_women, geometry = df_pk$geometry)) +
+  scale_fill_gradient(low = "#f6f6f6", high = "#9E314B", space = "Lab", na.value = "grey89",
+                      guide = "colourbar", aesthetics = "fill", limits=c(0,0.168),
+                      guide_colorbar(title = "Proportion Women")) +
+  xlim(-14,37) + ylim(-12,21) +
+  theme_void()
 
+pdf("./results/map_prop.pdf")
+z + 
+  theme(legend.background = element_rect(color = "black"), legend.position = c(0.3, 0.28),
+        legend.margin = margin(10, 10, 10, 10))
+dev.off()
 
-
-
-
+#######################
 
 
 
