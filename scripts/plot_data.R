@@ -1,13 +1,20 @@
 # Who Keeps the Peace: Figures and Plots #
 
 library(tidygeocoder)
-library(tidyverse); library(viridis)
+library(tidyverse)
+library(viridis)
 library(gdata)
-library(magrittr); library(lubridate)
-
-library(ggpubr); library(ggiraphExtra); library(coefplot); library(stargazer) # need to add these to dockerfile
-library(spdep); library(lme4)
-library(lmtest); library(sandwich); library(magick)
+library(magrittr)
+library(lubridate)
+library(ggpubr)
+library(ggiraphExtra)
+library(coefplot)
+library(stargazer) # need to add these to dockerfile
+library(spdep)
+library(lme4)
+library(lmtest)
+library(sandwich)
+library(magick)
 library(ggeffects)
 
 
@@ -411,6 +418,70 @@ dev.off()
 # end of plot
 
 
+## Descriptive plots of missions ##
+a = readRDS("./data/kunkel_which_pks.rds") %>% 
+  as.data.frame() %>%
+  select(mission, radpko_f_pko_deployed, radpko_m_pko_deployed, ucdp_reb_vac_all, ucdp_reb_vac_5, year, month,
+  country)
+gc()
+
+# Create time variable
+a$time <- as.Date(paste(a$year, a$month, "1", sep = "-"), "%Y-%m-%d")
+
+# Find the max and min values for the y-axis across all data for consistency
+y_min <- min(a$radpko_f_pko_deployed, na.rm = TRUE)
+y_max <- max(a$radpko_f_pko_deployed, na.rm = TRUE)
+
+# Set a consistent color for "UNISFA"
+unisfa_color <- "blue"
+other_mission_color <- "grey"
+
+pdf("./results/women_deployed_all.pdf", width = 10, height = 7)
+ggplot(a, aes(x = time, y = radpko_f_pko_deployed)) +
+  geom_line(aes(color = mission)) +
+  scale_color_manual(values = c("UNISFA" = unisfa_color, setNames(rainbow(length(unique(a$mission))-1), unique(a$mission)[unique(a$mission) != "UNISFA"]))) +  # Set the color for UNISFA
+  labs(title = "Number of Women Peacekeepers Deployed Over Time",
+       x = "Time",
+       y = "Number of Women Peacekeepers") +
+  scale_x_date(breaks = as.Date(c("2005-01-01", "2010-01-01", "2015-01-01", "2020-01-01")),
+               date_labels = "%Y") +
+  ylim(y_min, y_max) +  # Set identical y-axis limits
+  theme_minimal() +
+  theme(legend.position = "none")  # Remove the legend
+dev.off()
+
+pdf("./results/women_deployed_unisfa.pdf", width = 10, height = 7)
+ggplot(a, aes(x = time, y = radpko_f_pko_deployed)) +
+  geom_line(aes(color = mission)) +
+  scale_color_manual(values = c("UNISFA" = unisfa_color, setNames(rep(other_mission_color, length(unique(a$mission))-1), unique(a$mission)[unique(a$mission) != "UNISFA"]))) +  # Set others to grey
+  labs(title = "Number of Women Peacekeepers Deployed Over Time",
+       x = "Time",
+       y = "Number of Women Peacekeepers") +
+  scale_x_date(breaks = as.Date(c("2005-01-01", "2010-01-01", "2015-01-01", "2020-01-01")),
+               date_labels = "%Y") +
+  ylim(y_min, y_max) +  # Set identical y-axis limits
+  theme_minimal() +
+  theme(legend.position = "none")  # Remove the legend
+dev.off()
+
+# Filter the data for the mission "UNISFA"
+unisfa_data <- a %>% filter(mission == "UNISFA")
+
+# Calculate the mean of rebel violence (ucdp_reb_vac_all)
+mean_rebel_violence <- mean(unisfa_data$ucdp_reb_vac_all, na.rm = TRUE)
+
+# Plot the number of women peacekeepers over time for UNISFA
+ggplot(unisfa_data, aes(x = time, y = radpko_f_pko_deployed)) +
+  geom_line(color = unisfa_color) +  # Set the color for UNISFA
+  geom_hline(yintercept = mean_rebel_violence, color = "red", linetype = "dashed") +  # Add mean rebel violence as a red dashed line
+  labs(title = "Number of Women Peacekeepers Deployed Over Time (UNISFA) with Mean Rebel Violence",
+       x = "Time",
+       y = "Number of Women Peacekeepers / Rebel Violence (Red Dashed Line)") +
+  scale_x_date(breaks = as.Date(c("2005-01-01", "2010-01-01", "2015-01-01", "2020-01-01")),
+               date_labels = "%Y") +
+  ylim(y_min, y_max) +  # Set identical y-axis limits
+  theme_minimal()
+
 ####################################################
 ##### Make map of single country - BEGINNING #######
 ####################################################
@@ -520,13 +591,179 @@ dev.off()
 rm(list = ls())
 
 
+# Define a common theme with identical margins for all plots
+common_theme <- theme_void() + 
+  theme(plot.margin = unit(c(5, 5, 5, 5), "cm"))  # Adjust the values as needed
+
+# Function to extract the legend
+extract_legend <- function(plot) {
+  gg_legend <- as_ggplot(get_legend(plot))
+  return(gg_legend)
+}
+
+pdf("./results/drc/drc_00.pdf", height = 8, width = 8)
+ggplot() +
+  geom_sf(aes(geometry = drc_00$geometry), alpha = 0) +
+  common_theme
+dev.off()
+
+# plot of 01 DRC
+pdf("./results/drc/drc_01.pdf", height = 8, width = 8)
+ggplot() +
+  geom_sf(aes(geometry = drc_01$geometry), alpha = 0) +
+  common_theme
+dev.off()
+
+# plot of grids over DRC
+pdf("./results/drc/drc_01grids.pdf", height = 8, width = 8)
+ggplot() + geom_sf(aes(geometry = b.join$geometry), alpha = 0) +
+  geom_sf(aes(geometry = drc_01$geometry), alpha = 0) +
+  common_theme
+dev.off()
+
+pdf("./results/drc/drc_grids.pdf", height = 8, width = 8)
+ggplot() + geom_sf(aes(geometry = b.join$geometry), alpha = 0) +
+  common_theme
+dev.off()
+
+# Plot of violence in DRC with updated color range
+plot_violence <- ggplot() + 
+  geom_sf(aes(fill = b.join$fatalities, geometry = b.join$geometry)) +
+  scale_fill_gradient(low = "#ffe5e5", high = "#ff0000", space = "Lab", na.value = "white",
+                      guide = "colourbar", aesthetics = "fill", limits=c(0,500)) +
+  labs(fill = "Fatalities") +
+  common_theme
+
+# Save violence plot without legend
+pdf("./results/drc/drc_violence_no_legend.pdf", height = 8, width = 8)
+plot_violence + theme(legend.position = "none")
+dev.off()
+
+# Save only the legend
+pdf("./results/drc/drc_violence_legend.pdf", height = 8, width = 8)
+gg_legend <- extract_legend(plot_violence)
+print(gg_legend)
+dev.off()
+
+# Plot of peacekeepers (PKs) with updated color range
+plot_pks <- ggplot() + 
+  geom_sf(aes(fill = b.join$pks, geometry = b.join$geometry)) +
+  scale_fill_gradient(low = "#b3e6ff", high = "#0040ff", space = "Lab", na.value = "white",
+                      guide = "colourbar", aesthetics = "fill", limits=c(0,525000)) +
+  labs(fill = "Peacekeepers") +
+  common_theme
+
+# Save PKs plot without legend
+pdf("./results/drc/drc_pks_no_legend.pdf", height = 8, width = 8)
+plot_pks + theme(legend.position = "none")
+dev.off()
+
+# Save only the legend
+pdf("./results/drc/drc_pks_legend.pdf", height = 8, width = 8)
+gg_legend <- extract_legend(plot_pks)
+print(gg_legend)
+dev.off()
+
+# Plot of men peacekeepers with updated color range
+plot_men <- ggplot() + 
+  geom_sf(aes(fill = b.join$men, geometry = b.join$geometry)) +
+  scale_fill_gradient(low = "#ffd9b3", high = "#ff6600", space = "Lab", na.value = "white",
+                      guide = "colourbar", aesthetics = "fill", limits=c(0,503524.3)) +
+  labs(fill = "Men") +
+  common_theme
+
+# Save men PKs plot without legend
+pdf("./results/drc/drc_men_no_legend.pdf", height = 8, width = 8)
+plot_men + theme(legend.position = "none")
+dev.off()
+
+# Save only the legend
+pdf("./results/drc/drc_men_legend.pdf", height = 8, width = 8)
+gg_legend <- extract_legend(plot_men)
+print(gg_legend)
+dev.off()
+
+# Plot of women peacekeepers with updated color range
+plot_women <- ggplot() + 
+  geom_sf(aes(fill = b.join$women, geometry = b.join$geometry)) +
+  scale_fill_gradient(low = "#ffb3cc", high = "#ff0066", space = "Lab", na.value = "white",
+                      guide = "colourbar", aesthetics = "fill", limits=c(0,22010)) +
+  labs(fill = "Women") +
+  common_theme
+
+# Save women PKs plot without legend
+pdf("./results/drc/drc_women_no_legend.pdf", height = 8, width = 8)
+plot_women + theme(legend.position = "none")
+dev.off()
+
+# Save only the legend
+pdf("./results/drc/drc_women_legend.pdf", height = 8, width = 8)
+gg_legend <- extract_legend(plot_women)
+print(gg_legend)
+dev.off()
+
 
 ####################################################
 ##### Make map of single country - END #######
 ####################################################
 
 
+###################################
+## Timeline for JMP Talk - START ##
+###################################
 
+# Extend the timeline range to include 1990 and 2025
+timeline_data <- data.frame(year = seq(1990, 2025, by = 1))
+
+# Add 1990 and 2025 to the tick marks data
+ticks_data <- data.frame(
+  year = seq(1990, 2025, by = 5)
+)
+
+# Plot the timeline with events
+pdf("./results/timeline.pdf", width = 10, height = 6)
+ggplot(timeline_data, aes(x = year, y = 0)) +
+  # Add the main timeline from 1990 to 2025
+  geom_segment(aes(x = 1990, xend = 2025, y = 0, yend = 0), linewidth = 1, color = "black") +
+  
+  # Add tick marks every 5 years, including 1990 and 2025
+  geom_segment(data = ticks_data, aes(x = year, xend = year, y = -0.001, yend = 0.001), 
+               color = "black", linewidth = 0.8) +
+  
+  # Add year labels directly below the line, including 1990 and 2025
+  geom_text(data = ticks_data, aes(x = year, y = -0.0005, label = year), size = 3, vjust = 1.5) +
+
+  # Dashed lines from boxes to the year line
+  geom_segment(data = events_data, aes(x = as.numeric(format(date, "%Y")), 
+                                       xend = as.numeric(format(date, "%Y")), 
+                                       y = 0, yend = position), linetype = "dashed", color = "gray") +
+
+  # Event points
+  geom_point(data = events_data, aes(x = as.numeric(format(date, "%Y")), y = 0), color = "red", size = 3) + 
+
+  # Boxed labels
+  geom_label(data = events_data, aes(x = as.numeric(format(date, "%Y")), y = position, label = event), 
+             fill = "#5b92e5", color = "white", size = 3, vjust = ifelse(events_data$position > 0, 0, 1), 
+             label.size = 0) + # remove label border
+
+  # Customizing the x-axis and plot appearance
+  scale_x_continuous(breaks = seq(1990, 2025, by = 5), limits = c(1990, 2025)) +
+  coord_cartesian(ylim = c(-0.05, 0.05)) +  # Increase vertical margins
+  theme_minimal() +
+  theme(axis.title.y = element_blank(), 
+        axis.text.y = element_blank(),
+        axis.ticks.y = element_blank(),
+        axis.text.x = element_blank(),
+        axis.title.x = element_blank(),
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        plot.margin = margin(5, 5, 5, 5))  # Add margin around the plot
+dev.off()
+
+
+###################################
+## Timeline for JMP Talk - END   ##
+###################################
 
 
 
