@@ -9,14 +9,16 @@ library(lubridate)
 library(ggpubr)
 library(ggiraphExtra)
 library(coefplot)
-library(stargazer) # need to add these to dockerfile
+library(stargazer) 
 library(spdep)
 library(lme4)
 library(lmtest)
 library(sandwich)
 library(magick)
 library(ggeffects)
-
+library(marginaleffects)
+library(fixest)
+library(ggridges)
 
 # turn off scientific notation
 options(scipen = 999)
@@ -30,102 +32,105 @@ rm(list = ls())
 ###### Plot Marginal Effects - Beginning #####
 ############################################## 
 a = readRDS("./data/kunkel_which_pks.rds")
-library(ggeffects)
-library(marginaleffects); library(fixest)
+# Re-scale PK variable for statistical analyses (per Fjelde et al. (2019)) 
+a$radpko_m_pko_deployed = a$radpko_m_pko_deployed/100
+a$radpko_f_pko_deployed = a$radpko_f_pko_deployed/100
 
-reg1 = feglm(fml = (ucdp_reb_vac_all ~ radpko_f_pko_deployed + radpko_m_pko_deployed | time + prio.grid), 
+a = a %>% # re-scale proportion so that results make sense
+  mutate(radpko_f_prop = 10*radpko_f_prop, radpko_m_prop = 10*radpko_m_prop)
+
+reg1 = feols(fml = (ucdp_reb_vac_all ~ radpko_f_pko_deployed + radpko_m_pko_deployed | time + prio.grid), 
              data = a, cluster = "prio.grid")
-
-reg2 = feglm(fml = (ucdp_reb_vac_5 ~ radpko_f_pko_deployed + radpko_m_pko_deployed | time + prio.grid), 
+reg2 = feols(fml = (ucdp_reb_vac_5 ~ radpko_f_pko_deployed + radpko_m_pko_deployed | time + prio.grid), 
              data = a, cluster = "prio.grid")
-reg3 = feglm(fml = (ucdp_reb_vac_all ~ radpko_f_prop | time + prio.grid), data = a, cluster = "prio.grid")
-reg4 = feglm(fml = (ucdp_reb_vac_5 ~ radpko_f_prop | time + prio.grid), data = a, cluster = "prio.grid")
-reg5 = feglm(fml = (ucdp_reb_vac_all ~ radpko_m_prop | time + prio.grid), data = a, cluster = "prio.grid")
-reg6 = feglm(fml = (ucdp_reb_vac_5 ~ radpko_m_prop | time + prio.grid), data = a, cluster = "prio.grid")
+reg3 = feols(fml = (ucdp_reb_vac_all ~ radpko_f_prop | time + prio.grid), data = a, cluster = "prio.grid")
+reg4 = feols(fml = (ucdp_reb_vac_5 ~ radpko_f_prop | time + prio.grid), data = a, cluster = "prio.grid")
+reg5 = feols(fml = (ucdp_reb_vac_all ~ radpko_m_prop | time + prio.grid), data = a, cluster = "prio.grid")
+reg6 = feols(fml = (ucdp_reb_vac_5 ~ radpko_m_prop | time + prio.grid), data = a, cluster = "prio.grid")
 
+summary(reg2)
+range(a$radpko_f_pko_deployed, na.rm = TRUE)
+head(predict(reg2, newdata = a))
+head(predict(reg2, condition = c("radpko_f_pko_deployed"), fixed = list(radpko_m_pko_deployed = mean(a$radpko_m_pko_deployed, na.rm = TRUE))))
+summary(a$time)
+summary(a$prio.grid)
 
-
-
-
-
-# reg3 = tibble(plot_predictions(reg3, condition = "radpko_f_prop", conf_level = 0.9, draw = F)) %>%
-#   dplyr::select(c(estimate, conf.low, conf.high, radpko_f_prop)) %>%
-#   filter(radpko_f_prop <1.18)
-# plot_predictions(reg2, condition = "radpko_m_prop", conf_level = 0.9, draw = F)
-
-
-
-# z = plot_predictions(reg1, condition = "radpko_f_prop", conf_level = 0.9) +
-#   xlim(0.07,1.0344) + ylim(0, 0.015) +
-#   xlab("Proportion Women") + ylab("Probability of Rebel Violence Against Civilians") +
-#   theme_pubclean()
-# z + # Modify the line color by adding a new layer with the desired color
-#   geom_line(aes(color = "Your_Desired_Color"), size = 1) +
-#   scale_color_manual(values = c("Your_Desired_Color" = "Your_Desired_Color"))
-# 
-# 
-# plot_predictions(reg2, condition = c("radpko_m_pko_deployed", radpko_f_pko_deployed = fivenum), draw = T) +
-#   theme_pubclean()
-# plot_predictions(reg2, condition = c("radpko_f_pko_deployed", radpko_m_pko_deployed = fivenum), draw = T) + 
-#   theme_pubclean()# + xlim(0.204,1.03343465) + ylim(0.01025, 0.011)
-
-
-# plot_predictions(reg3, condition = "radpko_f_prop", draw = T)
-# plot_predictions(reg4, condition = "radpko_f_prop", draw = T)
-# plot_predictions(reg5, condition = "radpko_m_prop", draw = T) # xlim(0,1.0204082) + ylim(0, 0.011)
-# plot_predictions(reg6, condition = "radpko_m_prop", draw = T)
-
-### 2x2 side-by-side plots #
-# Top left corner - predicted violence when women PKs deploy #
-pdf("./results/total_women_fatalities_pred.pdf")
-plot_predictions(reg1, condition = "radpko_f_pko_deployed") +
-  xlab("Total Women Peacekeepers Deployed") + ylab("Predicted Civilian Deaths by Rebels") +
+### side-by-side plots ###
+# predicted total violence when women PKs deploy #
+pdf("./results/total_women_fatalities_pred.pdf", height = 10, width = 10)
+plot_predictions(reg1, condition = c("radpko_f_pko_deployed")) +
+  xlab("Total Female Peacekeepers Deployed") + ylab("Predicted Civilian Deaths by Rebels") +
   theme_pubclean() +
   theme(axis.text.y = element_text(size=18), axis.text.x =element_text(size=18), 
         axis.title.x.bottom = element_text(size = 22), axis.title.y.left = element_text(size=22))
 dev.off()
 
-# Top right corner - predicted Pr(violence) when women PKs deployed #
-pdf("./results/total_women_pr_death_pred.pdf")
+# predicted total violence when men PKs deploy #
+pdf("./results/total_men_fatalities_pred.pdf", height = 10, width = 10)
+plot_predictions(reg1, condition = c("radpko_m_pko_deployed")) +
+  xlab("Total Male Peacekeepers Deployed") + ylab("Predicted Civilian Deaths by Rebels") +
+  theme_pubclean() +
+  theme(axis.text.y = element_text(size=18), axis.text.x =element_text(size=18), 
+        axis.title.x.bottom = element_text(size = 22), axis.title.y.left = element_text(size=22))
+dev.off()
+
+# predicted Pr(violence) when Female PKs deployed #
+pdf("./results/total_women_pr_death_pred.pdf", height = 10, width = 10)
 plot_predictions(reg2, condition = "radpko_f_pko_deployed") +
-  xlab("Total Women Peacekeepers Deployed") + ylab("Predicted Pr(Civilian) Deaths by Rebels") +
+  xlab("Total Female Peacekeepers Deployed") + ylab("Predicted Pr(Civilian) Deaths by Rebels") +
   theme_pubclean() +
   theme(axis.text.y = element_text(size=18), axis.text.x =element_text(size=18), 
         axis.title.x.bottom = element_text(size = 22), axis.title.y.left = element_text(size=22))
 dev.off()
 
-# Bottom left corner -predicted total violence when prop deployed increases  #
-pdf("./results/prop_women_fatalities_pred.pdf")
+# predicted Pr(violence) when male PKs deployed #
+pdf("./results/total_men_pr_death_pred.pdf", height = 10, width = 10)
+plot_predictions(reg2, condition = "radpko_m_pko_deployed") +
+  xlab("Total Male Peacekeepers Deployed") + ylab("Predicted Pr(Civilian) Deaths by Rebels") +
+  theme_pubclean() +
+  theme(axis.text.y = element_text(size=18), axis.text.x =element_text(size=18), 
+        axis.title.x.bottom = element_text(size = 22), axis.title.y.left = element_text(size=22))
+dev.off()
+
+## predicted total violence when prop deployed increases
+# women
+pdf("./results/prop_women_fatalities_pred.pdf", height = 10, width = 10)
 plot_predictions(reg3, condition = "radpko_f_prop") +
-  xlab("Proportion Women Peacekeepers Deployed") + ylab("Predicted Civilian Deaths by Rebels") +
+  xlab("Proportion Female Peacekeepers Deployed") + ylab("Predicted Civilian Deaths by Rebels") +
+  theme_pubclean() +
+  theme(axis.text.y = element_text(size=18), axis.text.x =element_text(size=18), 
+        axis.title.x.bottom = element_text(size = 22), axis.title.y.left = element_text(size=22)) +
+  xlim(c(0, 0.20001))
+dev.off()
+
+# men
+pdf("./results/prop_men_fatalities_pred.pdf", height = 10, width = 10)
+plot_predictions(reg5, condition = "radpko_m_prop") +
+  xlab("Proportion Male Peacekeepers Deployed") + ylab("Predicted Civilian Deaths by Rebels") +
   theme_pubclean() +
   theme(axis.text.y = element_text(size=18), axis.text.x =element_text(size=18), 
         axis.title.x.bottom = element_text(size = 22), axis.title.y.left = element_text(size=22))
 dev.off()
 
-# bottom right corner -  predicted Pr(violence) when prop deployed ioncreases
-pdf("./results/prop_women_pr_death_pred.pdf")
+## predicted Pr(violence) when prop deployed increases
+# women
+pdf("./results/prop_women_pr_death_pred.pdf", height = 10, width = 10)
 plot_predictions(reg4, condition = "radpko_f_prop") +
-  xlab("Proportion Women Peacekeepers Deployed") + ylab("Predicted Pr(Civilian) Deaths by Rebels") +
+  xlab("Proportion Female Peacekeepers Deployed") + ylab("Predicted Pr(Civilian) Deaths by Rebels") +
+  theme_pubclean() +
+  theme(axis.text.y = element_text(size=18), axis.text.x =element_text(size=18), 
+        axis.title.x.bottom = element_text(size = 22), axis.title.y.left = element_text(size=22)) +
+  xlim(c(0, 0.20001))
+dev.off()
+
+# men
+pdf("./results/prop_men_pr_death_pred.pdf", height = 10, width = 10)
+plot_predictions(reg6, condition = "radpko_m_prop") +
+  xlab("Proportion Male Peacekeepers Deployed") + ylab("Predicted Pr(Civilian) Deaths by Rebels") +
   theme_pubclean() +
   theme(axis.text.y = element_text(size=18), axis.text.x =element_text(size=18), 
         axis.title.x.bottom = element_text(size = 22), axis.title.y.left = element_text(size=22))
 dev.off()
-
-# Top left corner - violence when 100 women are present #
-# Top right corner - violence when 100 men are present #
-# Bottom left corner - violeence when 200 women are present #
-# bottom right corner - violence when 200 men are present #
-
-ggplot(reg1.both) +
-  geom_line(aes(x, predicted, colour = group)) +
-  geom_ribbon(aes(x, ymin = conf.low, ymax = conf.high, colour = group, 
-                  fill = group), linetype = "dashed", alpha = 0.1, show.legend = F) +
-  ylab("Predicted Pr(Civilian Deaths)") + theme_pubclean() +
-  theme(legend.position = "right") +
-  scale_x_continuous(breaks = seq(0,1,1)) +
-  ggtitle("Predicted Probability of violence based on treatment")
-
 
 
 ############################################## 
@@ -138,9 +143,24 @@ b = readRDS("./data/kunkel_which_pks.rds") %>%
   summarize(pks = sum(radpko_pko_deployed), women = sum(radpko_f_pko_deployed), men = sum(radpko_m_pko_deployed),
             death = max(ucdp_reb_vac_5), fatalities = sum(ucdp_reb_vac_all)) %>%
   mutate(prop_women = (women/(women + men)))
+b$country[b$country=="sudan"] = "Sudan"
 
-ggplot(b, aes(x = date, y = country, height = scales::rescale(prop_women))) + geom_ridgeline()
-ggplot(b, aes(x = date, y = country, height = scales::rescale(women))) + geom_ridgeline()
+## ridgline plots ##
+# prop #
+pdf("./results/fem_pks_prop_deployed_country.pdf", height = 10, width = 15)
+ggplot(b, aes(x = date, y = country, height = scales::rescale(prop_women))) + geom_ridgeline() + theme_pubclean() +
+  theme(axis.text.y = element_text(size=18), axis.text.x =element_text(size=18), 
+  axis.title.x.bottom = element_text(size = 22), axis.title.y.left = element_text(size=22))
+dev.off()
+
+# count #
+pdf("./results/fem_pks_count_deployed_country.pdf", height = 10, width = 15)
+ggplot(b, aes(x = date, y = country, height = scales::rescale(women))) + geom_ridgeline() + theme_pubclean() +
+  theme(axis.text.y = element_text(size=18), axis.text.x =element_text(size=18), 
+  axis.title.x.bottom = element_text(size = 22), axis.title.y.left = element_text(size=22))
+dev.off()
+
+# fatalities #
 ggplot(b, aes(x = date, y = country, height = scales::rescale(fatalities))) + geom_ridgeline()
 
 ####### Plots of naive models ####### 
@@ -496,6 +516,10 @@ library(tmaptools)
 b = readRDS("./data/kunkel_which_pks.rds") %>%
   filter(country == "Democratic Republic of Congo")
 
+radpko = read.csv("./data/radpko/radpko_bases.csv") %>%
+  filter(mission == "MONUC" | mission == "MONUSCO") %>%
+  select(latitude, longitude, pko_deployed)
+
 b.ag = b %>%
   group_by(prio.grid) %>%
   summarize(fatalities = sum(ucdp_reb_vac_all), pks = sum(radpko_pko_deployed), t_ind = max(t_ind),
@@ -523,6 +547,17 @@ drc_00 <- st_read(dsn = "./data/gadm/drc", layer = "gadm40_COD_0",
                   stringsAsFactors = F)
 drc_01 <- st_read(dsn = "./data/gadm/drc", layer = "gadm40_COD_1", 
                   stringsAsFactors = F)
+proj_crs <- st_crs(drc_01)
+
+radpko <- st_as_sf(radpko, coords = c("longitude", "latitude"), crs = proj_crs)
+
+radpko <- st_join(drc_01, radpko)
+radpko = radpko %>%
+  as.data.frame() %>%
+  group_by(NAME_1) %>%
+  summarize(pks = sum(pko_deployed))
+
+drc_01_pks = left_join(drc_01, radpko)
 
 ### make plot of DRC, then add layers in several images to show the effect ###
 
@@ -587,8 +622,288 @@ ggplot() + geom_sf(aes(fill = b.join$women, geometry = b.join$geometry)) +
   theme_void()
 dev.off()
 
+## try it a different way ##
+
+# Calculate the coordinate limits based on your data
+coord_limits <- st_bbox(b.join$geometry)
+
+# Extract coordinate limits
+xlim <- c(coord_limits["xmin"], coord_limits["xmax"])
+ylim <- c(coord_limits["ymin"], coord_limits["ymax"])
+
+# Define a standard theme for all plots
+standard_theme <- theme_void() +
+  theme(
+    plot.margin = unit(c(1, 1, 1, 1), "cm"),  # Adjust margins as needed
+    legend.position = "right"
+  )
+
+# Create the plot with the legend
+violence_plot <- ggplot() +
+  geom_sf(data = b.join, aes(fill = fatalities, geometry = geometry)) +
+  scale_fill_gradient(
+    low = "#ffc4c4", high = "#ff3b3b",
+    na.value = "white", limits = c(0, 500),
+    guide = "colourbar"
+  ) +
+  labs(fill = "Fatalities") +
+  coord_sf(xlim = xlim, ylim = ylim) +
+  standard_theme
+
+# Extract the legend using get_legend() from cowplot
+violence_legend <- get_legend(violence_plot)
+
+# Save the plot without the legend
+ggsave(
+  filename = "./results/drc/drc_violence.pdf",
+  plot = violence_plot + theme(legend.position = "none"),
+  height = 8, width = 8, units = "in"
+)
+
+# Save the legend as a separate PDF
+ggsave(
+  filename = "./results/drc/drc_violence_legend.pdf",
+  plot = as_ggplot(violence_legend),
+  height = 2, width = 2, units = "in"
+)
+
+# Create the plot with the legend
+pks_plot <- ggplot() +
+  geom_sf(data = b.join, aes(fill = pks, geometry = geometry)) +
+  scale_fill_gradient(
+    low = "#2ABBE8", high = "#2A57E8",
+    na.value = "white", limits = c(0, 525000),
+    guide = "colourbar"
+  ) +
+  labs(fill = "Peacekeepers") +
+  coord_sf(xlim = xlim, ylim = ylim) +
+  standard_theme
+
+# Extract the legend
+pks_legend <- get_legend(pks_plot)
+
+# Save the plot without the legend
+ggsave(
+  filename = "./results/drc/drc_pks.pdf",
+  plot = pks_plot + theme(legend.position = "none"),
+  height = 8, width = 8, units = "in"
+)
+
+# Save the legend
+ggsave(
+  filename = "./results/drc/drc_pks_legend.pdf",
+  plot = as_ggplot(pks_legend),
+  height = 2, width = 2, units = "in"
+)
+
+# Create the plot with the legend
+men_plot <- ggplot() +
+  geom_sf(data = b.join, aes(fill = men, geometry = geometry)) +
+  scale_fill_gradient(
+    low = "#F99A6B", high = "#EB5307",
+    na.value = "white", limits = c(0, 503524.3),
+    guide = "colourbar"
+  ) +
+  labs(fill = "Men") +
+  coord_sf(xlim = xlim, ylim = ylim) +
+  standard_theme
+
+# Extract the legend
+men_legend <- get_legend(men_plot)
+
+# Save the plot without the legend
+ggsave(
+  filename = "./results/drc/drc_men.pdf",
+  plot = men_plot + theme(legend.position = "none"),
+  height = 8, width = 8, units = "in"
+)
+
+# Save the legend
+ggsave(
+  filename = "./results/drc/drc_men_legend.pdf",
+  plot = as_ggplot(men_legend),
+  height = 2, width = 2, units = "in"
+)
+
+# Create the plot with the legend
+women_plot <- ggplot() +
+  geom_sf(data = b.join, aes(fill = women, geometry = geometry)) +
+  scale_fill_gradient(
+    low = "#F96B8C", high = "#9E314B",
+    na.value = "white", limits = c(0, 22010),
+    guide = "colourbar"
+  ) +
+  labs(fill = "Women") +
+  coord_sf(xlim = xlim, ylim = ylim) +
+  standard_theme
+
+# Extract the legend
+women_legend <- get_legend(women_plot)
+
+# Save the plot without the legend
+ggsave(
+  filename = "./results/drc/drc_women.pdf",
+  plot = women_plot + theme(legend.position = "none"),
+  height = 8, width = 8, units = "in"
+)
+
+# Save the legend
+ggsave(
+  filename = "./results/drc/drc_women_legend.pdf",
+  plot = as_ggplot(women_legend),
+  height = 2, width = 2, units = "in"
+)
+
+# Plot of DRC Level 0 (drc_00.pdf)
+ggsave(
+  filename = "./results/drc/drc_00.pdf",
+  plot = ggplot() +
+    geom_sf(data = drc_00, aes(geometry = geometry), alpha = 0) +
+    coord_sf(xlim = xlim, ylim = ylim) +
+    standard_theme +
+    theme(legend.position = "none"),
+  height = 8, width = 8, units = "in"
+)
+
+# Create the plot with the legend
+pks_plot <- ggplot() +
+  geom_sf(aes(fill = drc_01_pks$pks, geometry = drc_01_pks$geometry), alpha = 1) +
+  scale_fill_gradient(
+    low = "#b3e6ff", high = "#0040ff",
+    space = "Lab", na.value = "white", limits = c(0, 926008),
+    guide = "colourbar"
+  ) +
+  labs(fill = "Peacekeepers") +
+  coord_sf(xlim = xlim, ylim = ylim) +
+  standard_theme
+
+# Save the plot without the legend
+ggsave(
+  filename = "./results/drc/drc_01_pks.pdf",
+  plot = pks_plot + theme(legend.position = "none"),
+  height = 8, width = 8, units = "in"
+)
+
+# Extract the legend from the plot
+pks_legend <- get_legend(pks_plot)
+
+# Save the legend as a separate PDF
+ggsave(
+  filename = "./results/drc/drc_01_pks_legend.pdf",
+  plot = as_ggplot(pks_legend),
+  height = 2, width = 2, units = "in"
+)
+
+# Create the map and adjust both text labels
+map_tshopo <- ggplot() +
+  # Fill the Tshopo region with dark grey
+  geom_sf(data = drc_01, aes(geometry = geometry, fill = ifelse(NAME_1 == "Tshopo", "Tshopo", NA)), color = "black") +
+  scale_fill_manual(values = c("Tshopo" = "darkgrey"), na.value = "white", guide = "none") +
+  
+  # Label the Tshopo region
+  geom_sf_text(data = drc_01[drc_01$NAME_1 == "Tshopo", ], 
+               aes(geometry = geometry, label = NAME_1), 
+               size = 5, color = "black", fontface = "bold", 
+               nudge_y = 1.25, nudge_x = -0.5) +  # Adjust vertical position for "Tshopo"
+  
+  # Add the second label for the area with superscript using annotate()
+  annotate("text", x = st_coordinates(st_centroid(st_geometry(drc_01[drc_01$NAME_1 == "Tshopo", ])))[1],
+           y = st_coordinates(st_centroid(st_geometry(drc_01[drc_01$NAME_1 == "Tshopo", ])))[2] - 0.1,
+           label = expression("199,567 km"^2),
+           size = 4, color = "black", fontface = "plain") +
+  coord_sf(xlim = xlim, ylim = ylim) +
+  standard_theme
+
+# Save the map as a PDF
+ggsave(
+  filename = "./results/drc/drc_tshopo.pdf",
+  plot = map_tshopo,
+  height = 8, width = 8, units = "in"
+)
+
 
 rm(list = ls())
+
+#################
+# IV Map for JMP#
+#################
+
+
+# math for this grid #
+
+b = b %>%
+  filter(prio.grid==111297) %>%
+  select(prio.grid, pko_africa, distance_to_capital, m_pko_africa, f_pko_africa, year, month)
+
+b.join$highlight <- ifelse(b.join$prio.grid == 111297, "highlight", "other")
+
+# Get the centroid of the highlighted grid
+highlighted_grid <- b.join %>% filter(prio.grid == 111297)
+highlight_centroid <- st_centroid(highlighted_grid$geometry)
+
+# Coordinates of the red star in decimal format
+star_coords <- data.frame(lon = 15.312, lat = -4.322)
+
+# Midpoint coordinates for the label (roughly halfway along the arrow)
+mid_lon <- (st_coordinates(highlight_centroid)[1] + star_coords$lon) / 2
+mid_lat <- (st_coordinates(highlight_centroid)[2] + star_coords$lat) / 2
+
+
+# Create a plot for the specific grid
+pdf("./results/drc/111297.pdf", height = 8, width = 8)
+ggplot() + 
+  geom_sf(aes(fill = b.join$highlight, geometry = b.join$geometry), alpha = 0.4) +  # Set alpha to make grids lighter
+  scale_fill_manual(values = c("highlight" = "#E69F00", "other" = "grey89"), na.value = "grey89") +
+  theme_void() +
+  theme(legend.position = "none")
+dev.off()
+
+# Create a plot for the specific grid
+pdf("./results/drc/111297_capital.pdf", height = 8, width = 8)
+ggplot() + 
+  geom_sf(aes(fill = b.join$highlight, geometry = b.join$geometry), alpha = 0.4) +  # Set alpha to make grids lighter
+  geom_point(data = star_coords, aes(x = lon, y = lat), color = "red", shape = 8, size = 3) +  # Add red star
+  scale_fill_manual(values = c("highlight" = "#E69F00", "other" = "grey89"), na.value = "grey89") +
+  theme_void() +
+  theme(legend.position = "none")
+dev.off()
+
+# Create a plot for the specific grid
+pdf("./results/drc/111297_arrow_distance.pdf", height = 8, width = 8)
+ggplot() + 
+  geom_sf(aes(fill = b.join$highlight, geometry = b.join$geometry), alpha = 0.4) +  # Set alpha to make grids lighter
+  geom_point(data = star_coords, aes(x = lon, y = lat), color = "red", shape = 8, size = 3) +  # Add red star
+  geom_segment(aes(x = star_coords$lon, y = star_coords$lat,
+                   xend = st_coordinates(highlight_centroid)[1], yend = st_coordinates(highlight_centroid)[2]),
+               arrow = arrow(length = unit(0.2, "cm")), color = "black", size = 0.5) +  # Reverse arrow direction and make it thinner
+  geom_text(aes(x = mid_lon, y = mid_lat, label = "1705 km"), vjust = 4, hjust = 1, size = 4, color = "black") +  # Add label below the arrow
+  scale_fill_manual(values = c("highlight" = "#E69F00", "other" = "grey89"), na.value = "grey89") +
+  theme_void() +
+  theme(legend.position = "none")
+dev.off()
+
+# # Calculate the product for the top left text
+# women_pks <- 2213
+# distance_km <- 1705
+# product <- women_pks * distance_km
+
+# ggplot() + 
+#   geom_sf(aes(fill = b.join$highlight, geometry = b.join$geometry), alpha = 0.4) +  # Set alpha to make grids lighter
+#   geom_point(data = star_coords, aes(x = lon, y = lat), color = "red", shape = 8, size = 3) +  # Add red star
+#   geom_segment(aes(x = star_coords$lon, y = star_coords$lat,
+#                    xend = st_coordinates(highlight_centroid)[1], yend = st_coordinates(highlight_centroid)[2]),
+#                arrow = arrow(length = unit(0.2, "cm")), color = "black", size = 0.5) +  # Reverse arrow direction and make it thinner
+#   geom_text(aes(x = mid_lon, y = mid_lat, label = "1705 km"), vjust = 4, hjust = 1, size = 4, color = "black") +  # Add label below the arrow
+#   geom_text(aes(x = Inf, y = Inf, label = "2213 (women pks) * 1705 (km)"),
+#             hjust = 2, vjust = 1.1, size = 5, color = "black") +  # Add top left text without the math
+#   scale_fill_manual(values = c("highlight" = "#E69F00", "other" = "grey89"), na.value = "grey89") +
+#   coord_sf(expand = TRUE) +  # Use expand = TRUE for default margins
+#   theme_void() +
+#   theme(legend.position = "none",
+#         plot.margin = unit(c(1, 1, 1, 1), "cm"))  # Add 1 cm margin on all sides
+
+
+
 
 
 # Define a common theme with identical margins for all plots
@@ -766,6 +1081,144 @@ dev.off()
 ###################################
 
 
+##################################################
+## SEA Allegations vs. Women Corr plot  - START ##
+##################################################
+
+df = read_xlsx("./data/table_of_allegations_as_of_july_2024.xlsx") %>%
+  mutate(Date = my(Date)) %>%
+  filter(Date < "2018-03-01")
+a = readRDS("./data/kunkel_which_pks.rds") %>%
+  filter(date > "2014-12-31")
+
+sort(table(df$Mission))
+sort(tapply(a$radpko_f_pko_deployed[a$t_ind==1], a$mission[a$t_ind==1], median))
+
+
+# Calculate the count of each mission
+mission_counts <- df %>%
+  group_by(Mission) %>%
+  summarise(Count = n())
+
+# 2. Calculate the median of prop women deployed for each mission
+mission_medians <- a %>%
+  group_by(mission) %>%
+  filter(t_ind == 1) %>%
+  summarise(Median_radpko = median(radpko_f_prop, na.rm = TRUE))
+
+# rename it
+colnames(mission_medians)[colnames(mission_medians) == "mission"] <- "Mission"
+
+# merge the data frames
+merged_data <- merge(mission_counts, mission_medians, by = "Mission")
+
+
+# Plot the median values against the mission counts
+pdf("./results/sea_vs_median-women.pdf", width = 8, height = 5)
+ggplot(merged_data, aes(x = Count, y = Median_radpko, label = Mission)) +
+  geom_point(size = 3) +
+  geom_text(hjust = -0.25, nudge_x = 0.5, size = 3) +
+  labs(
+    title = "",
+    x = "Number of Sexual Exploitation and Abuse Allegations",
+    y = "Median Proportion of Female Peacekeepers Deployed"
+  ) +
+  theme_minimal() + 
+  coord_cartesian(clip = "off", xlim = c(min(merged_data$Count), max(merged_data$Count) * 1.1)) # Expand x-axis
+dev.off()
+
+pdf("./results/sea_vs_median-women_regression.pdf", width = 8, height = 5)
+ggplot(merged_data, aes(x = Median_radpko, y = Count)) +
+  geom_point(size = 3) +
+  geom_smooth(method = "lm", color = "red") +
+  geom_text(aes(label = Mission), hjust = 0.5, vjust = -1, size = 3) +  # Adds mission names to the points
+  labs(
+    title = "Correlation Plot",
+    x = "Median Proportion Women Peacekeepers Deployed per Mission",
+    y = "Number of Sexual Exploitation and Abuse Allegations"
+  ) +
+  theme_minimal()
+dev.off()
+
+##################################################
+## SEA Allegations vs. Women Corr plot  - END ##
+##################################################
+
+############################################
+## check for gov violence effects - START ##
+############################################
+a = readRDS("./data/kunkel_which_pks.rds")
+c = readRDS("./data/kunkel_wpks_matched_gender.rds")
+
+# Re-scale PK variable for statistical analyses (per Fjelde et al. (2019)) 
+a$radpko_m_pko_deployed = a$radpko_m_pko_deployed/100
+a$radpko_f_pko_deployed = a$radpko_f_pko_deployed/100
+c$radpko_m_pko_deployed = c$radpko_m_pko_deployed/100
+c$radpko_f_pko_deployed = c$radpko_f_pko_deployed/100
+
+a = a %>% # re-scale proportion so that results make sense
+  mutate(radpko_f_prop = 10*radpko_f_prop, radpko_m_prop = 10*radpko_m_prop)
+
+
+
+
+## TWFE Models
+####### Hypothesis 1 #########
+
+reg1 = felm(formula = ucdp_gov_vac_5 ~ radpko_f_pko_deployed + radpko_m_pko_deployed | time + prio.grid | 
+              0 | prio.grid, data = a)
+summary(reg1)
+
+reg2 = felm(formula = ucdp_gov_vac_all ~ radpko_f_pko_deployed + radpko_m_pko_deployed | time + prio.grid | 
+              0 | prio.grid, data = a)
+summary(reg2)
+
+####### Hypothesis 2a #########
+reg3 = felm(formula = ucdp_gov_vac_5 ~ radpko_f_prop | time + prio.grid | 
+              0 | prio.grid, data = a)
+summary(reg3)
+
+reg4 = felm(formula = ucdp_gov_vac_all ~ radpko_f_prop | time + prio.grid | 
+              0 | prio.grid, data = a)
+summary(reg4)
+
+stargazer(reg1, reg2, style = "AJPS", title = "TWFE Models Testing the Count of Peacekeepers",
+          label = "tab:hyp_1_gov", dep.var.labels = c("GOV OSV (B)", "GOV OSV (C)"),
+          covariate.labels = c("Women PKs Deployed", "Men PKs Deployed"))
+
+stargazer(reg3, reg4, style = "AJPS", title = "TWFE Models Testing the Proportion of Peacekeepers",
+          label = "tab:hyp_2a_gov", dep.var.labels = c("GOV OSV (B)", "GOV OSV (C)"),
+          covariate.labels = c("Prop. Women Deployed", "Prop. Men Deployed"))
+
+
+####### Hypothesis 2b #########
+reg11 = glm(ucdp_gov_vac_5 ~ t_bal + prio_mountains_mean + prio_ttime_mean + prio_urban_gc + 
+  prio_nlights_calib_mean + prio_pop_gpw_sum + prio_pop.dens + radpko_pko_lag_any + viol_6,
+data = c, family = negative.binomial(theta = 1))
+names(reg11$coefficients) = c("(Intercept)", "Gender-mixed PK Unit",
+                  "Avg. Mountain", "Travel Time Nearest City", "Perc. Urban",
+                  "Night Lights", "Population Sum", "Population Density",
+                  "PK Lag", "Violence 6 Months Before")
+se_reg11 <- round(coeftest(reg11, vcov = vcovPL(reg11, cluster = c$prio.grid)),4)
+se_reg11
+
+reg12 = glm(ucdp_gov_vac_all ~ t_bal + prio_mountains_mean + prio_ttime_mean + prio_urban_gc + 
+  prio_nlights_calib_mean + prio_pop_gpw_sum + prio_pop.dens + radpko_pko_lag_any + viol_6,
+data = c, family = negative.binomial(theta = 1))
+names(reg12$coefficients) = c("(Intercept)", "Gender-mixed PK Unit",
+                  "Avg. Mountain", "Travel Time Nearest City", "Perc. Urban",
+                  "Night Lights", "Population Sum", "Population Density",
+                  "PK Lag", "Violence 6 Months Before")
+se_reg12 <- round(coeftest(reg12, vcov = vcovPL(reg12, cluster = c$prio.grid)),4)
+se_reg12
+
+stargazer(reg11, reg12, style = "AJPS", title = "Matched Logit Models",
+          label = "tab:hyp_2b_gov", dep.var.labels = c("GOV OSV (B)", "GOV OSV (C)"),
+          covariate.labels = c("Gender-mixed PK Unit", "Unbalanced PK Unit"))
+
+############################################
+## check for gov violence effects - END ##
+############################################
 
 ## plot of gender balanced and unbalanced units over time ##
 
@@ -814,12 +1267,7 @@ df = read.csv("./data/ucdp_ged/GEDEvent_v22_1.csv") %>%
 
 
 
-# View(acled)
-# order of operations: 
-# sort violence and other variables
-# search for grid coordinates w/ prio data
-# search for real location in Google maps
-# filter location in ACLED data, look for story within
+
 rm(list = ls())
 gc()
 
