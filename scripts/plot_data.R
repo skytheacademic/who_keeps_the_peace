@@ -61,8 +61,8 @@ pdf("./results/total_women_fatalities_pred.pdf", height = 10, width = 10)
 plot_predictions(reg1, condition = c("radpko_f_pko_deployed")) +
   xlab("Total Female Peacekeepers Deployed") + ylab("Predicted Civilian Deaths by Rebels") +
   theme_pubclean() +
-  theme(axis.text.y = element_text(size=18), axis.text.x =element_text(size=18), 
-        axis.title.x.bottom = element_text(size = 22), axis.title.y.left = element_text(size=22))
+  theme(axis.text.y = element_text(size=22), axis.text.x =element_text(size=22), 
+        axis.title.x.bottom = element_text(size = 24), axis.title.y.left = element_text(size=24))
 dev.off()
 
 # predicted total violence when men PKs deploy #
@@ -70,8 +70,8 @@ pdf("./results/total_men_fatalities_pred.pdf", height = 10, width = 10)
 plot_predictions(reg1, condition = c("radpko_m_pko_deployed")) +
   xlab("Total Male Peacekeepers Deployed") + ylab("Predicted Civilian Deaths by Rebels") +
   theme_pubclean() +
-  theme(axis.text.y = element_text(size=18), axis.text.x =element_text(size=18), 
-        axis.title.x.bottom = element_text(size = 22), axis.title.y.left = element_text(size=22))
+  theme(axis.text.y = element_text(size=22), axis.text.x =element_text(size=22), 
+        axis.title.x.bottom = element_text(size = 24), axis.title.y.left = element_text(size=24))
 dev.off()
 
 # predicted Pr(violence) when Female PKs deployed #
@@ -79,8 +79,8 @@ pdf("./results/total_women_pr_death_pred.pdf", height = 10, width = 10)
 plot_predictions(reg2, condition = "radpko_f_pko_deployed") +
   xlab("Total Female Peacekeepers Deployed") + ylab("Predicted Pr(Civilian) Deaths by Rebels") +
   theme_pubclean() +
-  theme(axis.text.y = element_text(size=18), axis.text.x =element_text(size=18), 
-        axis.title.x.bottom = element_text(size = 22), axis.title.y.left = element_text(size=22))
+  theme(axis.text.y = element_text(size=22), axis.text.x =element_text(size=22), 
+        axis.title.x.bottom = element_text(size = 24), axis.title.y.left = element_text(size=24))
 dev.off()
 
 # predicted Pr(violence) when male PKs deployed #
@@ -88,8 +88,8 @@ pdf("./results/total_men_pr_death_pred.pdf", height = 10, width = 10)
 plot_predictions(reg2, condition = "radpko_m_pko_deployed") +
   xlab("Total Male Peacekeepers Deployed") + ylab("Predicted Pr(Civilian) Deaths by Rebels") +
   theme_pubclean() +
-  theme(axis.text.y = element_text(size=18), axis.text.x =element_text(size=18), 
-        axis.title.x.bottom = element_text(size = 22), axis.title.y.left = element_text(size=22))
+  theme(axis.text.y = element_text(size=22), axis.text.x =element_text(size=22), 
+        axis.title.x.bottom = element_text(size = 24), axis.title.y.left = element_text(size=24))
 dev.off()
 
 ## predicted total violence when prop deployed increases
@@ -98,9 +98,10 @@ pdf("./results/prop_women_fatalities_pred.pdf", height = 10, width = 10)
 plot_predictions(reg3, condition = "radpko_f_prop") +
   xlab("Proportion Female Peacekeepers Deployed") + ylab("Predicted Civilian Deaths by Rebels") +
   theme_pubclean() +
-  theme(axis.text.y = element_text(size=18), axis.text.x =element_text(size=18), 
-        axis.title.x.bottom = element_text(size = 22), axis.title.y.left = element_text(size=22)) +
-  xlim(c(0, 0.20001))
+  theme(axis.text.y = element_text(size=22), axis.text.x =element_text(size=22), 
+        axis.title.x.bottom = element_text(size = 24), axis.title.y.left = element_text(size=24)) +
+  xlim(c(0, 0.20001)) +
+  ylim(c(-0.35, 0.3))
 dev.off()
 
 # men
@@ -108,8 +109,8 @@ pdf("./results/prop_men_fatalities_pred.pdf", height = 10, width = 10)
 plot_predictions(reg5, condition = "radpko_m_prop") +
   xlab("Proportion Male Peacekeepers Deployed") + ylab("Predicted Civilian Deaths by Rebels") +
   theme_pubclean() +
-  theme(axis.text.y = element_text(size=18), axis.text.x =element_text(size=18), 
-        axis.title.x.bottom = element_text(size = 22), axis.title.y.left = element_text(size=22))
+  theme(axis.text.y = element_text(size=22), axis.text.x =element_text(size=22), 
+        axis.title.x.bottom = element_text(size = 24), axis.title.y.left = element_text(size=24))
 dev.off()
 
 ## predicted Pr(violence) when prop deployed increases
@@ -118,9 +119,10 @@ pdf("./results/prop_women_pr_death_pred.pdf", height = 10, width = 10)
 plot_predictions(reg4, condition = "radpko_f_prop") +
   xlab("Proportion Female Peacekeepers Deployed") + ylab("Predicted Pr(Civilian) Deaths by Rebels") +
   theme_pubclean() +
-  theme(axis.text.y = element_text(size=18), axis.text.x =element_text(size=18), 
-        axis.title.x.bottom = element_text(size = 22), axis.title.y.left = element_text(size=22)) +
-  xlim(c(0, 0.20001))
+  theme(axis.text.y = element_text(size=22), axis.text.x =element_text(size=22), 
+        axis.title.x.bottom = element_text(size = 24), axis.title.y.left = element_text(size=24)) +
+  xlim(c(0, 0.20001)) +
+  ylim(c(-0.0075, 0.012))
 dev.off()
 
 # men
@@ -128,9 +130,11 @@ pdf("./results/prop_men_pr_death_pred.pdf", height = 10, width = 10)
 plot_predictions(reg6, condition = "radpko_m_prop") +
   xlab("Proportion Male Peacekeepers Deployed") + ylab("Predicted Pr(Civilian) Deaths by Rebels") +
   theme_pubclean() +
-  theme(axis.text.y = element_text(size=18), axis.text.x =element_text(size=18), 
-        axis.title.x.bottom = element_text(size = 22), axis.title.y.left = element_text(size=22))
+  theme(axis.text.y = element_text(size=22), axis.text.x =element_text(size=22), 
+        axis.title.x.bottom = element_text(size = 24), axis.title.y.left = element_text(size=24))
 dev.off()
+
+
 
 
 ############################################## 
@@ -1027,6 +1031,19 @@ dev.off()
 ## Timeline for JMP Talk - START ##
 ###################################
 
+# Create a data frame for the timeline events
+events_data <- data.frame(
+  event = c("UNTAC Established\n(Feb. 1992)", 
+            "Boys will be boys\n(Early 1994)", 
+            "UNSCR 1325\n(Oct. 2000)", 
+            "UNISFA Established\n(Jun. 2011)", 
+            "India Deploys Largest\nEver Contingent\nof Women Peacekeepers \n(Jan. 2023)", 
+            "Captain Cecilia Erzuah chosen\nas 2022 UN Military Gender\nAdvocate of the Year\n(May 2023)"),
+  date = as.Date(c("1992-02-01", "1994-01-01", "2000-10-31", 
+                   "2011-06-27", "2023-01-06", "2023-05-25")),
+  position = c(0.01, -0.01, 0.01, -0.01, 0.01, -0.01) # Very close positions
+)
+
 # Extend the timeline range to include 1990 and 2025
 timeline_data <- data.frame(year = seq(1990, 2025, by = 1))
 
@@ -1212,9 +1229,11 @@ names(reg12$coefficients) = c("(Intercept)", "Gender-mixed PK Unit",
 se_reg12 <- round(coeftest(reg12, vcov = vcovPL(reg12, cluster = c$prio.grid)),4)
 se_reg12
 
-stargazer(reg11, reg12, style = "AJPS", title = "Matched Logit Models",
+stargazer(se_reg11, se_reg12, style = "AJPS", title = "Matched Logit Models")
+
+stargazer(se_reg11, se_reg12, style = "AJPS", title = "Matched Logit Models",
           label = "tab:hyp_2b_gov", dep.var.labels = c("GOV OSV (B)", "GOV OSV (C)"),
-          covariate.labels = c("Gender-mixed PK Unit", "Unbalanced PK Unit"))
+          covariate.labels = c("Gender-mixed PK Unit"))
 
 ############################################
 ## check for gov violence effects - END ##
