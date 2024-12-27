@@ -6,6 +6,9 @@
 library(lubridate); library(sf); library(sp); library(tidyverse)
 library(countrycode); library(CoordinateCleaner); library(geosphere)
 
+# set seed #
+set.seed(8675309) # hey jenny
+
 ### Reading in and briefly cleaning the data ###
 
 # set working directory #
@@ -19,6 +22,23 @@ radpko = read.csv("./data/radpko/radpko_grid.csv")  %>%
   mutate(date = ymd(date),
          month = month(date),
          year = year(date))
+
+### there are duplicate gid-month-years because of different missions, so we
+### need to aggregate everything by those variables. all vars are sums/counts,
+### so we can just sum them all.
+
+# one small issue: since I need the country ID to calculate the distance to capital, we can't drop the 
+  # country variable, and we can't use it as a grouping variable because the data would be identical
+  # Solution: when grouping by prio grid, year, and month, randomly sample the country names of shared
+  # grids; thus, each grid has an equal likelihood to be assigned to either country
+radpko <- radpko %>%
+  relocate(c(year, month), .after = prio.grid) %>%
+  group_by(prio.grid, year, month) %>%
+  summarise(
+    country = sample(country, 1),
+    across(units_deployed:f_unmob, sum),
+    .groups = "drop"
+  )
 
 # create variables of male troops
 radpko$m_untrp = radpko$untrp - radpko$f_untrp 
@@ -34,6 +54,7 @@ radpko$m_pko_deployed = radpko$m_untrp + radpko$m_unpol + radpko$m_unmob
 radpko$f_pko_deployed = radpko$f_untrp + radpko$f_unpol + radpko$f_unmob
 radpko = radpko %>%
   relocate(c(m_pko_deployed, f_pko_deployed), .after = pko_deployed) %>%
+  mutate(date = ymd(paste(year, month, 1, sep = "-"))) %>%
   # first female PKs arrive on Sept. 2005, which means no treatment could occur before then
   filter(date >= "2005-09-01")
 
@@ -45,9 +66,6 @@ countryref = countryref %>%
   group_by(iso2) %>% # check nrow(table(countryref$capital.lon)) vs nrow(table(countryref$iso2)). same number of obs
   summarise(across(capital.lon:capital.lat, mean)) %>% # which means we can just summarize since it's all identical
   ungroup() # that way we can get rid of duplicate observations that would add extra observations upon merging
-
-table(radpko$mission)
-# MINURCAT  MINUSCA  MINUSMA    MONUC  MONUSCO     ONUB   UNAMID  UNAMSIL   UNISFA    UNMIL    UNMIS   UNMISS    UNOCI 
 
 # add iso2 to RADPKO (easier for visual confirmation than iso3)
 radpko$iso2 = countrycode(radpko$country, origin = "country.name", destination = "iso2c")
