@@ -2,8 +2,11 @@
 # Sky Kunkel #
 # 1/16/2023 #
 
-#install.packages('C:/gurobi950/win64/R/gurobi_9.5-0.zip', repos=NULL)
-library(gurobi); library(designmatch); library(gdata); library(tidyverse)
+# install.packages("c:/gurobi1200/win64/R/gurobi_12.0-0.zip", repos = NULL)
+library(gurobi)
+library(tidyverse)
+library(designmatch)
+library(gdata)
 
 # turn off scientific notation
 options(scipen = 999)
@@ -40,13 +43,13 @@ mom = list(covs = mom_covs, tols = mom_tols, targets = NULL) # merging the covar
 
 # Solver options
 t_max = 60*5
-solver = "gurobi"
+solver = "highs"
 approximate = 0
 solver = list(name = solver, t_max = t_max, approximate = approximate,
               round_cplex = 0, trace = 1)
 
 # Match
-out_1 = cardmatch(t_ind, mom = mom, solver = solver) 
+out_1 = cardmatch(t_ind = t_ind, mom = mom, solver = solver) 
 
 # Indices of the treated units and matched controls
 t_id_1 = out_1$t_id
@@ -195,7 +198,7 @@ loveplot = ggplot(
   geom_hline(yintercept = 0.1, color = "black", size = 0.1, linetype="dashed") +
   coord_flip() + theme_pubclean() + theme(legend.key = element_blank()) +
   labs(y = "Average absolute standardized differences in means") + labs(x = "") +
-  scale_y_continuous(limits = c(0,1), breaks = c(0,0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1) ) +
+  scale_y_continuous(limits = c(0,0.4), breaks = c(0,0.1,0.2,0.3,0.4) ) +
   scale_color_manual(values=c("gray20","black")) + 
   geom_point(aes(shape=Matching),size=4) +
   scale_shape_manual(values=c(8,16)) + 
@@ -210,3 +213,265 @@ rm(list = ls())
 gc()
 
 
+### Testing percentile matching - measure t_bal with different percentile cutoffs ########
+# percentiles to test: 45% - 55%, in 2.5% increments
+rm(list = ls())
+
+## 45% ##
+a = readRDS("./data/kunkel_which_pks.rds") %>%
+  filter(t_ind == 1) %>% drop_na(any_of(c("prio_nlights_calib_mean", "prio_pop_gpw_sum", "prio_pop.dens"))) # drop NAs for matching
+
+# modify balance indicator #
+a$t_bal = 0 # make balanced treatment indicator
+a$t_bal[a$radpko_f_prop > quantile(a$radpko_f_prop[a$t_ind == 1], prob=0.45, type=1)] = 1
+a$t_unbal = 0 # make un_balanced treatment indicator
+a$t_unbal[a$radpko_f_prop <= quantile(a$radpko_f_prop[a$t_ind == 1], prob=0.45, type=1) & a$t_ind ==1] = 1
+
+# match by where women and where only men deployed
+a = a[order(a$t_bal, decreasing=TRUE), ]
+
+control.variables = cbind(a$prio_mountains_mean, a$prio_ttime_mean, a$prio_urban_gc, a$prio_nlights_calib_mean, 
+                          a$prio_pop_gpw_sum, a$prio_pop.dens, a$viol_6)
+t_ind = a$t_bal #treatment
+t_id = which(t_ind==1) #treated
+c_id = which(t_ind==0) #control
+tab1 = meantab(control.variables, t_ind, t_id, c_id)
+tab1
+
+mom_covs = cbind(a$prio_mountains_mean, a$prio_ttime_mean, a$prio_urban_gc, a$prio_nlights_calib_mean, 
+                 a$prio_pop_gpw_sum, a$prio_pop.dens, a$viol_6)
+
+for(i in 1:ncol(mom_covs)){
+  mom_covs[is.na(mom_covs[,i]), i] <- mean(mom_covs[,i], na.rm = TRUE)
+}
+
+# define observed covariates for the matching
+
+mom_tols = absstddif(mom_covs, t_ind, .1) # defining the tolerance of balance (0.1)
+mom = list(covs = mom_covs, tols = mom_tols, targets = NULL) # merging the covariates and the tolerance
+
+# Solver options
+t_max = 60*5
+solver = "highs"
+approximate = 0
+solver = list(name = solver, t_max = t_max, approximate = approximate,
+              round_cplex = 0, trace = 1)
+
+# Match
+out_1 = cardmatch(t_ind = t_ind, mom = mom, solver = solver) 
+
+# Indices of the treated units and matched controls
+t_id_1 = out_1$t_id
+c_id_1 = out_1$c_id
+
+# Standardized before matching
+
+tab1
+# Standardized after matching
+covs = cbind(a$prio_mountains_mean, a$prio_ttime_mean, a$prio_urban_gc, a$prio_nlights_calib_mean, 
+             a$prio_pop_gpw_sum, a$prio_pop.dens, a$viol_6)
+tab2 = meantab(covs, t_ind, t_id_1, c_id_1)
+tab2
+# Save matched sample 
+b = a[c(t_id_1, c_id_1), ]
+b$radpko_pko_lag_any = 0
+b$radpko_pko_lag_any[b$radpko_pko_lag > 0] = 1
+
+saveRDS(b, "./data/cutoff_robustness/kunkel_wpks_matched_450_gender.rds")
+rm(list = ls())
+gc()
+
+## 47.5% ##
+a = readRDS("./data/kunkel_which_pks.rds") %>%
+  filter(t_ind == 1) %>% drop_na(any_of(c("prio_nlights_calib_mean", "prio_pop_gpw_sum", "prio_pop.dens"))) # drop NAs for matching
+
+# modify balance indicator #
+a$t_bal = 0 # make balanced treatment indicator
+a$t_bal[a$radpko_f_prop > quantile(a$radpko_f_prop[a$t_ind == 1], prob=0.475, type=1)] = 1
+a$t_unbal = 0 # make un_balanced treatment indicator
+a$t_unbal[a$radpko_f_prop <= quantile(a$radpko_f_prop[a$t_ind == 1], prob=0.475, type=1) & a$t_ind ==1] = 1
+
+
+# match by where women and where only men deployed
+a = a[order(a$t_bal, decreasing=TRUE), ]
+
+control.variables = cbind(a$prio_mountains_mean, a$prio_ttime_mean, a$prio_urban_gc, a$prio_nlights_calib_mean, 
+                          a$prio_pop_gpw_sum, a$prio_pop.dens, a$viol_6)
+t_ind = a$t_bal #treatment
+t_id = which(t_ind==1) #treated
+c_id = which(t_ind==0) #control
+tab1 = meantab(control.variables, t_ind, t_id, c_id)
+tab1
+
+mom_covs = cbind(a$prio_mountains_mean, a$prio_ttime_mean, a$prio_urban_gc, a$prio_nlights_calib_mean, 
+                 a$prio_pop_gpw_sum, a$prio_pop.dens, a$viol_6)
+
+for(i in 1:ncol(mom_covs)){
+  mom_covs[is.na(mom_covs[,i]), i] <- mean(mom_covs[,i], na.rm = TRUE)
+}
+
+# define observed covariates for the matching
+
+mom_tols = absstddif(mom_covs, t_ind, .1) # defining the tolerance of balance (0.1)
+mom = list(covs = mom_covs, tols = mom_tols, targets = NULL) # merging the covariates and the tolerance
+
+# Solver options
+t_max = 60*5
+solver = "highs"
+approximate = 0
+solver = list(name = solver, t_max = t_max, approximate = approximate,
+              round_cplex = 0, trace = 1)
+
+# Match
+out_1 = cardmatch(t_ind = t_ind, mom = mom, solver = solver) 
+
+# Indices of the treated units and matched controls
+t_id_1 = out_1$t_id
+c_id_1 = out_1$c_id
+
+# Standardized before matching
+
+tab1
+# Standardized after matching
+covs = cbind(a$prio_mountains_mean, a$prio_ttime_mean, a$prio_urban_gc, a$prio_nlights_calib_mean, 
+             a$prio_pop_gpw_sum, a$prio_pop.dens, a$viol_6)
+tab2 = meantab(covs, t_ind, t_id_1, c_id_1)
+tab2
+# Save matched sample 
+b = a[c(t_id_1, c_id_1), ]
+b$radpko_pko_lag_any = 0
+b$radpko_pko_lag_any[b$radpko_pko_lag > 0] = 1
+
+saveRDS(b, "./data/cutoff_robustness/kunkel_wpks_matched_475_gender.rds")
+rm(list = ls())
+gc()
+
+## 52.5% ##
+a = readRDS("./data/kunkel_which_pks.rds") %>%
+  filter(t_ind == 1) %>% drop_na(any_of(c("prio_nlights_calib_mean", "prio_pop_gpw_sum", "prio_pop.dens"))) # drop NAs for matching
+
+# modify balance indicator #
+a$t_bal = 0 # make balanced treatment indicator
+a$t_bal[a$radpko_f_prop > quantile(a$radpko_f_prop[a$t_ind == 1], prob=0.525, type=1)] = 1
+a$t_unbal = 0 # make un_balanced treatment indicator
+a$t_unbal[a$radpko_f_prop <= quantile(a$radpko_f_prop[a$t_ind == 1], prob=0.525, type=1) & a$t_ind ==1] = 1
+
+
+# match by where women and where only men deployed
+a = a[order(a$t_bal, decreasing=TRUE), ]
+
+control.variables = cbind(a$prio_mountains_mean, a$prio_ttime_mean, a$prio_urban_gc, a$prio_nlights_calib_mean, 
+                          a$prio_pop_gpw_sum, a$prio_pop.dens, a$viol_6)
+t_ind = a$t_bal #treatment
+t_id = which(t_ind==1) #treated
+c_id = which(t_ind==0) #control
+tab1 = meantab(control.variables, t_ind, t_id, c_id)
+tab1
+
+mom_covs = cbind(a$prio_mountains_mean, a$prio_ttime_mean, a$prio_urban_gc, a$prio_nlights_calib_mean, 
+                 a$prio_pop_gpw_sum, a$prio_pop.dens, a$viol_6)
+
+for(i in 1:ncol(mom_covs)){
+  mom_covs[is.na(mom_covs[,i]), i] <- mean(mom_covs[,i], na.rm = TRUE)
+}
+
+# define observed covariates for the matching
+
+mom_tols = absstddif(mom_covs, t_ind, .1) # defining the tolerance of balance (0.1)
+mom = list(covs = mom_covs, tols = mom_tols, targets = NULL) # merging the covariates and the tolerance
+
+# Solver options
+t_max = 60*5
+solver = "highs"
+approximate = 0
+solver = list(name = solver, t_max = t_max, approximate = approximate,
+              round_cplex = 0, trace = 1)
+
+# Match
+out_1 = cardmatch(t_ind = t_ind, mom = mom, solver = solver) 
+
+# Indices of the treated units and matched controls
+t_id_1 = out_1$t_id
+c_id_1 = out_1$c_id
+
+# Standardized before matching
+
+tab1
+# Standardized after matching
+covs = cbind(a$prio_mountains_mean, a$prio_ttime_mean, a$prio_urban_gc, a$prio_nlights_calib_mean, 
+             a$prio_pop_gpw_sum, a$prio_pop.dens, a$viol_6)
+tab2 = meantab(covs, t_ind, t_id_1, c_id_1)
+tab2
+# Save matched sample 
+b = a[c(t_id_1, c_id_1), ]
+b$radpko_pko_lag_any = 0
+b$radpko_pko_lag_any[b$radpko_pko_lag > 0] = 1
+
+saveRDS(b, "./data/cutoff_robustness/kunkel_wpks_matched_525_gender.rds")
+rm(list = ls())
+gc()
+
+## 55% ##
+a = readRDS("./data/kunkel_which_pks.rds") %>%
+  filter(t_ind == 1) %>% drop_na(any_of(c("prio_nlights_calib_mean", "prio_pop_gpw_sum", "prio_pop.dens"))) # drop NAs for matching
+
+# modify balance indicator #
+a$t_bal = 0 # make balanced treatment indicator
+a$t_bal[a$radpko_f_prop > quantile(a$radpko_f_prop[a$t_ind == 1], prob=0.55, type=1)] = 1
+a$t_unbal = 0 # make un_balanced treatment indicator
+a$t_unbal[a$radpko_f_prop <= quantile(a$radpko_f_prop[a$t_ind == 1], prob=0.55, type=1) & a$t_ind ==1] = 1
+
+
+# match by where women and where only men deployed
+a = a[order(a$t_bal, decreasing=TRUE), ]
+
+control.variables = cbind(a$prio_mountains_mean, a$prio_ttime_mean, a$prio_urban_gc, a$prio_nlights_calib_mean, 
+                          a$prio_pop_gpw_sum, a$prio_pop.dens, a$viol_6)
+t_ind = a$t_bal #treatment
+t_id = which(t_ind==1) #treated
+c_id = which(t_ind==0) #control
+tab1 = meantab(control.variables, t_ind, t_id, c_id)
+tab1
+
+mom_covs = cbind(a$prio_mountains_mean, a$prio_ttime_mean, a$prio_urban_gc, a$prio_nlights_calib_mean, 
+                 a$prio_pop_gpw_sum, a$prio_pop.dens, a$viol_6)
+
+for(i in 1:ncol(mom_covs)){
+  mom_covs[is.na(mom_covs[,i]), i] <- mean(mom_covs[,i], na.rm = TRUE)
+}
+
+# define observed covariates for the matching
+
+mom_tols = absstddif(mom_covs, t_ind, .1) # defining the tolerance of balance (0.1)
+mom = list(covs = mom_covs, tols = mom_tols, targets = NULL) # merging the covariates and the tolerance
+
+# Solver options
+t_max = 60*5
+solver = "highs"
+approximate = 0
+solver = list(name = solver, t_max = t_max, approximate = approximate,
+              round_cplex = 0, trace = 1)
+
+# Match
+out_1 = cardmatch(t_ind = t_ind, mom = mom, solver = solver) 
+
+# Indices of the treated units and matched controls
+t_id_1 = out_1$t_id
+c_id_1 = out_1$c_id
+
+# Standardized before matching
+
+tab1
+# Standardized after matching
+covs = cbind(a$prio_mountains_mean, a$prio_ttime_mean, a$prio_urban_gc, a$prio_nlights_calib_mean, 
+             a$prio_pop_gpw_sum, a$prio_pop.dens, a$viol_6)
+tab2 = meantab(covs, t_ind, t_id_1, c_id_1)
+tab2
+# Save matched sample 
+b = a[c(t_id_1, c_id_1), ]
+b$radpko_pko_lag_any = 0
+b$radpko_pko_lag_any[b$radpko_pko_lag > 0] = 1
+
+saveRDS(b, "./data/cutoff_robustness/kunkel_wpks_matched_550_gender.rds")
+rm(list = ls())
+gc()
