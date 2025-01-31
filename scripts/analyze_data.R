@@ -22,6 +22,7 @@ library(lfe)
 options(scipen = 999)
 
 # reading in cleaned data
+rm(list = ls())
 setwd(dirname(rstudioapi::getActiveDocumentContext()$path)) # set to source file location
 setwd("../") # back out to main folder
 
@@ -31,13 +32,9 @@ c = readRDS("./data/kunkel_wpks_matched_gender.rds")
 # Re-scale PK variable for statistical analyses (per Fjelde et al. (2019)) 
 a$radpko_m_pko_deployed = a$radpko_m_pko_deployed/100
 a$radpko_f_pko_deployed = a$radpko_f_pko_deployed/100
-c$radpko_m_pko_deployed = c$radpko_m_pko_deployed/100
-c$radpko_f_pko_deployed = c$radpko_f_pko_deployed/100
 
 a = a %>% # re-scale proportion so that results make sense
   mutate(radpko_f_prop = 10*radpko_f_prop, radpko_m_prop = 10*radpko_m_prop)
-
-
 
 ##########################
 ## TWFE Models - BEGINNING
@@ -177,7 +174,7 @@ plot_summs(se_reg11, se_reg12, exp = T, coefs = coef_match, model.names =
   theme(axis.text.y = element_text(size=18), axis.text.x =element_text(size=18), 
         axis.title.x.bottom = element_text(size = 22), legend.text=element_text(size=18),
         legend.title = element_text(size=18)) +
-  xlab("Odds Ratios") + scale_x_continuous(limits = c(0.1, 1.15))
+  xlab("Odds Ratios") + scale_x_continuous(limits = c(0.1, 1.2))
 dev.off()
 
 stargazer(se_reg11, se_reg12, style = "APSR", title = "Matched Logit Models",
@@ -247,7 +244,7 @@ tidy_reg11 <- data.frame(
   term = rownames(se_reg11),
   estimate = se_reg11[, "Estimate"],
   std.error = se_reg11[, "Std. Error"],
-  statistic = se_reg11[, "z value"],
+  statisticse_reg11[, "z value"],
   p.value = se_reg11[, "Pr(>|z|)"],
   stringsAsFactors = FALSE
 )
@@ -526,12 +523,11 @@ stargazer(reg1, reg2, title = "PKO Effectiveness by Peacekeeper Gender - Logit",
           out = "./results/logit.txt")
 
 
-##############
-## Appendix ##
-##############
+###################
+# TWFE Robustness #
+###################
 
-# post_treatment is coded as 1 after treatment
-
+# post_treatment is coded as 1 in first instance after treatment
 a = a %>%
   filter(post_treatment==0)
 
@@ -559,3 +555,242 @@ stargazer(reg1, reg2, style = "AJPS", title = "TWFE Models Testing the Count of 
 stargazer(reg3, reg4, style = "AJPS", title = "TWFE Models Testing the Proportion of Peacekeepers",
           label = "tab:twfe_robustness_prop", dep.var.labels = c("Rebel OSV (B)", "Rebel OSV (C)"),
           covariate.labels = c("Prop. Women Deployed", "Prop. Men Deployed"))
+
+
+
+### GOV OSV ROBUSTNESS CHECK ###
+rm(list = ls())
+gc()
+a = readRDS("./data/kunkel_which_pks.rds")
+c = readRDS("./data/kunkel_wpks_matched_gender.rds")
+
+# Re-scale PK variable for statistical analyses (per Fjelde et al. (2019)) 
+a$radpko_m_pko_deployed = a$radpko_m_pko_deployed/100
+a$radpko_f_pko_deployed = a$radpko_f_pko_deployed/100
+
+a = a %>% # re-scale proportion so that results make sense
+  mutate(radpko_f_prop = 10*radpko_f_prop, radpko_m_prop = 10*radpko_m_prop)
+
+reg1 = felm(formula = ucdp_gov_vac_5 ~ radpko_f_pko_deployed + radpko_m_pko_deployed | time + prio.grid | 
+  0 | prio.grid, data = a)
+summary(reg1)
+
+reg2 = felm(formula = ucdp_gov_vac_all ~ radpko_f_pko_deployed + radpko_m_pko_deployed | time + prio.grid | 
+  0 | prio.grid, data = a)
+summary(reg2)
+
+####### Hypothesis 2a #########
+reg3 = felm(formula = ucdp_gov_vac_5 ~ radpko_f_prop | time + prio.grid | 
+  0 | prio.grid, data = a)
+summary(reg3)
+
+reg4 = felm(formula = ucdp_gov_vac_all ~ radpko_f_prop | time + prio.grid | 
+  0 | prio.grid, data = a)
+summary(reg4)
+
+stargazer(reg1, reg2, style = "AJPS", title = "TWFE Models Testing the Count of Peacekeepers",
+label = "tab:hyp_1_gov", dep.var.labels = c("Gov OSV (B)", "Gov OSV (C)"),
+covariate.labels = c("Women PKs Deployed", "Men PKs Deployed"))
+
+stargazer(reg3, reg4, style = "AJPS", title = "TWFE Models Testing the Proportion of Peacekeepers",
+label = "tab:hyp_2b_gov", dep.var.labels = c("Gov OSV (B)", "Gov OSV (C)"),
+covariate.labels = c("Prop. Women Deployed", "Prop. Men Deployed"))
+
+
+# Matched Data - Logit #
+reg11 = glm(ucdp_gov_vac_5 ~ t_bal + prio_mountains_mean + prio_ttime_mean + prio_urban_gc + 
+  prio_nlights_calib_mean + prio_pop_gpw_sum + prio_pop.dens + radpko_pko_lag_any + viol_6,
+data = c, family = negative.binomial(theta = 1))
+names(reg11$coefficients) = c("(Intercept)", "Gender-mixed PK Unit",
+                  "Avg. Mountain", "Travel Time Nearest City", "Perc. Urban",
+                  "Night Lights", "Population Sum", "Population Density",
+                  "PK Lag", "Violence 6 Months Before")
+se_reg11 <- round(coeftest(reg11, vcov = vcovPL(reg11, cluster = c$prio.grid)),4)
+se_reg11
+
+reg12 = glm(ucdp_reb_vac_all ~ t_bal + prio_mountains_mean + prio_ttime_mean + prio_urban_gc + 
+  prio_nlights_calib_mean + prio_pop_gpw_sum + prio_pop.dens + radpko_pko_lag_any + viol_6,
+data = c, family = negative.binomial(theta = 1))
+names(reg12$coefficients) = c("(Intercept)", "Gender-mixed PK Unit",
+                  "Avg. Mountain", "Travel Time Nearest City", "Perc. Urban",
+                  "Night Lights", "Population Sum", "Population Density",
+                  "PK Lag", "Violence 6 Months Before")
+se_reg12 <- round(coeftest(reg12, vcov = vcovPL(reg12, cluster = c$prio.grid)),4)
+se_reg12
+
+stargazer(se_reg11, se_reg12, style = "APSR", title = "Matched Logit Models",
+          label = "tab:hyp_2a_gov")
+
+
+##### Proportion Fem PKs deployed * total 
+
+reg1 = felm(formula = ucdp_reb_vac_5 ~ radpko_f_prop*radpko_f_pko_deployed | time + prio.grid | 
+  0 | prio.grid, data = a)
+summary(reg1)
+
+reg2 = felm(formula = ucdp_reb_vac_all ~ radpko_f_prop*radpko_f_pko_deployed | time + prio.grid | 
+  0 | prio.grid, data = a)
+summary(reg2)
+
+stargazer(reg1, reg2, style = "AJPS", title = "TWFE Models: Proportion interacted with Total Female PKs Deployed",
+label = "tab:app_hyp_1", dep.var.labels = c("Rebel OSV (B)", "Rebel OSV (C)"),
+covariate.labels = c("Prop. Women Deployed", "Female PKs Deployed", "Prop. * Total Fem."))
+
+## data plotting ## 
+data_long <- a %>%
+  dplyr::select(radpko_f_untrp, radpko_f_unpol, radpko_f_unmob) %>%
+  pivot_longer(cols = everything(), names_to = "variable", values_to = "value") %>%
+  filter(value > 0)
+
+# 1. Scatter Plot
+ggplot(data_long, aes(x = variable, y = value, color = variable)) +
+  geom_jitter(width = 0.2) +
+  theme_minimal() +
+  labs(title = "Scatter Plot of Variables > 0")
+
+# Transform data to long format with corresponding deployed counts
+data_long <- a %>%
+  mutate(row_id = row_number()) %>%  # Create a unique ID for joining
+  pivot_longer(cols = c(radpko_f_untrp, radpko_f_unpol, radpko_f_unmob),
+               names_to = "variable",
+               values_to = "value") %>%
+  mutate(radpko_f_prop = a$radpko_f_prop[row_id]) %>%
+  filter(radpko_f_prop > 0)
+
+
+ggplot(data_long, aes(x = value, y = radpko_f_prop, color = variable)) +
+  geom_point(alpha = 0.6, size = 3) +
+  theme_minimal() +
+  labs(title = "Scatter Plot: Variable Values vs. radpko_f_prop",
+       x = "Values of Variables (>0)",
+       y = "radpko_f_prop",
+       color = "Variable")
+
+#### Cutoff Testing ####
+d_450 = readRDS("./data/cutoff_robustness/kunkel_wpks_matched_450_gender.rds")
+d_475 = readRDS("./data/cutoff_robustness/kunkel_wpks_matched_475_gender.rds")
+d_500 = readRDS("./data/kunkel_wpks_matched_gender.rds")
+d_525 = readRDS("./data/cutoff_robustness/kunkel_wpks_matched_525_gender.rds")
+d_550 = readRDS("./data/cutoff_robustness/kunkel_wpks_matched_550_gender.rds")
+
+# 0.450 #
+reg450 = glm(ucdp_reb_vac_5 ~ t_bal + prio_mountains_mean + prio_ttime_mean + prio_urban_gc + 
+  prio_nlights_calib_mean + prio_pop_gpw_sum + prio_pop.dens + radpko_pko_lag_any + viol_6,
+data = d_450, family = negative.binomial(theta = 1))
+se_reg450 <- round(coeftest(reg450, vcov = vcovPL(reg450, cluster = d_450$prio.grid)),4)
+se_reg450
+
+# 0.475 #
+reg475 = glm(ucdp_reb_vac_5 ~ t_bal + prio_mountains_mean + prio_ttime_mean + prio_urban_gc + 
+  prio_nlights_calib_mean + prio_pop_gpw_sum + prio_pop.dens + radpko_pko_lag_any + viol_6,
+data = d_475, family = negative.binomial(theta = 1))
+se_reg475 <- round(coeftest(reg475, vcov = vcovPL(reg475, cluster = d_475$prio.grid)),4)
+se_reg475
+
+# 0.500 #
+reg500 = glm(ucdp_reb_vac_5 ~ t_bal + prio_mountains_mean + prio_ttime_mean + prio_urban_gc + 
+  prio_nlights_calib_mean + prio_pop_gpw_sum + prio_pop.dens + radpko_pko_lag_any + viol_6,
+data = d_500, family = negative.binomial(theta = 1))
+se_reg500 <- round(coeftest(reg500, vcov = vcovPL(reg500, cluster = d_500$prio.grid)),4)
+se_reg500
+
+# 0.525 #
+reg525 = glm(ucdp_reb_vac_5 ~ t_bal + prio_mountains_mean + prio_ttime_mean + prio_urban_gc + 
+  prio_nlights_calib_mean + prio_pop_gpw_sum + prio_pop.dens + radpko_pko_lag_any + viol_6,
+data = d_525, family = negative.binomial(theta = 1))
+se_reg525 <- round(coeftest(reg525, vcov = vcovPL(reg525, cluster = d_525$prio.grid)),4)
+se_reg525
+
+# 0.550 #
+reg550 = glm(ucdp_reb_vac_5 ~ t_bal + prio_mountains_mean + prio_ttime_mean + prio_urban_gc + 
+  prio_nlights_calib_mean + prio_pop_gpw_sum + prio_pop.dens + radpko_pko_lag_any + viol_6,
+data = d_550, family = negative.binomial(theta = 1))
+se_reg550 <- round(coeftest(reg550, vcov = vcovPL(reg550, cluster = d_550$prio.grid)),4)
+se_reg550
+
+extract_estimates <- function(se_reg, var) {
+  estimate <- se_reg[var, "Estimate"]
+  se <- se_reg[var, "Std. Error"]
+  ci_lower <- estimate - 1.96 * se
+  ci_upper <- estimate + 1.96 * se
+
+  tibble(
+    model = deparse(substitute(se_reg)),
+    estimate = estimate,
+    ci_lower = ci_lower,
+    ci_upper = ci_upper
+  )
+}
+
+df_plot <- bind_rows(
+  extract_estimates(se_reg450, "t_bal") %>% mutate(data = "45th"),
+  extract_estimates(se_reg475, "t_bal") %>% mutate(data = "47.5"),
+  extract_estimates(se_reg500, "t_bal") %>% mutate(data = "50th"),
+  extract_estimates(se_reg525, "t_bal") %>% mutate(data = "52.5"),
+  extract_estimates(se_reg550, "t_bal") %>% mutate(data = "55th")
+)
+
+pdf("./results/cutoff_testing_binary.pdf")
+ggplot(df_plot, aes(x = data, y = estimate, color = data)) +
+  geom_point(size = 4) + 
+  geom_errorbar(aes(ymin = ci_lower, ymax = ci_upper), width = 0.2) +
+  geom_hline(yintercept = 0, linetype = "dashed", color = "black") +
+  scale_color_manual(values = c("45th" = "blue", "47.5" = "blue", "50th" = "black", "52.5" = "blue", "55th" = "blue")) +
+  theme_pubclean() +
+  labs(x = "Percentile for matching cutoff", y = "Estimate with 95% CI", title = "Cutoff testing, binary outcome") +
+  coord_cartesian(ylim = c(min(df_plot$ci_lower) - 0.1, 0.5)) +
+  theme(legend.position = "none")
+dev.off()
+
+rm(list = setdiff(ls(), c("d_450", "d_475", "d_500", "d_525", "d_550", "extract_estimates")))
+
+## count outcome ##
+reg450 = glm(ucdp_reb_vac_all ~ t_bal + prio_mountains_mean + prio_ttime_mean + prio_urban_gc + 
+  prio_nlights_calib_mean + prio_pop_gpw_sum + prio_pop.dens + radpko_pko_lag_any + viol_6,
+data = d_450, family = negative.binomial(theta = 1))
+se_reg450 <- round(coeftest(reg450, vcov = vcovPL(reg450, cluster = d_450$prio.grid)),4)
+se_reg450
+
+reg475 = glm(ucdp_reb_vac_all ~ t_bal + prio_mountains_mean + prio_ttime_mean + prio_urban_gc + 
+  prio_nlights_calib_mean + prio_pop_gpw_sum + prio_pop.dens + radpko_pko_lag_any + viol_6,
+data = d_475, family = negative.binomial(theta = 1))
+se_reg475 <- round(coeftest(reg475, vcov = vcovPL(reg475, cluster = d_475$prio.grid)),4)
+se_reg475
+
+reg500 = glm(ucdp_reb_vac_all ~ t_bal + prio_mountains_mean + prio_ttime_mean + prio_urban_gc + 
+  prio_nlights_calib_mean + prio_pop_gpw_sum + prio_pop.dens + radpko_pko_lag_any + viol_6,
+data = d_500, family = negative.binomial(theta = 1))
+se_reg500 <- round(coeftest(reg500, vcov = vcovPL(reg500, cluster = d_500$prio.grid)),4)
+se_reg500
+
+reg525 = glm(ucdp_reb_vac_all ~ t_bal + prio_mountains_mean + prio_ttime_mean + prio_urban_gc + 
+  prio_nlights_calib_mean + prio_pop_gpw_sum + prio_pop.dens + radpko_pko_lag_any + viol_6,
+data = d_525, family = negative.binomial(theta = 1))
+se_reg525 <- round(coeftest(reg525, vcov = vcovPL(reg525, cluster = d_525$prio.grid)),4)
+se_reg525
+
+reg550 = glm(ucdp_reb_vac_all ~ t_bal + prio_mountains_mean + prio_ttime_mean + prio_urban_gc + 
+  prio_nlights_calib_mean + prio_pop_gpw_sum + prio_pop.dens + radpko_pko_lag_any + viol_6,
+data = d_550, family = negative.binomial(theta = 1))
+se_reg550 <- round(coeftest(reg550, vcov = vcovPL(reg550, cluster = d_550$prio.grid)),4)
+se_reg550
+
+df_plot_cont <- bind_rows(
+  extract_estimates(se_reg450, "t_bal") %>% mutate(data = "45th"),
+  extract_estimates(se_reg475, "t_bal") %>% mutate(data = "47.5"),
+  extract_estimates(se_reg500, "t_bal") %>% mutate(data = "50th"),
+  extract_estimates(se_reg525, "t_bal") %>% mutate(data = "52.5"),
+  extract_estimates(se_reg550, "t_bal") %>% mutate(data = "55th")
+)
+
+pdf("./results/cutoff_testing_cont.pdf")
+ggplot(df_plot_cont, aes(x = data, y = estimate, color = data)) +
+  geom_point(size = 4) + 
+  geom_errorbar(aes(ymin = ci_lower, ymax = ci_upper), width = 0.2) +
+  geom_hline(yintercept = 0, linetype = "dashed", color = "black") +
+  scale_color_manual(values = c("45th" = "blue", "47.5" = "blue", "50th" = "black", "52.5" = "blue", "55th" = "blue")) +
+  theme_pubclean() +
+  labs(x = "Percentile for matching cutoff", y = "Estimate with 95% CI", title = "Cutoff testing, count outcome") +
+  # coord_cartesian(ylim = c(min(df_plot_cont$ci_lower) - 0.1, 0.5)) +
+  theme(legend.position = "none")
+dev.off()
