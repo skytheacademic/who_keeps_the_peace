@@ -336,6 +336,12 @@ dd = dd %>%
 # merge back to main a
 a = left_join(a, dd, by = c("prio.grid", "time"))
 
+# Code instruments
+a$f_iv = (a$f_pko_africa/10000)*log(a$distance_to_capital)
+a$m_iv = (a$m_pko_africa/10000)*log(a$distance_to_capital)
+a$f_iv_prop = (a$pko_africa_prop_f)*log(a$distance_to_capital)
+a$m_iv_prop = (a$pko_africa_prop_m)*log(a$distance_to_capital)
+
 # save data #
 saveRDS(a, file = "./data/kunkel_which_pks.rds")
 

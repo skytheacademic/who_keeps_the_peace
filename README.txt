@@ -1,3 +1,9 @@
+R Scripts
+	- clean_data.R contains all code to clean and prepare data for analysis
+	- match_data.R contains all code to match data for main paper, as well as code for matching loveplot and matching for cutoff robustness in Appendix. 
+	- analyze_data.R contains all code to run all models in main paper, tables and figures, and for all tables in appendix.
+	- plot_data.R contains all code for non-model figures, as well as code for job talk figures
+
 UCDP data
 	- Contains violence data from the Uppsala Conflict Data Program
 	- Observed at event level in areas where more than 5 deaths occured in a given calendar year.
