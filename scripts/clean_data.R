@@ -3,8 +3,11 @@
 # By: Sky Kunkel
 
 ### load libraries ###
-library(lubridate); library(sf); library(sp); library(tidyverse)
-library(countrycode); library(CoordinateCleaner); library(geosphere)
+library(groundhog)
+groundhog.day <- "2026-06-01"
+pkgs <- c("lubridate", "sf", "sp", "tidyverse",
+          "countrycode", "CoordinateCleaner", "geosphere")
+groundhog.library(pkgs, groundhog.day)
 
 # set seed #
 set.seed(8675309) # hey jenny

@@ -2,11 +2,10 @@
 # Sky Kunkel #
 # 1/16/2023 #
 
-# install.packages("c:/gurobi1200/win64/R/gurobi_12.0-0.zip", repos = NULL)
-library(gurobi)
-library(tidyverse)
-library(designmatch)
-library(gdata)
+library(groundhog)
+groundhog.day <- "2026-06-01"
+pkgs <- c("tidyverse", "designmatch", "gdata", "ggpubr")
+groundhog.library(pkgs, groundhog.day)
 
 # turn off scientific notation
 options(scipen = 999)
