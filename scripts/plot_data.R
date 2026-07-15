@@ -1,24 +1,13 @@
 # Who Keeps the Peace: Figures and Plots #
 
-library(tidygeocoder)
-library(tidyverse)
-library(viridis)
-library(gdata)
-library(magrittr)
-library(lubridate)
-library(ggpubr)
-library(ggiraphExtra)
-library(coefplot)
-library(stargazer) 
-library(spdep)
-library(lme4)
-library(lmtest)
-library(sandwich)
-library(magick)
-library(ggeffects)
-library(marginaleffects)
-library(fixest)
-library(ggridges)
+library(groundhog)
+groundhog.day <- "2026-06-01"
+pkgs <- c("tidygeocoder", "tidyverse", "viridis", "gdata", "magrittr",
+          "lubridate", "ggpubr", "ggiraphExtra", "coefplot", "stargazer",
+          "spdep", "lme4", "lmtest", "sandwich", "magick", "ggeffects",
+          "marginaleffects", "fixest", "ggridges", "jtools", "broom.mixed",
+          "sf", "janitor", "hrbrthemes", "ggstance")
+groundhog.library(pkgs, groundhog.day)
 
 # turn off scientific notation
 options(scipen = 999)
@@ -58,7 +47,7 @@ summary(a$prio.grid)
 ### side-by-side plots ###
 # predicted total violence when women PKs deploy #
 pdf("./results/total_women_fatalities_pred.pdf", height = 10, width = 10)
-plot_predictions(reg1, condition = c("radpko_f_pko_deployed")) +
+plot_predictions(reg1, condition = c("radpko_f_pko_deployed"), vcov = FALSE) +  # vcov=FALSE: newer marginaleffects refuses SEs on FE models
   xlab("Total Female Peacekeepers Deployed") + ylab("Predicted Civilian Deaths by Rebels") +
   theme_pubclean() +
   theme(axis.text.y = element_text(size=22), axis.text.x =element_text(size=22), 
@@ -67,7 +56,7 @@ dev.off()
 
 # predicted total violence when men PKs deploy #
 pdf("./results/total_men_fatalities_pred.pdf", height = 10, width = 10)
-plot_predictions(reg1, condition = c("radpko_m_pko_deployed")) +
+plot_predictions(reg1, condition = c("radpko_m_pko_deployed"), vcov = FALSE) +
   xlab("Total Male Peacekeepers Deployed") + ylab("Predicted Civilian Deaths by Rebels") +
   theme_pubclean() +
   theme(axis.text.y = element_text(size=22), axis.text.x =element_text(size=22), 
@@ -76,7 +65,7 @@ dev.off()
 
 # predicted Pr(violence) when Female PKs deployed #
 pdf("./results/total_women_pr_death_pred.pdf", height = 10, width = 10)
-plot_predictions(reg2, condition = "radpko_f_pko_deployed") +
+plot_predictions(reg2, condition = "radpko_f_pko_deployed", vcov = FALSE) +
   xlab("Total Female Peacekeepers Deployed") + ylab("Predicted Pr(Civilian) Deaths by Rebels") +
   theme_pubclean() +
   theme(axis.text.y = element_text(size=22), axis.text.x =element_text(size=22), 
@@ -85,7 +74,7 @@ dev.off()
 
 # predicted Pr(violence) when male PKs deployed #
 pdf("./results/total_men_pr_death_pred.pdf", height = 10, width = 10)
-plot_predictions(reg2, condition = "radpko_m_pko_deployed") +
+plot_predictions(reg2, condition = "radpko_m_pko_deployed", vcov = FALSE) +
   xlab("Total Male Peacekeepers Deployed") + ylab("Predicted Pr(Civilian) Deaths by Rebels") +
   theme_pubclean() +
   theme(axis.text.y = element_text(size=22), axis.text.x =element_text(size=22), 
@@ -95,7 +84,7 @@ dev.off()
 ## predicted total violence when prop deployed increases
 # women
 pdf("./results/prop_women_fatalities_pred.pdf", height = 10, width = 10)
-plot_predictions(reg3, condition = "radpko_f_prop") +
+plot_predictions(reg3, condition = "radpko_f_prop", vcov = FALSE) +
   xlab("Proportion Female Peacekeepers Deployed") + ylab("Predicted Civilian Deaths by Rebels") +
   theme_pubclean() +
   theme(axis.text.y = element_text(size=22), axis.text.x =element_text(size=22), 
@@ -106,7 +95,7 @@ dev.off()
 
 # men
 pdf("./results/prop_men_fatalities_pred.pdf", height = 10, width = 10)
-plot_predictions(reg5, condition = "radpko_m_prop") +
+plot_predictions(reg5, condition = "radpko_m_prop", vcov = FALSE) +
   xlab("Proportion Male Peacekeepers Deployed") + ylab("Predicted Civilian Deaths by Rebels") +
   theme_pubclean() +
   theme(axis.text.y = element_text(size=22), axis.text.x =element_text(size=22), 
@@ -116,7 +105,7 @@ dev.off()
 ## predicted Pr(violence) when prop deployed increases
 # women
 pdf("./results/prop_women_pr_death_pred.pdf", height = 10, width = 10)
-plot_predictions(reg4, condition = "radpko_f_prop") +
+plot_predictions(reg4, condition = "radpko_f_prop", vcov = FALSE) +
   xlab("Proportion Female Peacekeepers Deployed") + ylab("Predicted Pr(Civilian) Deaths by Rebels") +
   theme_pubclean() +
   theme(axis.text.y = element_text(size=22), axis.text.x =element_text(size=22), 
@@ -127,7 +116,7 @@ dev.off()
 
 # men
 pdf("./results/prop_men_pr_death_pred.pdf", height = 10, width = 10)
-plot_predictions(reg6, condition = "radpko_m_prop") +
+plot_predictions(reg6, condition = "radpko_m_prop", vcov = FALSE) +
   xlab("Proportion Male Peacekeepers Deployed") + ylab("Predicted Pr(Civilian) Deaths by Rebels") +
   theme_pubclean() +
   theme(axis.text.y = element_text(size=22), axis.text.x =element_text(size=22), 
@@ -172,7 +161,7 @@ a = readRDS("./data/kunkel_which_pks.rds")
 a$radpko_pko_deployed = a$radpko_pko_deployed/100 # rescale variable
 
 ### Plots ###
-library(jtools); library(broom.mixed)
+# (jtools, broom.mixed loaded at top via groundhog)
 # logits
 reg0 = glm(ucdp_reb_vac_5 ~ radpko_pko_deployed + prio_mountains_mean + prio_ttime_mean + prio_urban_gc + 
              radpko_pko_lag + viol_6,
@@ -267,10 +256,7 @@ theme(axis.text.y = element_text(size=18), axis.text.x =element_text(size=18),
 
 
 ## Descriptive Map ##
-library(sf)
-library(janitor)
-library(lubridate)
-library(viridis)
+# (sf, janitor, lubridate, viridis loaded at top via groundhog)
 
 a = readRDS("./data/kunkel_which_pks.rds") %>% 
   as.data.frame()
@@ -510,12 +496,6 @@ ggplot(unisfa_data, aes(x = time, y = radpko_f_pko_deployed)) +
 ##### Make map of single country - BEGINNING #######
 ####################################################
 
-library(ggplot2)
-library(tidyverse)
-library(sf)
-library(ggpubr)
-library(tmap)
-library(tmaptools)
 
 b = readRDS("./data/kunkel_which_pks.rds") %>%
   filter(country == "Democratic Republic of Congo")
@@ -1446,9 +1426,7 @@ rm(a)
 # plot over time
 
 # let's try making joyplot still need to log deaths?
-library(ggridges) # geom_density_ridges_gradient
-library(viridis)  # scale_fill_viridis
-library(hrbrthemes) # theme_ipsum
+#  hrbrthemes [theme_ipsum] loaded at top via groundhog)
 
 a.ag$log.pks = log(a.ag$pks + 1)
 a.ag$log.fatalities = log(a.ag$fatalities + 1)
@@ -1469,7 +1447,7 @@ ggplot(data=mali, aes(x=date,y=log.pks, group=1)) +
   
 # during relatively stable level of pks, large jump in violence in July 2016 - February 2017
 acled  = read.csv("./data/acled/1999-01-01-2021-12-31.csv")
-library(lubridate)
+# (lubridate loaded at top via groundhog)
 acled$event_date = lubridate::dmy(acled$event_date)
 acled = subset(acled, country == "Mali" & event_date > "2016-05-01" & event_date < "2018-01-01")
 gc()
@@ -2115,7 +2093,6 @@ se_reg12 <- round(coeftest(reg12, vcov = vcovPL(reg12, cluster = c$prio.grid)),4
 se_reg12
 
 
-library(ggstance)    # For horizontal error bars
 
 # Convert coeftest output to data frames
 tidy_reg11 <- data.frame(
