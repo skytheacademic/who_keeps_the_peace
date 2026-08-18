@@ -433,7 +433,7 @@ reg2p = se_reg2[,4]
 
 stargazer(reg1, reg2, title = "PKO Effectiveness by Peacekeeper Gender - Logit",
           align = TRUE, digits=3, font.size = "scriptsize",
-          style = "apsr", dep.var.labels = c("Reb VAC (C)", "Reb VAC (B)"),
+          style = "apsr", dep.var.labels = c("Reb VAC (B)", "Reb VAC (C)"),
           covariate.labels = c("Female PK Unit", "Avg. Mountain", "Travel Time Nearest City",
                                "Perc. Urban", "Night Lights",  "Population Sum", "Population Density",
                                "Violence 6 Months Before", "PKO Lag (B)"),
@@ -542,7 +542,7 @@ names(reg11$coefficients) = c("(Intercept)", "Gender-mixed PK Unit",
 se_reg11 <- round(coeftest(reg11, vcov = vcovPL(reg11, cluster = c$prio.grid)),4)
 se_reg11
 
-reg12 = glm(ucdp_reb_vac_all ~ t_bal + prio_mountains_mean + prio_ttime_mean + prio_urban_gc +
+reg12 = glm(ucdp_gov_vac_all ~ t_bal + prio_mountains_mean + prio_ttime_mean + prio_urban_gc +
   prio_nlights_calib_mean + prio_pop_gpw_sum + prio_pop.dens + radpko_pko_lag_any + viol_6,
 data = c, family = negative.binomial(theta = 1))
 names(reg12$coefficients) = c("(Intercept)", "Gender-mixed PK Unit",
