@@ -444,9 +444,24 @@ stargazer(reg1, reg2, title = "PKO Effectiveness by Peacekeeper Gender - Logit",
 # TWFE Robustness -- Tables [tab:twfe_robustness_count] and [tab:twfe_robustness_prop] #
 ###################
 
-# post_treatment is coded as 1 in first instance after treatment
+# Truncate each grid at the end of its 1st deployment of peacekeeper presence
+# Grids that never host peacekeepers keep their full panel. A grid that peacekeepers 
+# leave and later re-enter would otherwise re-enter the sample as a fresh treatment, 
+# creating a "forbidden comparison"; see Callaway and Sant'Anna (and other recent DiD lit)
+# for more context.
+pko_dep = a %>%
+  arrange(prio.grid, time) %>%
+  group_by(prio.grid) %>%
+  summarize(pko_leave = if (!any(t_ind == 1)) NA_real_ else {
+    tf = min(time[t_ind == 1])
+    off = time[time > tf & t_ind == 0]
+    if (length(off) == 0) max(time) else min(off) - 1
+  }, .groups = "drop")
+
 a = a %>%
-  filter(post_treatment==0)
+  left_join(pko_dep, by = "prio.grid") %>%
+  filter(is.na(pko_leave) | time <= pko_leave)
+rm(pko_dep)
 
 reg1 = felm(formula = ucdp_reb_vac_5 ~ radpko_f_pko_deployed + radpko_m_pko_deployed | time + prio.grid |
               0 | prio.grid, data = a)
