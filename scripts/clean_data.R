@@ -157,10 +157,15 @@ radpko = radpko %>%
   relocate(m_prop, .after = f_prop)
 
 # add proportions of each type to get total gender balance and then split treatment by balance
-radpko$t_bal = 0 # make balanced treatment indicator
-radpko$t_bal[radpko$f_prop > quantile(radpko$f_prop[radpko$t_ind == 1], prob=0.5, type=1)] = 1
-radpko$t_unbal = 0 # make un_balanced treatment indicator
-radpko$t_unbal[radpko$f_prop <= quantile(radpko$f_prop[radpko$t_ind == 1], prob=0.5, type=1) & radpko$t_ind ==1] = 1
+# defines the median over deployments where women were present.
+radpko$f_any = 0 # any women on the ground in this grid-month
+radpko$f_any[radpko$f_pko_deployed > 0] = 1
+radpko$t_bal = 0 # gender-mixed: women present, above the median female proportion
+radpko$t_bal[radpko$f_prop > quantile(radpko$f_prop[radpko$f_any == 1], prob=0.5, type=1) & radpko$f_any == 1] = 1
+radpko$t_unbal = 0 # disproportionate: women present, at or below the median
+radpko$t_unbal[radpko$f_prop <= quantile(radpko$f_prop[radpko$f_any == 1], prob=0.5, type=1) & radpko$f_any == 1] = 1
+radpko$t_nobal = 0 # all-male: peacekeepers deployed, no women
+radpko$t_nobal[radpko$t_ind == 1 & radpko$f_any == 0] = 1
 
 ##### Merge UCDP data #####
 # read in data

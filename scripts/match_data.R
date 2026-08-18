@@ -15,7 +15,7 @@ setwd(dirname(rstudioapi::getActiveDocumentContext()$path)) # set to source file
 setwd("../") # back out to main folder
 #### Matching by where units with more and less women deployed ####
 a = readRDS("./data/kunkel_which_pks.rds") %>%
-  filter(t_ind == 1) %>% drop_na(any_of(c("prio_nlights_calib_mean", "prio_pop_gpw_sum", "prio_pop.dens"))) # drop NAs for matching
+  filter(f_any == 1) %>% drop_na(any_of(c("prio_nlights_calib_mean", "prio_pop_gpw_sum", "prio_pop.dens"))) # drop NAs for matching
 
 # match by where women and where only men deployed
 a = a[order(a$t_bal, decreasing=TRUE), ]
@@ -218,13 +218,15 @@ rm(list = ls())
 
 ## 45% ##
 a = readRDS("./data/kunkel_which_pks.rds") %>%
-  filter(t_ind == 1) %>% drop_na(any_of(c("prio_nlights_calib_mean", "prio_pop_gpw_sum", "prio_pop.dens"))) # drop NAs for matching
+  filter(f_any == 1) %>% 
+  # drop NAs for matching
+  drop_na(any_of(c("prio_nlights_calib_mean", "prio_pop_gpw_sum", "prio_pop.dens")))
 
 # modify balance indicator #
 a$t_bal = 0 # make balanced treatment indicator
-a$t_bal[a$radpko_f_prop > quantile(a$radpko_f_prop[a$t_ind == 1], prob=0.45, type=1)] = 1
+a$t_bal[a$radpko_f_prop > quantile(a$radpko_f_prop[a$f_any == 1], prob=0.45, type=1) & a$f_any == 1] = 1
 a$t_unbal = 0 # make un_balanced treatment indicator
-a$t_unbal[a$radpko_f_prop <= quantile(a$radpko_f_prop[a$t_ind == 1], prob=0.45, type=1) & a$t_ind ==1] = 1
+a$t_unbal[a$radpko_f_prop <= quantile(a$radpko_f_prop[a$f_any == 1], prob=0.45, type=1) & a$f_any ==1] = 1
 
 # match by where women and where only men deployed
 a = a[order(a$t_bal, decreasing=TRUE), ]
@@ -282,13 +284,15 @@ gc()
 
 ## 47.5% ##
 a = readRDS("./data/kunkel_which_pks.rds") %>%
-  filter(t_ind == 1) %>% drop_na(any_of(c("prio_nlights_calib_mean", "prio_pop_gpw_sum", "prio_pop.dens"))) # drop NAs for matching
+  filter(f_any == 1) %>% 
+  # drop NAs for matching
+  drop_na(any_of(c("prio_nlights_calib_mean", "prio_pop_gpw_sum", "prio_pop.dens")))
 
 # modify balance indicator #
 a$t_bal = 0 # make balanced treatment indicator
-a$t_bal[a$radpko_f_prop > quantile(a$radpko_f_prop[a$t_ind == 1], prob=0.475, type=1)] = 1
+a$t_bal[a$radpko_f_prop > quantile(a$radpko_f_prop[a$f_any == 1], prob=0.475, type=1) & a$f_any == 1] = 1
 a$t_unbal = 0 # make un_balanced treatment indicator
-a$t_unbal[a$radpko_f_prop <= quantile(a$radpko_f_prop[a$t_ind == 1], prob=0.475, type=1) & a$t_ind ==1] = 1
+a$t_unbal[a$radpko_f_prop <= quantile(a$radpko_f_prop[a$f_any == 1], prob=0.475, type=1) & a$f_any ==1] = 1
 
 
 # match by where women and where only men deployed
@@ -347,13 +351,15 @@ gc()
 
 ## 52.5% ##
 a = readRDS("./data/kunkel_which_pks.rds") %>%
-  filter(t_ind == 1) %>% drop_na(any_of(c("prio_nlights_calib_mean", "prio_pop_gpw_sum", "prio_pop.dens"))) # drop NAs for matching
+  filter(f_any == 1) %>% 
+  # drop NAs for matching
+  drop_na(any_of(c("prio_nlights_calib_mean", "prio_pop_gpw_sum", "prio_pop.dens")))
 
 # modify balance indicator #
 a$t_bal = 0 # make balanced treatment indicator
-a$t_bal[a$radpko_f_prop > quantile(a$radpko_f_prop[a$t_ind == 1], prob=0.525, type=1)] = 1
+a$t_bal[a$radpko_f_prop > quantile(a$radpko_f_prop[a$f_any == 1], prob=0.525, type=1) & a$f_any == 1] = 1
 a$t_unbal = 0 # make un_balanced treatment indicator
-a$t_unbal[a$radpko_f_prop <= quantile(a$radpko_f_prop[a$t_ind == 1], prob=0.525, type=1) & a$t_ind ==1] = 1
+a$t_unbal[a$radpko_f_prop <= quantile(a$radpko_f_prop[a$f_any == 1], prob=0.525, type=1) & a$f_any ==1] = 1
 
 
 # match by where women and where only men deployed
@@ -412,13 +418,15 @@ gc()
 
 ## 55% ##
 a = readRDS("./data/kunkel_which_pks.rds") %>%
-  filter(t_ind == 1) %>% drop_na(any_of(c("prio_nlights_calib_mean", "prio_pop_gpw_sum", "prio_pop.dens"))) # drop NAs for matching
+  filter(f_any == 1) %>% 
+  # drop NAs for matching
+  drop_na(any_of(c("prio_nlights_calib_mean", "prio_pop_gpw_sum", "prio_pop.dens")))
 
 # modify balance indicator #
 a$t_bal = 0 # make balanced treatment indicator
-a$t_bal[a$radpko_f_prop > quantile(a$radpko_f_prop[a$t_ind == 1], prob=0.55, type=1)] = 1
+a$t_bal[a$radpko_f_prop > quantile(a$radpko_f_prop[a$f_any == 1], prob=0.55, type=1) & a$f_any == 1] = 1
 a$t_unbal = 0 # make un_balanced treatment indicator
-a$t_unbal[a$radpko_f_prop <= quantile(a$radpko_f_prop[a$t_ind == 1], prob=0.55, type=1) & a$t_ind ==1] = 1
+a$t_unbal[a$radpko_f_prop <= quantile(a$radpko_f_prop[a$f_any == 1], prob=0.55, type=1) & a$f_any ==1] = 1
 
 
 # match by where women and where only men deployed
