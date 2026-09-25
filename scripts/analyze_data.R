@@ -388,13 +388,20 @@ se_reg4
 # IV summary tables
 
 # First stage tables -- Tables [tab:1st_stage_count] and [tab:1st_stage_prop]
+partial_r2 = function(m) formatC(summary(m)$r.squared, digits = 3, format = "f")
+
 stargazer(first.stage_f, first.stage_m, style = "APSR", title = "1st Stage of Count Instrument",
           dep.var.labels= c("Women Deployed", "Men Deployed"), label = "tab:1st_stage_count",
-          covariate.labels = c("Women in Africa x Distance to Capital", "Men in Africa x Distance to Capital"))
+          covariate.labels = c("Women in Africa x Distance to Capital", "Men in Africa x Distance to Capital"),
+          omit.stat = c("rsq", "adj.rsq"),
+          add.lines = list(c("Partial R$^{2}$", partial_r2(first.stage_f), partial_r2(first.stage_m))))
 
 stargazer(first.stage_f_prop, style = "APSR", title = "1st State of Prop. Instrument",
           dep.var.labels = c("Women Deployed", "Men Deployed"), label = "tab:1st_stage_prop",
-          covariate.labels = c("Prop. Women in Africa x Distance to Capital", "Prop. Men in Africa x Distance to Capital"))
+          covariate.labels = "Prop. Women in Africa x Distance to Capital",
+          omit.stat = c("rsq", "adj.rsq"),
+          add.lines = list(c("Partial R$^{2}$", partial_r2(first.stage_f_prop))))
+rm(partial_r2)
 
 # Model table -- Table [tab:hyp_1-2a]
 stargazer(se_reg1, se_reg2, se_reg3, se_reg4, style = "APSR", title = "IV Models for Hypotheses 1/2a",
